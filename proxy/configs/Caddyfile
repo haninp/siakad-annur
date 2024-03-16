@@ -1,0 +1,3 @@
+api.example.domain {
+    reverse_proxy api:8081
+}

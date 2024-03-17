@@ -1,0 +1,51 @@
+version: '3.9'
+services:
+
+  app:
+    container_name: pembayaran
+    build:
+      context: modul
+      dockerfile: pembayaran.Dockerfile
+    volumes:
+      - /Users/haninurchairil/Documents/anothers/siakad-annur/modul/pembayaran:/app
+    networks:
+      - exa-net
+    
+  database:
+    image: siakaddb:0.19
+    volumes:
+      - siakad_data:/var/lib/mysql/
+    ports:
+      - 9035:3306
+    environment: 
+      - TZ=Asia/Jakarta
+    ulimits:
+      nofile:
+        soft: 30000
+        hard: 30000
+    networks:
+      - backend
+    security_opt:
+      - seccomp:unconfined
+    command: ['--default-authentication-plugin=mysql_native_password']
+    logging:
+      driver: json-file
+    deploy:
+      replicas: 1
+      resources:
+        reservations:
+          cpus: '0.25'
+          memory: 100M
+        limits:
+          cpus: '0.5'
+          memory: 4G
+    networks:
+      - exa-net
+
+volumes:
+  siakad_data:
+    external: true
+
+networks:
+  exa-net:
+    external: true

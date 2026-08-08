@@ -1,0 +1,15 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/contracts" },
+    { "path": "./packages/db" },
+    { "path": "./packages/core" },
+    { "path": "./packages/analytics" },
+    { "path": "./packages/drive" },
+    { "path": "./packages/bot" },
+    { "path": "./packages/mcp-server" },
+    { "path": "./apps/bot-internal" },
+    { "path": "./apps/bot-wali" },
+    { "path": "./apps/worker" }
+  ]
+}

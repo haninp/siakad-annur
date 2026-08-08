@@ -1,0 +1,21 @@
+{
+  "name": "@siakad/app-worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Penjadwal: snapshot, publikasi Sheets, backup, notifikasi",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@siakad/contracts": "*",
+    "@siakad/core": "*",
+    "@siakad/analytics": "*",
+    "@siakad/drive": "*"
+  },
+  "scripts": {
+    "build": "tsc --build"
+  }
+}

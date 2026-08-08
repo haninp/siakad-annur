@@ -1,0 +1,34 @@
+# Dependensi
+node_modules/
+
+# Hasil build
+dist/
+*.tsbuildinfo
+
+# Data — tidak pernah masuk git.
+# Basis data, snapshot, dan ekspor berisi data pribadi santri & wali.
+data/
+!data/.gitkeep
+
+# Kredensial — tidak pernah masuk git.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+service-account*.json
+credentials*.json
+token*.json
+
+# Sistem
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Cache perkakas
+.eslintcache
+coverage/
+.vitest/

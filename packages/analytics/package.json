@@ -1,0 +1,18 @@
+{
+  "name": "@siakad/analytics",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Gudang data OLAP: bronze/silver/gold di atas DuckDB",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@siakad/contracts": "*"
+  },
+  "scripts": {
+    "build": "tsc --build"
+  }
+}

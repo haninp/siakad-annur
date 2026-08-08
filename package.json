@@ -1,0 +1,34 @@
+{
+  "name": "siakad-annur",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sistem Informasi Akademik & Keuangan Pesantren An-Nuur Limo",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "tsc --build --clean",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "mulai": "node --experimental-strip-types scripts/mulai.ts",
+    "selesai": "npm run build && npm run lint && npm test && node --experimental-strip-types scripts/selesai.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.2",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.1",
+    "vitest": "^4.1.10"
+  }
+}

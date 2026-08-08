@@ -1,0 +1,19 @@
+{
+  "name": "@siakad/drive",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Klien Google Drive & Sheets: Sheet Pola dan Sheet Laporan",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@siakad/contracts": "*",
+    "@siakad/core": "*"
+  },
+  "scripts": {
+    "build": "tsc --build"
+  }
+}

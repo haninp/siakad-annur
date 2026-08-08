@@ -1,0 +1,19 @@
+{
+  "name": "@siakad/bot",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Kerangka grammY bersama: guard peran, sesi, keyboard",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@siakad/contracts": "*",
+    "@siakad/core": "*"
+  },
+  "scripts": {
+    "build": "tsc --build"
+  }
+}

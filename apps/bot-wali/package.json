@@ -1,0 +1,20 @@
+{
+  "name": "@siakad/app-bot-wali",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Bot Telegram wali santri — baca-saja",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@siakad/contracts": "*",
+    "@siakad/core": "*",
+    "@siakad/bot": "*"
+  },
+  "scripts": {
+    "build": "tsc --build"
+  }
+}

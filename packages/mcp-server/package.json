@@ -1,0 +1,20 @@
+{
+  "name": "@siakad/mcp-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Batas agent: tool MCP baca-saja ber-scope peran",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@siakad/contracts": "*",
+    "@siakad/core": "*",
+    "@siakad/analytics": "*"
+  },
+  "scripts": {
+    "build": "tsc --build"
+  }
+}

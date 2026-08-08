@@ -1,0 +1,18 @@
+{
+  "name": "@siakad/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Migrasi SQLite dan repository",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@siakad/contracts": "*"
+  },
+  "scripts": {
+    "build": "tsc --build"
+  }
+}

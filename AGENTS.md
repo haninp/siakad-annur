@@ -17,6 +17,10 @@ permukaan baca karena semua pengguna mengakses dari Android.
 
 Baca `docs/00-overview.md` untuk gambaran penuh, `docs/STATE.md` untuk kondisi terkini.
 
+`docs/RENCANA.md` memuat rencana lengkap beserta pembenaran tiap keputusan — rujuk ke sana
+bila `docs/00`–`06` terasa kurang menjelaskan _mengapa_. Bila keduanya berbeda, **`docs/00`–`06`
+dan `docs/adr/` yang berlaku**; RENCANA.md adalah dokumen asal, bukan sumber kebenaran.
+
 ---
 
 ## Mulai sesi

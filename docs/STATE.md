@@ -64,8 +64,10 @@ Tugas `[berat]`. Kalau model yang tersedia terbatas, kerjakan bagian rujukan sta
 
 ## Yang perlu diketahui
 
-- **Plan lengkap** di `~/.claude/plans/abstract-soaring-starfish.md` — seluruh rancangan
-  dan pembenaran tiap keputusan. `docs/` dan `docs/adr/` diangkat dari sana.
+- **Rencana lengkap sekarang ada di dalam repo**: `docs/RENCANA.md`. Sebelumnya hanya hidup
+  di `~/.claude/plans/`, yang melanggar ADR 0006 — pengetahuan tidak boleh tinggal di
+  direktori khusus satu vendor. Bila RENCANA.md berbeda dengan `docs/00`–`06` atau
+  `docs/adr/`, **yang terakhir yang berlaku**; RENCANA.md dokumen asal, bukan sumber kebenaran.
 - **Akademik adalah lahan kosong** — tidak ada sistem akademik di Drive. Dirancang dari
   awal, bukan dimigrasikan.
 - Prasyarat eksternal lain (token bot, service account, PDF kalender Kemenag, akun LLM)

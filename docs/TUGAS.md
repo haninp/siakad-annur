@@ -21,6 +21,9 @@ model kuat tersedia (pemodelan OLAP, aturan izin, skema kontrak).
 - [ ] **0.9** `docs/06-migrasi-legacy.md` — draf sudah ditulis dari pembacaan 03 & 04;
       **tinggal menjawab 7 pertanyaan terbuka di ujung dokumen** bersama pemegang
       pengetahuan keuangan (prasyarat P3) `[berat]`
+- [ ] **0.8b** Periksa berkas **01** dan **02**: sebaran tahun tanggal transaksi, untuk
+      memastikan tidak ada periode yang tak terwakili berkas mana pun. **Penting** — file 04
+      terbukti tidak mewarisi riwayat 2025 dari 03 `[ringan]`
 - [ ] **0.10** `packages/contracts` — identitas, wali, akademik `[berat]`
       _(bagian keuangan menunggu 0.9; sisanya boleh jalan lebih dulu)_
 

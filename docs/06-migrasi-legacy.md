@@ -15,7 +15,47 @@
 `HALAQOH`, dan `is_bebas_spp` terlihat pada cuplikan pencarian Drive tetapi tidak pada isi
 ekspor. Angka-angka di bawah menunjukkan **struktur dan tren**, bukan agregat bisnis.
 
-## Temuan utama: kerusakan bertambah antar generasi
+## Temuan utama: tiap generasi berkas MULAI DARI NOL
+
+Sebaran tahun pada tanggal transaksi (`dd/mm/yyyy`):
+
+| Tahun    | File 03 | File 04 |
+| -------- | ------: | ------: |
+| 2023     |     324 |     324 |
+| 2024     |      68 |      47 |
+| **2025** | **422** |   **1** |
+| 2026     |     144 |     325 |
+
+**File 04 praktis tidak membawa data 2025** — satu tanggal, sementara 03 punya 422.
+File 04 **tidak mewarisi** riwayat 03; ia mulai dari nol untuk 2026.
+
+_(Angka 2023 yang identik di keduanya kemungkinan blok rujukan statis — master tanggal —
+yang disalin turun-temurun, bukan transaksi.)_
+
+### Konsekuensi: cakupan impor adalah RANTAI berkas, bukan berkas terakhir
+
+Berhentinya sebuah berkas dipakai untuk entri baru **tidak** membuatnya usang sebagai
+sumber riwayat. File 03 tetap satu-satunya tempat transaksi 2025 berada.
+
+Mengimpor 04 saja berarti kehilangan satu tahun penuh riwayat keuangan — termasuk tunggakan
+terbawa dari tahun sebelumnya, yang justru menentukan benar-tidaknya saldo awal tiap santri.
+
+**Dugaan yang harus diperiksa:** pola ini berarti berkas **01** dan **02** kemungkinan
+memegang riwayat 2023–2024. Keduanya ada di Drive:
+
+| Berkas                                          | ID                                             | Terakhir diubah |
+| ----------------------------------------------- | ---------------------------------------------- | --------------- |
+| `01. Database Keuangan KBM Masjid An Nuur Limo` | `16Anl1Q93g5k4pT5Lr8faqlle0NwV8Qnz89N-nsxDrZI` | 23 Mei 2026     |
+| `02. Sementara-Keuangan KBM ... 1445H-1446H`    | `1Z5snJ9T6lsnKsbmvsmZWcpeoM7XJ-1zaxlztd08al8o` | 23 Mei 2026     |
+
+Sebelum importer ditulis, keduanya **wajib diperiksa dengan cara yang sama**: sebaran tahun
+tanggal transaksi, untuk memastikan tidak ada periode yang tak terwakili berkas mana pun.
+
+Ada juga kemungkinan **tumpang tindih** antar berkas (2024 muncul di 03 dan 04, 2026 muncul
+di keduanya). Importer harus melakukan deduplikasi — kunci alaminya kemungkinan
+`No Transaksi`, yang pada file 04 ditandai `Auto (Nomor UNIK)`.
+
+## Kerusakan bertambah antar generasi
 
 | Sinyal              |   File 03 |   File 04 |       Perubahan |
 | ------------------- | --------: | --------: | --------------: |
@@ -104,6 +144,10 @@ Semua ini tersimpul dari anotasi kolom dan isi data, tidak terdokumentasi di man
 - Penggunaan sel merge masif membuat data tidak terbaca mesin
 
 ## Strategi migrasi
+
+**Impor seluruh rantai berkas, bukan hanya yang terakhir.** Lihat temuan utama di atas:
+tiap generasi mulai dari nol, sehingga riwayat tersebar di beberapa berkas. Deduplikasi
+lewat `No Transaksi`.
 
 **Impor entrinya, hitung ulang turunannya.**
 

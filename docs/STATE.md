@@ -73,6 +73,12 @@ Tugas `[berat]`. Kalau model yang tersedia terbatas, kerjakan bagian rujukan sta
 
 ## Jebakan yang ditemukan
 
+- **Tiap generasi berkas keuangan mulai dari nol.** File 04 praktis tidak membawa data 2025
+  (1 tanggal) sementara file 03 punya 422. Berhentinya sebuah berkas dipakai untuk entri
+  baru **tidak** membuatnya usang sebagai sumber riwayat. Cakupan impor adalah **rantai
+  berkas** (01, 02, 03, 04), bukan berkas terakhir — dan butuh deduplikasi lewat
+  `No Transaksi`. Berkas 01 dan 02 belum diperiksa; itu tugas **0.8b**.
+
 - `vitest` 2.x membawa 5 kerentanan (1 kritis) lewat vite/esbuild. Sudah dinaikkan ke 4.x.
   **Jangan turunkan kembali.**
 - Ekspor Google Sheets lewat MCP **tidak membawa nama sheet** dan bersifat parsial pada

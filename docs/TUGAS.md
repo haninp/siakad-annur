@@ -14,11 +14,13 @@ model kuat tersedia (pemodelan OLAP, aturan izin, skema kontrak).
 - [x] **0.2** Bootstrap workspace: npm workspaces, tsconfig, eslint, prettier, vitest `[ringan]`
 - [x] **0.3** Instruksi agent: `AGENTS.md`, `CLAUDE.md` penunjuk, adapter `.opencode/` `[ringan]`
 - [x] **0.4** Ritual sesi: `docs/STATE.md`, `docs/TUGAS.md`, skrip `mulai` + `selesai` `[ringan]`
-- [ ] **0.5** Dokumen dasar `docs/00-overview.md` … `05-agent-boundary.md` `[berat]`
-- [ ] **0.6** ADR `0001`–`0007` `[berat]`
-- [ ] **0.7** Skill fondasi: `skills/siakad-domain`, `skills/agent-handoff` `[berat]`
-- [ ] **0.8** Baca file **03**, bandingkan dengan 04, catat pola tetap vs berubah `[ringan]`
-- [ ] **0.9** `docs/06-migrasi-legacy.md` — **butuh sesi dengan pemegang pengetahuan keuangan** `[berat]`
+- [x] **0.5** Dokumen dasar `docs/00-overview.md` … `05-agent-boundary.md` `[berat]`
+- [x] **0.6** ADR `0001`–`0007` `[berat]`
+- [x] **0.7** Skill fondasi: `skills/siakad-domain`, `skills/agent-handoff` `[berat]`
+- [x] **0.8** Baca file **03**, bandingkan dengan 04, catat pola tetap vs berubah `[ringan]`
+- [ ] **0.9** `docs/06-migrasi-legacy.md` — draf sudah ditulis dari pembacaan 03 & 04;
+      **tinggal menjawab 7 pertanyaan terbuka di ujung dokumen** bersama pemegang
+      pengetahuan keuangan (prasyarat P3) `[berat]`
 - [ ] **0.10** `packages/contracts` — identitas, wali, akademik `[berat]`
       _(bagian keuangan menunggu 0.9; sisanya boleh jalan lebih dulu)_
 

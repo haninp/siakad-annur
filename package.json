@@ -19,8 +19,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "mulai": "node --experimental-strip-types scripts/mulai.ts",
-    "selesai": "npm run build && npm run lint && npm test && node --experimental-strip-types scripts/selesai.ts"
+    "mulai": "node scripts/mulai.ts",
+    "selesai": "npm run build && npm run lint && npm test && node scripts/selesai.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

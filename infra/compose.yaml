@@ -1,0 +1,56 @@
+# Compose untuk pengembangan lokal dan VPS.
+#
+# Satu citra, beberapa service — yang membedakan hanya perintahnya. Lihat ADR 0011.
+#
+#   docker compose -f infra/compose.yaml run --rm migrasi        siapkan basis data
+#   docker compose -f infra/compose.yaml run --rm sqlite         shell sqlite3
+#   docker compose -f infra/compose.yaml up -d bot-internal      (menyusul, saat botnya ada)
+
+name: siakad
+
+x-dasar: &dasar
+  build:
+    context: ..
+    dockerfile: infra/Dockerfile
+  image: siakad:terkini
+  environment:
+    TZ: Asia/Jakarta
+    SIAKAD_DB: /data/sqlite/siakad.db
+  volumes:
+    # Bind mount, bukan named volume, supaya berkasnya terjangkau dari host —
+    # VSCode, skrip backup, dan pipeline DuckDB semuanya membacanya langsung.
+    # BACA ADR 0011 sebelum memakai ini untuk data sungguhan di macOS.
+    - ../data:/data
+  restart: unless-stopped
+
+services:
+  # Sekali jalan, bukan layanan. Migrasi juga dijalankan otomatis saat aplikasi
+  # start, tapi service ini membuatnya bisa dipanggil sendiri.
+  migrasi:
+    <<: *dasar
+    restart: no
+    command: ['node', 'scripts/basis-data.ts']
+
+  # Shell sqlite3 untuk menjelajah isi basis data tanpa memasang apa pun di host.
+  sqlite:
+    <<: *dasar
+    restart: no
+    entrypoint: ['sh', '-c']
+    command: ['exec sqlite3 "$$SIAKAD_DB"']
+    stdin_open: true
+    tty: true
+
+  bot-internal:
+    <<: *dasar
+    profiles: ['belum-siap']
+    command: ['node', 'apps/bot-internal/dist/index.js']
+
+  bot-wali:
+    <<: *dasar
+    profiles: ['belum-siap']
+    command: ['node', 'apps/bot-wali/dist/index.js']
+
+  worker:
+    <<: *dasar
+    profiles: ['belum-siap']
+    command: ['node', 'apps/worker/dist/index.js']

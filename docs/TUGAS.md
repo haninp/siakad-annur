@@ -48,6 +48,9 @@ _Belum dirinci. Rujuk plan Fase 1 sebelum memulai._
 
 - [ ] Seed `kalender_hijriah` dari PDF Kemenag (butuh prasyarat P4)
 - [x] `packages/db`: runner migrasi + koneksi ber-pragma _(repository menyusul)_
+- [x] **Infrastruktur Docker** (ADR 0011): `infra/Dockerfile` + `infra/compose.yaml`,
+      npm script berpasangan host/Docker. _(Metabase, healthcheck, backup-sebelum-migrasi,
+      dan watchdog menyusul di Fase 4)_
 - [ ] `packages/core`: aturan keuangan (tagihan, prorata, cicilan, keringanan, PROTA, lebih bayar) + izin
 
 ---

@@ -6,6 +6,7 @@
  */
 
 export * from './enum.js';
+export * from './ulid.js';
 export * from './klasifikasi.js';
 export * from './identitas.js';
 export * from './akademik.js';

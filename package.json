@@ -12,6 +12,7 @@
     "apps/*"
   ],
   "scripts": {
+    "mulai": "node scripts/mulai.ts",
     "build": "tsc --build",
     "clean": "tsc --build --clean",
     "test": "vitest run",
@@ -19,7 +20,13 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "mulai": "node scripts/mulai.ts",
+    "db": "npm run build && node scripts/basis-data.ts",
+    "db:isi": "npm run build && node scripts/basis-data.ts --isi",
+    "db:jelajah": "sqlite3 \"${SIAKAD_DB:-data/sqlite/siakad.db}\"",
+    "docker:bangun": "docker compose -f infra/compose.yaml build",
+    "docker:db": "docker compose -f infra/compose.yaml run --rm --build migrasi",
+    "docker:db:isi": "docker compose -f infra/compose.yaml run --rm --build migrasi node scripts/basis-data.ts --isi",
+    "docker:jelajah": "docker compose -f infra/compose.yaml run --rm sqlite",
     "selesai": "npm run build && npm run lint && npm test && node scripts/selesai.ts"
   },
   "devDependencies": {

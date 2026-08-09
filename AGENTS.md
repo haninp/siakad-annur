@@ -126,10 +126,15 @@ apps/bot-internal     pengurus, pengajar, admin  (baca + tulis)
 apps/bot-wali         wali santri                (baca-saja)
 apps/worker           snapshot, publikasi, backup, notifikasi
 
+infra/                Dockerfile multi-stage + compose  ⟵ seluruh runtime lewat Docker
+scripts/              alur kerja sebagai npm script
 skills/               SKILL.md format terbuka
 docs/adr/             keputusan arsitektur ber-nomor
 data/                 SQLite, Parquet, ekspor — TIDAK PERNAH masuk git
 ```
+
+**Tidak ada container basis data.** SQLite dan DuckDB pustaka _embedded_, bukan server — yang
+dikontainerkan aplikasinya, datanya berkas di volume. Lihat ADR 0011.
 
 `apps/bot-wali` hanya boleh meng-import handler tulis yang **menyentuh `usulan_izin` saja**
 (ADR 0009, diperluas ADR 0010) — saat ini `ajukanIzin` dan `batalkanIzin`. Selebihnya
@@ -161,4 +166,12 @@ npm run lint       # eslint
 npm test           # vitest
 npm run format     # prettier --write
 npm run selesai    # build + lint + test + pengingat STATE.md
+
+npm run db         # siapkan basis data SQLite + jalankan migrasi
+npm run db:isi     # sekalian isi data contoh (karangan, bukan data sungguhan)
+npm run db:jelajah # shell sqlite3 pada berkas itu
 ```
+
+Setiap alur di atas punya pasangan Docker — `docker:db`, `docker:db:isi`, `docker:jelajah` —
+yang tidak menuntut Node atau `sqlite3` terpasang di host. **Keduanya harus tetap hidup:**
+aturan 5 melarang perkakas eksklusif, jadi Docker menambah jalur, bukan menggantikan.

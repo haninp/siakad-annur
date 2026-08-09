@@ -46,6 +46,11 @@ native. Runner menolak berjalan bila migrasi yang sudah diterapkan disunting ata
 daftar; migrasi yang gagal dibatalkan seluruhnya. `bukaBasisData()` jadi satu-satunya pintu
 koneksi supaya pragma tidak bisa terlupakan.
 
+**Infrastruktur Docker (ADR 0011).** `infra/Dockerfile` multi-stage + `infra/compose.yaml`.
+RENCANA.md sudah menetapkan "Docker sejak hari pertama" sejak awal, tapi `docs/` dan `adr/`
+diam soal itu dan `infra/` kosong — jadi keputusannya praktis tidak pernah berlaku. Sudah
+diuji sungguhan di Colima aarch64: build, migrasi di container, dan pembacaan dari host.
+
 ## Sedang dikerjakan
 
 Tidak ada. Sesi berhenti di batas tugas yang bersih.
@@ -141,6 +146,10 @@ tidak menunggu apa pun.
 - Sheet `MutasiBSI` nihil di keempat ekspor; `HALAQOH` hanya muncul di 01 dan 02. Blok
   berformat EMIS **ada, dan hanya di berkas 04**.
 - Node 26 menjalankan TypeScript tanpa flag; `--experimental-strip-types` tidak diperlukan.
+- **Bind mount SQLite di macOS menembus filesystem tervirtualisasi** (Docker Desktop maupun
+  Colima). Penguncian berkas dan `fsync` di sana tidak sekuat filesystem asli, sementara
+  SQLite bergantung pada keduanya — terlebih mode WAL. Diterima untuk basis data pengembangan
+  yang bisa dibangun ulang; **jangan** untuk data sungguhan. Lihat ADR 0011.
 - **`node:sqlite` menyalakan kunci asing secara baku** — berbeda dari SQLite mentah dan
   `better-sqlite3` yang mematikannya. Jangan menyalin asumsi dari pustaka lain. `bukaBasisData()`
   tetap menyetelnya eksplisit supaya tidak bergantung pada default yang tidak kita kendalikan.

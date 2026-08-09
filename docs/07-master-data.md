@@ -377,28 +377,78 @@ menambah skala baru cukup dengan menambah baris.
 
 ## 8. `akun_keuangan`
 
-Bagan akun yang sudah dipakai, dikutip dari kolom `Akun Masuk` berkas 04:
+**Letak persisnya di sumber.** Bagan akun tinggal di **sheet `master`** pada berkas
+**`04. DATABASE KEUANGAN TA 1446-1447 (2026-2027)`**
+(`1aBZYsIgNl14j6IsWFd5hHKozVt7YXF84ex9NQDOacpo`), dan salinan yang sama ada di berkas **03**
+(`14_t7WKQntdaXUWeoYpcL7AL0ldsTmJVcbFtp46-wdNw`).
 
-| Kode | Nama               | Terbaca di ekspor |
-| ---: | ------------------ | ----------------- |
-|    1 | SPP                | ✅                |
-|    2 | UANG PENDAFTARAN   | ✅                |
-|    3 | UANG GEDUNG        | ✅                |
-|    4 | SARPRAS            | ✅                |
-|    5 | RAPORT             | ✅                |
-|    6 | MODUL              | ✅                |
-|    7 | PEMASUKAN LAIN     | ✅                |
-| 8–10 | **tidak terbaca**  | ❌ — ekspor renggang, kodenya tidak muncul |
-|   11 | PROTA              | ✅                |
-|   12 | SUMBANGAN KBM      | ✅                |
+Ekspor MCP tidak membawa nama sheet, jadi penunjuknya adalah isi: cari blok bertanda
+`MASTER DROPDOWN` dan `KONSEP PEMASUKAN PENGELUARAN (PERLU MUSYAWARAH)`. Di sana ada **dua
+tabel kecil bertumpuk**, `No | Akun Masuk | Kode` dan tepat di bawahnya `No | Akun Keluar | Kode`.
 
-Kode 8, 9, dan 10 **harus ditanyakan**, bukan ditebak. Menomori ulang akan memutus rujukan
-seluruh jurnal lama.
+### Akun masuk — 8 baris, dan penomorannya memang melompat
 
-Alokasi pengeluaran yang terbaca: `Mukafaah Pengajar`, `Mukafaah Pengelola`, `Mukafaah Mudir`,
-`Operasional (kebersihan, listrik, dll)`, `Perbaikan Gedung`, `Pembelian Tanah`, `Bangku`,
-`Papan Tulis`, `Konsumsi Pertemuan Wali Santri`, `Tausiah Ust Tamu`, `Transport pengajar`,
-`Biaya lainnya`.
+| Kode | Nama persis di sheet             |
+| ---: | -------------------------------- |
+|    1 | `1. SPP`                         |
+|    2 | `2. UANG PENDAFTARAN`            |
+|    3 | `3. UANG GEDUNG`                 |
+|    4 | `4. SARPRAS`                     |
+|    5 | `5. RAPORT`                      |
+|    6 | `6. MODUL`                       |
+|   11 | `11. PROTA (TAAWUN KBM)`         |
+|   12 | `12. SUMBANGAN KBM (Dana Ta'awun)` |
+
+### Akun keluar — 21 sampai 31
+
+Terbaca utuh di **berkas 03**; salinan di berkas 04 terpotong ekspor renggang.
+
+| Kode | Nama persis di sheet          | Kode | Nama persis di sheet   |
+| ---: | ----------------------------- | ---: | ---------------------- |
+|   21 | `21. Admin Bank`              |   27 | `27. KEGIATAN SANTRI`  |
+|   22 | `22. MUKAFAAH`                |   28 | `28. KONSUMSI`         |
+|   23 | `23. GEDUNG (Perbaikan/Sewa)` |   29 | `29. TRANSPORTASI`     |
+|   24 | `24. SARPRAS (PERBAIKAN/BELI)`|   30 | `30. ATK`              |
+|   25 | `25. RAPORT (PEMBELIAN)`      |   31 | `31. LISTRIK`          |
+|   26 | `26. MODUL (PEMBELIAN)`       |      |                        |
+
+### Koreksi: kode 7–10 bukan data yang gagal terbaca
+
+Revisi dokumen sebelumnya mencatat kode 8–10 sebagai "tidak terbaca karena ekspor renggang",
+dan mencantumkan `7. PEMASUKAN LAIN` sebagai akun masuk. **Keduanya keliru**, dan asal-usulnya
+sama: kode dikumpulkan dengan mencocokkan pola `N. NAMA` ke seluruh isi berkas, bukan dibaca
+dari tabelnya.
+
+Yang benar setelah tabelnya dibuka:
+
+- **Daftar akun masuk lengkap, hanya delapan baris**, dan sengaja melompat dari 6 ke 11.
+  Ruang nomornya terbagi: **1–12 pemasukan, 21–31 pengeluaran**. Kode 7–10 adalah **celah
+  yang tidak dipakai**, bukan baris yang hilang.
+- **`7. PEMASUKAN LAIN` tidak ada di daftar ini.** Ia muncul dua kali di **keempat** berkas
+  pada baris terpisah (`6. MODUL | 7. PEMASUKAN LAIN | 1. SPP | …`) — kosakata lain, bukan
+  bagan akun yang dipakai jurnal 03–04.
+- **Ada kosakata berkode ketiga** yang mudah tertukar: kolom `Tipe` pada sheet MUTASI BSI
+  memakai nomor berimbuhan nol (`04. Sarpras`, `05. Buku dan ATK`, `09. Mukafaah`,
+  `10. Pindah Buku`). Nomor 9 dan 10 di sana **tidak ada hubungannya** dengan akun masuk 9
+  dan 10. Ketiga kosakata ini tidak boleh disatukan tanpa konfirmasi.
+
+Kesimpulannya berubah arah: tidak ada yang perlu ditanyakan soal "kode 8, 9, 10 yang hilang".
+Yang perlu dipastikan justru **apakah celah 7–10 memang dicadangkan** — supaya SIAKAD tidak
+mengisinya dengan akun baru yang ternyata sudah dipesan untuk sesuatu.
+
+### Alokasi pengeluaran masih berstatus konsep
+
+Blok di sebelah bagan akun berjudul persis **`KONSEP PEMASUKAN PENGELUARAN (PERLU MUSYAWARAH)`**.
+Isinya pemetaan jenis pemasukan ke alokasi pengeluaran: `SPP` → `Mukafaah Pengajar`,
+`Mukafaah Pengelola`, `Mukafaah Mudir`, `Tausiah Ust Tamu`, `Transport pengajar`,
+`Operasional (kebersihan, listrik, dll)`, `Biaya lainnya`; `UANG PENDAFTARAN` →
+`Konsumsi Pertemuan Wali Santri`; `UANG GEDUNG` → `Biaya khusus untuk pembangunan`,
+`Perbaikan Gedung`, `Pembelian Tanah`; `SARPRAS` → `Meja`, `Bangku`, `Papan Tulis`,
+`ATK (Kertas, Spidol, dll)`.
+
+Judulnya menyatakan sendiri bahwa ini **belum diputuskan** oleh pesantren. Karena itu pemetaan
+ini **tidak dibekukan jadi skema** — ia disimpan sebagai data seed yang bisa berubah setelah
+musyawarah, bukan sebagai relasi yang menuntut migrasi.
 
 ## 9. `komponen_biaya`
 
@@ -441,8 +491,10 @@ di berkas 04 (10 dari 11 baris contoh), jadi ini bukan risiko hipotetis.
 
 Tidak ada satu pun yang memblokir penulisan skema; semuanya tabel seed atau kolom opsional.
 
-1. **Kode akun 8, 9, 10** — tidak terbaca di ekspor. Perlu dibuka langsung di Sheet atau
-   ditanyakan. Menebak berarti memutus rujukan jurnal lama.
+1. **Celah kode akun 7–10** — bagan akunnya sudah terbaca utuh (1–6, 11–12 untuk pemasukan;
+   21–31 untuk pengeluaran), jadi tidak ada data yang hilang. Yang perlu dipastikan: apakah
+   celah 7–10 dicadangkan untuk sesuatu. Menambah akun baru di situ tanpa bertanya berisiko
+   bertabrakan dengan rencana yang sudah ada di kepala pengelola.
 2. **`NISN` kosong seluruhnya** dan ditandai `update NISN 2026`. Kolomnya dibuat nullable;
    pengisiannya urusan operasional (**P3 pertanyaan 9**).
 3. **`status_ibu` kosong** padahal `status_ayah` terisi. Belum jelas tidak pernah didata atau

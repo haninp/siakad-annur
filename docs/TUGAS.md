@@ -47,7 +47,7 @@ model kuat tersedia (pemodelan OLAP, aturan izin, skema kontrak).
 _Belum dirinci. Rujuk plan Fase 1 sebelum memulai._
 
 - [ ] Seed `kalender_hijriah` dari PDF Kemenag (butuh prasyarat P4)
-- [ ] `packages/db`: runner migrasi + skema penuh + repository
+- [x] `packages/db`: runner migrasi + koneksi ber-pragma _(repository menyusul)_
 - [ ] `packages/core`: aturan keuangan (tagihan, prorata, cicilan, keringanan, PROTA, lebih bayar) + izin
 
 ---

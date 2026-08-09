@@ -41,15 +41,23 @@ dengan batas **3 kali** batal-lalu-ajukan-ulang per anak per tanggal. Pesan peno
 diuji: wajib menyebut nama anak dan tanggal terbaca, wajib memuat arahan langkah berikutnya,
 dan **dilarang memuat** nama tabel, nama kolom, atau istilah teknis.
 
+**`packages/db` — runner migrasi.** Memakai `node:sqlite` bawaan Node, tanpa dependensi
+native. Runner menolak berjalan bila migrasi yang sudah diterapkan disunting atau dihapus dari
+daftar; migrasi yang gagal dibatalkan seluruhnya. `bukaBasisData()` jadi satu-satunya pintu
+koneksi supaya pragma tidak bisa terlupakan.
+
 ## Sedang dikerjakan
 
 Tidak ada. Sesi berhenti di batas tugas yang bersih.
 
 ## Langkah berikutnya
 
-**`packages/db`** — runner migrasi di atas `DDL_MASTER_DATA` + `DDL_IZIN`, lalu repository.
-Setelah itu `packages/core`: penegakan izin, dan `ajukanIzin` sebagai satu-satunya handler
-tulis yang boleh di-import `bot-wali`.
+**Repository di `packages/db`** — pembacaan dan penulisan `usulan_izin` serta master data,
+di atas runner yang sudah ada. Setelah itu `packages/core`: penegakan izin peran, dan
+`ajukanIzin` / `batalkanIzin` sebagai handler yang boleh di-import `bot-wali`.
+
+Semua itu jalan **tanpa menunggu keputusan siapa pun**. Yang menunggu: bagian keuangan
+(P3) dan seluruh daftar di bawah.
 
 Bagian keuangan `contracts` (`akun_keuangan`, `komponen_biaya`) tetap menunggu 0.9.
 
@@ -133,3 +141,6 @@ tidak menunggu apa pun.
 - Sheet `MutasiBSI` nihil di keempat ekspor; `HALAQOH` hanya muncul di 01 dan 02. Blok
   berformat EMIS **ada, dan hanya di berkas 04**.
 - Node 26 menjalankan TypeScript tanpa flag; `--experimental-strip-types` tidak diperlukan.
+- **`node:sqlite` menyalakan kunci asing secara baku** — berbeda dari SQLite mentah dan
+  `better-sqlite3` yang mematikannya. Jangan menyalin asumsi dari pustaka lain. `bukaBasisData()`
+  tetap menyetelnya eksplisit supaya tidak bergantung pada default yang tidak kita kendalikan.

@@ -28,9 +28,13 @@ Ekspor ini bisa membuktikan sebuah periode _ada_ di suatu berkas; ia **tidak bis
 sebuah periode _tidak ada_. Kesimpulan final tentang cakupan menunggu akses Sheets API
 (prasyarat **P2**).
 
-Sheet `MutasiBSI`, `HALAQOH`, `is_bebas_spp`, `spp_khusus`, dan blok `EMIS` **nihil di isi
-keempat ekspor** meski sebagiannya terlihat di cuplikan pencarian Drive. Statusnya:
-belum terverifikasi, bukan tidak ada.
+Satu jebakan pencarian yang mahal: **ekspor markdown meng-escape garis bawah** (`is\_bebas\_spp`),
+sehingga pencarian `is_bebas_spp` mengembalikan nol padahal kolomnya ada. Buang backslash
+lebih dulu sebelum mencari apa pun yang bernama snake_case.
+
+Setelah dikoreksi: blok berformat EMIS (`nism`, `nisn`, `nik`, … `is_locked`, `is_bebas_spp`,
+`spp_khusus`) **ada, dan hanya di berkas 04**. Sheet `MutasiBSI` tetap nihil di keempat ekspor;
+`HALAQOH` hanya muncul di 01 dan 02. Statusnya: belum terverifikasi, bukan tidak ada.
 
 ## Koreksi: sebaran tahun versi lama tidak mengukur transaksi
 

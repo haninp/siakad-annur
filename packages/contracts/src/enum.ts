@@ -44,7 +44,12 @@ export type JenisAlias = z.infer<typeof JenisAlias>;
 export const SumberAlias = z.enum(['berkas_01', 'berkas_02', 'berkas_03', 'berkas_04', 'manual']);
 export type SumberAlias = z.infer<typeof SumberAlias>;
 
-export const HubunganWali = z.enum(['ayah', 'ibu', 'wali']);
+/**
+ * `asuh` = orang tua asuh (PROTA). Ia **wali biasa** — anak asuhnya sekadar santri
+ * yang tertaut padanya, tanpa peran terpisah dan tanpa profil izin kedua
+ * (`docs/01-domain-model.md`). Label ini murni deskriptif, bukan sumbu izin.
+ */
+export const HubunganWali = z.enum(['ayah', 'ibu', 'wali', 'asuh']);
 export type HubunganWali = z.infer<typeof HubunganWali>;
 
 /**

@@ -35,6 +35,7 @@ CREATE TABLE wali (
   nik           TEXT UNIQUE,
   nama_lengkap  TEXT NOT NULL,
   no_hp         TEXT,
+  alamat        TEXT,
   status_hidup  TEXT NOT NULL CHECK (status_hidup IN ('hidup','wafat','tidak_diketahui'))
 ) STRICT;
 
@@ -44,15 +45,17 @@ CREATE TABLE pengajar (
   nik              TEXT UNIQUE,
   nama_lengkap     TEXT NOT NULL,
   jalur_kurikulum  TEXT NOT NULL CHECK (jalur_kurikulum IN ('diniyah','umum')),
-  jalur            TEXT NOT NULL CHECK (jalur IN ('banin','banat','ra_paud'))
+  jalur            TEXT NOT NULL CHECK (jalur IN ('banin','banat','ra_paud')),
+  aktif            INTEGER NOT NULL CHECK (aktif IN (0,1))
 ) STRICT;
 
 CREATE TABLE santri_wali (
   santri_id            TEXT NOT NULL REFERENCES santri(id),
   wali_id              TEXT NOT NULL REFERENCES wali(id),
-  hubungan             TEXT NOT NULL CHECK (hubungan IN ('ayah','ibu','wali')),
+  hubungan             TEXT NOT NULL CHECK (hubungan IN ('ayah','ibu','wali','asuh')),
   penanggung_biaya     INTEGER NOT NULL CHECK (penanggung_biaya IN (0,1)),
   penerima_notifikasi  INTEGER NOT NULL CHECK (penerima_notifikasi IN (0,1)),
+  aktif                INTEGER NOT NULL CHECK (aktif IN (0,1)),
   PRIMARY KEY (santri_id, wali_id, hubungan)
 ) STRICT;
 `;

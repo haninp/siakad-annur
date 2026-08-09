@@ -89,6 +89,8 @@ export const Wali = z.object({
   /** Kunyah dipisahkan ke `wali_alias`, tidak disimpan dalam kurung. */
   nama_lengkap: NamaOrang,
   no_hp: z.string().trim().min(1).nullable(),
+  /** Bisa berbeda dari alamat santri — orang tua yang berpisah, atau wali di kota lain. */
+  alamat: z.string().trim().min(1).nullable(),
   status_hidup: StatusHidup,
 });
 export type Wali = z.infer<typeof Wali>;
@@ -98,6 +100,7 @@ const klasifikasiWali: PetaKlasifikasi<Wali> = {
   nik: 'terlarang',
   nama_lengkap: 'internal',
   no_hp: 'sensitif',
+  alamat: 'sensitif',
   status_hidup: 'sensitif',
 };
 
@@ -125,6 +128,12 @@ export const SantriWali = z.object({
    * `core` menegakkan: tiap santri wajib punya sekurangnya satu baris bernilai true.
    */
   penerima_notifikasi: z.boolean(),
+  /**
+   * Hubungan bisa berakhir — wali meninggal, perwalian berpindah, orang tua asuh
+   * berhenti menanggung. Dinonaktifkan, **tidak dihapus**: transaksi lama yang
+   * menyebut wali itu harus tetap punya rujukan.
+   */
+  aktif: z.boolean(),
 });
 export type SantriWali = z.infer<typeof SantriWali>;
 
@@ -134,6 +143,7 @@ const klasifikasiSantriWali: PetaKlasifikasi<SantriWali> = {
   hubungan: 'sensitif',
   penanggung_biaya: 'sensitif',
   penerima_notifikasi: 'internal',
+  aktif: 'internal',
 };
 
 export const entitasSantriWali: Entitas<SantriWali> = {
@@ -157,6 +167,8 @@ export const Pengajar = z.object({
   nama_lengkap: NamaOrang,
   jalur_kurikulum: z.enum(['diniyah', 'umum']),
   jalur: z.enum(['banin', 'banat', 'ra_paud']),
+  /** Pengajar yang berhenti dinonaktifkan, bukan dihapus — mukafaah lama merujuknya. */
+  aktif: z.boolean(),
 });
 export type Pengajar = z.infer<typeof Pengajar>;
 
@@ -167,6 +179,7 @@ const klasifikasiPengajar: PetaKlasifikasi<Pengajar> = {
   nama_lengkap: 'internal',
   jalur_kurikulum: 'internal',
   jalur: 'internal',
+  aktif: 'internal',
 };
 
 export const entitasPengajar: Entitas<Pengajar> = {

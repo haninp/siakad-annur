@@ -6,6 +6,11 @@ import type { Migrasi } from './migrasi.js';
  *
  * **Jangan pernah menyunting entri yang sudah diterapkan** — runner akan menolak
  * berjalan, dan itu memang disengaja. Perubahan skema selalu jadi entri baru.
+ *
+ * Satu pengecualian yang akan segera tertutup: **selama belum ada satu pun basis data
+ * berisi data sungguhan**, menyunting migrasi lama masih sah — yang ada hanyalah basis
+ * data pengembangan yang bisa dibangun ulang (`npm run db:ulang`). Jendela itu tertutup
+ * pada penerapan pertama ke data nyata, dan setelah itu aturan di atas berlaku mutlak.
  */
 export const DAFTAR_MIGRASI: readonly Migrasi[] = [
   {

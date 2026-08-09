@@ -124,12 +124,12 @@ describe('jaminan skema ditegakkan basis data', () => {
         NULL, NULL, NULL, NULL, NULL, NULL, 'aktif', NULL, NULL)`,
     ).run(SANTRI);
     db.prepare(
-      `INSERT INTO wali (id, nik, nama_lengkap, no_hp, status_hidup)
-       VALUES (?, NULL, 'Hardianto', NULL, 'hidup')`,
+      `INSERT INTO wali (id, nik, nama_lengkap, no_hp, alamat, status_hidup)
+       VALUES (?, NULL, 'Hardianto', NULL, NULL, 'hidup')`,
     ).run(WALI);
     db.prepare(
-      `INSERT INTO pengajar (id, no_induk, nik, nama_lengkap, jalur_kurikulum, jalur)
-       VALUES (?, '2301001', NULL, 'Abu Aufa Ukasah', 'diniyah', 'banin')`,
+      `INSERT INTO pengajar (id, no_induk, nik, nama_lengkap, jalur_kurikulum, jalur, aktif)
+       VALUES (?, '2301001', NULL, 'Abu Aufa Ukasah', 'diniyah', 'banin', 1)`,
     ).run(PENGAJAR);
   });
 

@@ -22,6 +22,7 @@
     "format:check": "prettier --check .",
     "db": "npm run build && node scripts/basis-data.ts",
     "db:isi": "npm run build && node scripts/basis-data.ts --isi",
+    "db:ulang": "npm run build && node scripts/basis-data.ts --ulang --isi",
     "db:jelajah": "sqlite3 \"${SIAKAD_DB:-data/sqlite/siakad.db}\"",
     "docker:bangun": "docker compose -f infra/compose.yaml build",
     "docker:db": "docker compose -f infra/compose.yaml run --rm --build migrasi",

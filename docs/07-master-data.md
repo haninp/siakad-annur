@@ -303,10 +303,18 @@ Sumber: blok `MASTER NAMA SANTRI, MUDARIS, MUDARISAH` berkas 04, kolom 51–57.
 | `jalur`                | enum  | `MUDARIS BANIN` / `MUDARIS BANAT`    | `banin` \| `banat` \| `ra_paud`                               |
 | ~~`wali_kelas_rombel_id`~~ | —  | `Wali Kelas`                         |                                                               |
 
-> **Koreksi saat implementasi (0.10):** `wali_kelas_rombel_id` **dibuang dari `pengajar`.**
+> **Koreksi saat implementasi (0.10):** `pengajar` mendapat `aktif`, dan
+> `wali_kelas_rombel_id` **dibuang darinya.**
 > Penugasan wali kelas kini hidup hanya di `rombel.wali_kelas_pengajar_id`. Menaruhnya di dua
 > sisi berarti fakta yang sama disimpan dua kali dan pasti menyimpang — dan penugasan itu
 > berganti tiap tahun, jadi tempatnya memang di `rombel`, yang sudah terikat tahun ajaran.
+
+> **Koreksi lanjutan:** `hubungan` sempat ditulis `ayah | ibu | wali` di dokumen ini —
+> **`asuh` hilang.** Padahal `docs/01-domain-model.md` menetapkannya sejak awal, dan PROTA
+> (Program Orang Tua Asuh) bergantung padanya: donatur adalah **wali biasa** dengan hubungan
+> `asuh`, bukan peran terpisah. Tanpa nilai itu, PROTA tidak punya tempat di model.
+> Ditambahkan juga `wali.alamat` dan kolom `aktif` pada `santri_wali` dan `pengajar`,
+> yang ketiganya sudah ada di `docs/01` tapi terlewat di dokumen ini.
 
 **Mengapa `pengajar` punya `nik`.** Mukafaah adalah pembayaran berulang kepada orang dewasa;
 pelaporannya cepat atau lambat menuntut identitas resmi. Sama seperti `wali`: kolomnya

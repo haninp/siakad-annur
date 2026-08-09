@@ -5,14 +5,15 @@
  * Sesuai AGENTS.md aturan 5, alur ini jadi npm script supaya jalan sama saja di
  * Claude Code, opencode, maupun terminal biasa — tidak ada perkakas eksklusif.
  *
- *   npm run db            buat berkas dan jalankan migrasi
- *   npm run db -- --isi   sekalian isi data contoh untuk dijelajahi
- *   npm run db:jelajah    buka shell sqlite3 pada berkas itu
+ *   npm run db             buat berkas dan jalankan migrasi
+ *   npm run db:isi         sekalian isi data contoh untuk dijelajahi
+ *   npm run db:ulang       hapus berkas lalu bangun ulang dari nol
+ *   npm run db:jelajah     buka shell sqlite3 pada berkas itu
  *
  * Berkasnya di `data/sqlite/`, yang tidak pernah masuk git.
  */
 
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buatUlid } from '@siakad/contracts';
@@ -55,8 +56,8 @@ function isiContoh(db: ReturnType<typeof bukaBasisData>): void {
   ).run(ta);
 
   db.prepare(
-    `INSERT INTO pengajar (id, no_induk, nik, nama_lengkap, jalur_kurikulum, jalur)
-     VALUES (?, '2601001', NULL, 'Ustadz Contoh', 'diniyah', 'banin')`,
+    `INSERT INTO pengajar (id, no_induk, nik, nama_lengkap, jalur_kurikulum, jalur, aktif)
+     VALUES (?, '2601001', NULL, 'Ustadz Contoh', 'diniyah', 'banin', 1)`,
   ).run(pengajar);
 
   db.prepare(
@@ -66,9 +67,16 @@ function isiContoh(db: ReturnType<typeof bukaBasisData>): void {
   ).run(rombel, ta, pengajar);
 
   db.prepare(
-    `INSERT INTO wali (id, nik, nama_lengkap, no_hp, status_hidup)
-     VALUES (?, NULL, 'Bapak Contoh', '08120000000', 'hidup')`,
+    `INSERT INTO wali (id, nik, nama_lengkap, no_hp, alamat, status_hidup)
+     VALUES (?, NULL, 'Bapak Contoh', '08120000000', NULL, 'hidup')`,
   ).run(wali);
+
+  // Orang tua asuh (PROTA) — wali biasa dengan hubungan 'asuh', bukan peran terpisah.
+  const donatur = buatUlid();
+  db.prepare(
+    `INSERT INTO wali (id, nik, nama_lengkap, no_hp, alamat, status_hidup)
+     VALUES (?, NULL, 'Donatur Contoh', NULL, NULL, 'hidup')`,
+  ).run(donatur);
 
   const namaSantri = ['Santri Contoh Satu', 'Santri Contoh Dua'];
   santri.forEach((id, i) => {
@@ -83,8 +91,8 @@ function isiContoh(db: ReturnType<typeof bukaBasisData>): void {
     // Satu wali, dua santri — bentuk yang membuat santri_id wajib eksplisit.
     db.prepare(
       `INSERT INTO santri_wali (santri_id, wali_id, hubungan, penanggung_biaya,
-         penerima_notifikasi)
-       VALUES (?, ?, 'ayah', 1, 1)`,
+         penerima_notifikasi, aktif)
+       VALUES (?, ?, 'ayah', 1, 1, 1)`,
     ).run(id, wali);
 
     db.prepare(
@@ -93,6 +101,13 @@ function isiContoh(db: ReturnType<typeof bukaBasisData>): void {
        VALUES (?, ?, ?, '2026-07-15', NULL, 'aktif')`,
     ).run(id, ta, rombel);
   });
+
+  // Santri kedua punya orang tua asuh: satu santri, dua wali dengan hubungan berbeda.
+  db.prepare(
+    `INSERT INTO santri_wali (santri_id, wali_id, hubungan, penanggung_biaya,
+       penerima_notifikasi, aktif)
+     VALUES (?, ?, 'asuh', 1, 0, 1)`,
+  ).run(santri[1] ?? null, donatur);
 
   // Tiga usulan izin dalam tiga keadaan berbeda, supaya alurnya terlihat.
   const usulan: [string, Record<string, string | number | null>][] = [
@@ -145,8 +160,17 @@ function isiContoh(db: ReturnType<typeof bukaBasisData>): void {
 
 function utama(): void {
   const isi = process.argv.includes('--isi');
+  const ulang = process.argv.includes('--ulang');
 
   mkdirSync(dirname(LOKASI_DB), { recursive: true });
+
+  if (ulang) {
+    // Basis data pengembangan boleh dibuang; yang berisi data sungguhan tidak.
+    // Perubahan skema setelah peluncuran wajib jadi migrasi baru, bukan hapus-ulang.
+    for (const akhiran of ['', '-wal', '-shm']) {
+      rmSync(`${LOKASI_DB}${akhiran}`, { force: true });
+    }
+  }
   const db = bukaBasisData({ lokasi: LOKASI_DB });
 
   const sebelum = versiTerpasang(db);
@@ -155,6 +179,7 @@ function utama(): void {
   console.log(tebal('\nBASIS DATA'));
   console.log('─'.repeat(40));
   console.log(`  berkas   ${LOKASI_DB}`);
+  if (ulang) console.log(`  ${redup('dibangun ulang dari nol')}`);
   console.log(`  versi    ${sebelum} → ${versiTerpasang(db)}`);
   console.log(
     `  migrasi  ${hasil.diterapkan.length > 0 ? `diterapkan ${hasil.diterapkan.join(', ')}` : 'tidak ada yang baru'}`,

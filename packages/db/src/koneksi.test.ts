@@ -37,8 +37,8 @@ describe('bukaBasisData', () => {
       db
         .prepare(
           `INSERT INTO santri_wali (santri_id, wali_id, hubungan, penanggung_biaya,
-             penerima_notifikasi)
-           VALUES ('01JRZ8QK7M4N2P5V9X3B6C8D01', '01JRZ8QK7M4N2P5V9X3B6C8D02', 'ayah', 1, 1)`,
+             penerima_notifikasi, aktif)
+           VALUES ('01JRZ8QK7M4N2P5V9X3B6C8D01', '01JRZ8QK7M4N2P5V9X3B6C8D02', 'ayah', 1, 1, 1)`,
         )
         .run(),
     ).toThrow();

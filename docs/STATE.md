@@ -46,6 +46,13 @@ native. Runner menolak berjalan bila migrasi yang sudah diterapkan disunting ata
 daftar; migrasi yang gagal dibatalkan seluruhnya. `bukaBasisData()` jadi satu-satunya pintu
 koneksi supaya pragma tidak bisa terlupakan.
 
+**Tiga koreksi skema yang ketahuan saat menjelajahi basis data.** `hubungan` pada
+`santri_wali` kehilangan nilai **`asuh`** — padahal `docs/01` menetapkannya sejak awal dan
+**PROTA bergantung padanya**. Kolom `aktif` pada `santri_wali` dan `pengajar` juga hilang,
+begitu pula `wali.alamat`. Keempatnya sudah ada di `docs/01`, terlewat di `docs/07`, dan kini
+diperbaiki. Migrasi 1 disunting langsung — sah **hanya selama belum ada data sungguhan**;
+`npm run db:ulang` untuk membangun ulang basis data pengembangan.
+
 **Infrastruktur Docker (ADR 0011).** `infra/Dockerfile` multi-stage + `infra/compose.yaml`.
 RENCANA.md sudah menetapkan "Docker sejak hari pertama" sejak awal, tapi `docs/` dan `adr/`
 diam soal itu dan `infra/` kosong — jadi keputusannya praktis tidak pernah berlaku. Sudah

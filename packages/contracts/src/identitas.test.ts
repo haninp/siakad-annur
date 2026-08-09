@@ -61,21 +61,57 @@ describe('Wali', () => {
       nik: null,
       nama_lengkap: 'HARDIANTO',
       no_hp: '089620728660',
+      alamat: null,
       status_hidup: 'hidup',
     });
     expect(hasil.success).toBe(true);
   });
 
   it('membedakan tidak_diketahui dari hidup', () => {
-    const dasar = { id: ULID, nik: null, nama_lengkap: 'MUTMAINNAH', no_hp: null };
+    const dasar = { id: ULID, nik: null, nama_lengkap: 'MUTMAINNAH', no_hp: null, alamat: null };
     expect(Wali.safeParse({ ...dasar, status_hidup: 'tidak_diketahui' }).success).toBe(true);
     expect(Wali.safeParse({ ...dasar, status_hidup: 'belum_tahu' }).success).toBe(false);
   });
 });
 
 describe('SantriWali', () => {
+  /**
+   * PROTA = Program Orang Tua Asuh. `docs/01-domain-model.md` menegaskan orang tua
+   * asuh adalah **wali biasa** dengan hubungan `asuh` — bukan peran terpisah dan
+   * bukan profil izin kedua. Tanpa nilai ini, PROTA tidak punya tempat di model.
+   */
+  it('menerima hubungan asuh — orang tua asuh adalah wali biasa', () => {
+    const hasil = SantriWali.safeParse({
+      santri_id: ULID,
+      wali_id: ULID,
+      hubungan: 'asuh',
+      penanggung_biaya: true,
+      penerima_notifikasi: false,
+      aktif: true,
+    });
+    expect(hasil.success).toBe(true);
+  });
+
+  it('hubungan yang berakhir dinonaktifkan, bukan dihapus', () => {
+    const dasar = {
+      santri_id: ULID,
+      wali_id: ULID,
+      hubungan: 'wali',
+      penanggung_biaya: false,
+      penerima_notifikasi: false,
+    };
+    expect(SantriWali.safeParse({ ...dasar, aktif: false }).success).toBe(true);
+    expect(SantriWali.safeParse(dasar).success).toBe(false);
+  });
+
   it('penanggung_biaya dan penerima_notifikasi hanya boolean', () => {
-    const dasar = { santri_id: ULID, wali_id: ULID, hubungan: 'ayah', penerima_notifikasi: true };
+    const dasar = {
+      santri_id: ULID,
+      wali_id: ULID,
+      hubungan: 'ayah',
+      penerima_notifikasi: true,
+      aktif: true,
+    };
     expect(SantriWali.safeParse({ ...dasar, penanggung_biaya: true }).success).toBe(true);
     expect(SantriWali.safeParse({ ...dasar, penanggung_biaya: 'Orang Tua' }).success).toBe(false);
     expect(SantriWali.safeParse({ ...dasar, penanggung_biaya: 1 }).success).toBe(false);
@@ -92,8 +128,22 @@ describe('Pengajar', () => {
       nama_lengkap: 'ABU AUFA UKASAH',
       jalur_kurikulum: 'diniyah',
       jalur: 'banin',
+      aktif: true,
     });
     expect(hasil.success).toBe(true);
+  });
+
+  it('pengajar yang berhenti dinonaktifkan, bukan dihapus — mukafaah lama merujuknya', () => {
+    const dasar = {
+      id: ULID,
+      no_induk: '2301001',
+      nik: null,
+      nama_lengkap: 'Ustadz Contoh',
+      jalur_kurikulum: 'umum',
+      jalur: 'banat',
+    };
+    expect(Pengajar.safeParse({ ...dasar, aktif: false }).success).toBe(true);
+    expect(Pengajar.safeParse(dasar).success).toBe(false);
   });
 });
 

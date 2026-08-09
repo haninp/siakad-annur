@@ -32,7 +32,8 @@ AISYAH ALILLATUL HANIYYAH BANDU     (kolom "Nama Santri Khusus Database Keuangan
 Berkas lama bahkan **memelihara tiga varian nama sekaligus** — `ASLI`,
 `Nama Santri Khusus Database Keuangan`, dan `Master Nama SESUAI KTP` — karena nama di kuitansi,
 di ijazah, dan di KTP memang berbeda dan ketiganya dibutuhkan. Itu kebutuhan nyata, bukan
-kekacauan yang harus dibuang. Karena itu ada tabel `santri_alias`.
+kekacauan yang harus dibuang. Karena itu ada tabel alias tersendiri untuk santri, wali, dan
+pengajar — dan kunyah tinggal di sana, bukan di dalam kolom nama.
 
 **3. Angka turunan tidak masuk master.** Tidak ada kolom tunggakan, saldo, atau total
 di entitas mana pun di dokumen ini. Berkas 01 menyimpan `Tunggakan` di baris jurnal dan itu
@@ -51,26 +52,32 @@ daftar nama kolom yang ditulis manual dan pasti akan ketinggalan.
 ## Peta entitas
 
 ```
-                    ┌──────────────┐
-                    │ tahun_ajaran │
-                    └──────┬───────┘
-                           │
-    ┌──────────┐     ┌─────┴──────┐     ┌──────────┐
-    │  jalur   │────▶│   rombel   │◀────│ marhalah │
-    └──────────┘     └─────┬──────┘     └──────────┘
-                           │
-   ┌────────────┐    ┌─────┴──────┐    ┌─────────────┐
-   │santri_alias│───▶│   santri   │───▶│ pendaftaran │
-   └────────────┘    └─────┬──────┘    └─────────────┘
-                           │
-                    ┌──────┴───────┐
-                    │  santri_wali │───▶┌──────┐
-                    └──────────────┘    │ wali │
-                                        └──────┘
-   ┌──────────┐   ┌───────────────┐   ┌──────────────────┐
-   │ pengajar │   │ akun_keuangan │   │ komponen_biaya   │
-   └──────────┘   └───────────────┘   └──────────────────┘
+                          ┌──────────────┐
+              ┌──────────▶│ tahun_ajaran │◀──────────┐
+              │           └──────┬───────┘           │
+              │                  │                   │
+   ┌──────────┴───┐        ┌─────┴──────┐      ┌─────┴─────┐
+   │  kurikulum   │        │   rombel   │      │ komponen_ │
+   └──────┬───────┘        └─────┬──────┘      │   biaya   │
+          │                      │             └───────────┘
+   ┌──────┴───────┐        ┌─────┴───────┐
+   │    mapel     │        │ pendaftaran │
+   └──────┬───────┘        └─────┬───────┘
+          │                      │
+   ┌──────┴───────┐        ┌─────┴──────┐    ┌──────────────┐
+   │ skala_nilai  │        │   santri   │───▶│ santri_alias │
+   └──────────────┘        └─────┬──────┘    └──────────────┘
+                                 │
+                          ┌──────┴───────┐   ┌──────┐   ┌────────────┐
+                          │  santri_wali │──▶│ wali │──▶│ wali_alias │
+                          └──────────────┘   └──────┘   └────────────┘
+
+   ┌──────────┐──▶┌────────────────┐      ┌───────────────┐
+   │ pengajar │   │ pengajar_alias │      │ akun_keuangan │
+   └──────────┘   └────────────────┘      └───────────────┘
 ```
+
+`jalur` dan `marhalah` adalah enum, bukan tabel — nilainya tertutup dan tidak berumur.
 
 ---
 
@@ -104,20 +111,60 @@ kerja — isinya benar-benar `Rizki : Update Tanggal 19 Mei 2026`), `Nomor Induk
 `NIS` dengan nama lain), `file_kk` / `file_akte` / `file_ijazah` (kosong; jadi lampiran
 tersendiri bila kelak dipakai).
 
-## 2. `santri_alias`
+## 2. Alias nama — `santri_alias`, `wali_alias`, `pengajar_alias`
 
-Karena satu santri punya beberapa nama sah dan importer harus bisa mencocokkan baris jurnal
-lama yang hanya menyebut nama.
+Tiga tabel berbentuk sama, satu untuk tiap entitas orang. Bentuknya identik sehingga lahir
+dari satu skema zod yang sama, tetapi kunci asingnya terpisah supaya integritas rujukan tetap
+ditegakkan basis data — bukan oleh kolom `jenis_entitas` yang tidak bisa diperiksa siapa pun.
 
-| Kolom       | Tipe | Catatan                                                                    |
-| ----------- | ---- | -------------------------------------------------------------------------- |
-| `santri_id` | ULID | →`santri.id`                                                               |
-| `nama`      | text |                                                                            |
-| `jenis`     | enum | `ktp` \| `keuangan` \| `panggilan` \| `ejaan_lama`                          |
-| `sumber`    | enum | `berkas_01` … `berkas_04` \| `manual` — supaya asal-usul tiap alias terlacak |
+| Kolom      | Tipe | Catatan                                                                     |
+| ---------- | ---- | ---------------------------------------------------------------------------- |
+| `<x>_id`   | ULID | →`santri.id` / `wali.id` / `pengajar.id`                                     |
+| `nama`     | text |                                                                              |
+| `jenis`    | enum | `ktp` \| `kunyah` \| `keuangan` \| `panggilan` \| `ejaan_lama`               |
+| `sumber`   | enum | `berkas_01` … `berkas_04` \| `manual` — supaya asal-usul tiap alias terlacak |
 
-Ini yang membuat impor jurnal 01–02 mungkin sama sekali: generasi itu menunjuk santri
-**lewat nama**, bukan nomor induk.
+**Mengapa tidak disatukan jadi satu tabel `orang`.** Sudah diperiksa di data: dari 100 nama
+wali dan 24 nama pengajar, **irisannya nol**. Tidak ada wali yang sekaligus pengajar, jadi
+penyatuan hanya menambah lapisan tanpa menyelesaikan apa pun.
+
+### Kunyah adalah alias, dan kadang ia satu-satunya nama
+
+Sesuai keputusan: kunyah **tidak** disimpan sebagai kolom tersendiri, melainkan sebagai baris
+alias `jenis = 'kunyah'`. Data lama menaruhnya di dalam kolom nama dengan tanda kurung, dengan
+penulisan yang tidak konsisten — dan untuk orang yang sama:
+
+```
+HARDIANTO (ABU IBRAHIM)          berkas 04
+Hardianto ( Abu Ibrohim Inoac )  berkas lain
+TRI LAKSANA ADI (ABU HUSAIN)  /  Tri Laksana Adi (Abu Husein)
+```
+
+Importer memisahkan isi kurung menjadi baris alias, dan nama di luar kurung menjadi
+`nama_lengkap`. Ada 27 baris berbentuk begini.
+
+**Tapi ada kasus sebaliknya, dan ini yang menentukan desain.** Sebagian pengajar tercatat
+**hanya** dengan kunyah, tanpa nama lain di berkas mana pun:
+
+| Nama tercatat     | Peran         | No induk  |
+| ----------------- | ------------- | --------- |
+| `ABU AUFA UKASAH` | MUDARIS BANIN | `2301001` |
+| `UMMU ZAHRO`      | MUDARIS BANAT | `2302004` |
+
+Ditambah `UMMU SAHLA`, `UMMU NISRINA`, `UMMU HUDZAIFAH`, `UMMU HANIFAH`, `UMMU AIMAN`,
+`ABU ZAKI`, `ABU HUDZAIFAH QOMAR`, `ABU HAURA RIZKI`, dan lainnya.
+
+Karena itu **`nama_lengkap` diisi kunyah bila memang itu satu-satunya yang diketahui**, dan
+baris alias `jenis = 'kunyah'` tetap dibuat menunjuk nilai yang sama. Aturannya: alias
+melengkapi nama kanonik, tidak menggantikannya, dan tidak pernah ada orang tanpa
+`nama_lengkap`. Memaksakan nama legal yang tidak diketahui hanya akan melahirkan kolom kosong
+atau nama karangan.
+
+Kontrol empat mata pun memakai kunyah (`Cek Abu Sahlah`, `Cek Abu Husain`) — di lingkungan ini
+kunyah adalah nama panggilan kerja, bukan julukan sampingan.
+
+Tabel alias ini juga yang membuat impor jurnal 01–02 mungkin sama sekali: generasi itu
+menunjuk santri **lewat nama**, bukan nomor induk.
 
 ## 3. `wali` dan `santri_wali`
 
@@ -127,26 +174,57 @@ dan pada model lama nomor HP-nya tersimpan berkali-kali lalu menyimpang.
 
 `wali`
 
-| Kolom          | Tipe | Asal                                        | Catatan                        |
-| -------------- | ---- | ------------------------------------------- | ------------------------------ |
-| `id`           | ULID | —                                           |                                |
-| `nama`         | text | `NAMA BAPAK` / `NAMA IBU`                   | Data nyata memuat kunyah dalam kurung: `HARDIANTO (ABU IBRAHIM)` |
-| `no_hp`        | text? | `NO HP`                                    | Kunci pencocokan akun Telegram |
-| `status_hidup` | enum | `status_ayah` / `Status Ibu`                | `hidup` \| `wafat`             |
+| Kolom          | Tipe  | Asal                         | Catatan                                                         |
+| -------------- | ----- | ---------------------------- | ---------------------------------------------------------------- |
+| `id`           | ULID  | —                            |                                                                  |
+| `nik`          | text? | —                            | 16 digit. **Data pribadi — klasifikasi `terlarang`.** Nullable: belum didata di sheet mana pun |
+| `nama_lengkap` | text  | `NAMA BAPAK` / `NAMA IBU`    | Kunyah dipisahkan ke `wali_alias`, tidak disimpan dalam kurung   |
+| `no_hp`        | text? | `NO HP`                      | Kunci pencocokan akun Telegram                                   |
+| `status_hidup` | enum  | `status_ayah` / `Status Ibu` | `hidup` \| `wafat` \| `tidak_diketahui`                          |
 
 `santri_wali`
 
-| Kolom            | Tipe | Catatan                                                             |
-| ---------------- | ---- | ------------------------------------------------------------------- |
-| `santri_id`      | ULID | →`santri.id`                                                        |
-| `wali_id`        | ULID | →`wali.id`                                                          |
-| `hubungan`       | enum | `ayah` \| `ibu` \| `wali`                                           |
-| `penanggung_biaya` | bool | Dari `yg_membiayai_sekolah` (nilai nyata: `Orang Tua`)             |
-| `penerima_notifikasi` | bool | Menentukan siapa yang di-broadcast bot wali                     |
+| Kolom                 | Tipe | Catatan                                                        |
+| --------------------- | ---- | -------------------------------------------------------------- |
+| `santri_id`           | ULID | →`santri.id`                                                   |
+| `wali_id`             | ULID | →`wali.id`                                                     |
+| `hubungan`            | enum | `ayah` \| `ibu` \| `wali`                                      |
+| `penanggung_biaya`    | bool | Dari `yg_membiayai_sekolah` (nilai nyata: `Orang Tua`)         |
+| `penerima_notifikasi` | bool | Menentukan siapa yang di-broadcast bot wali                    |
 
-**Status hidup orang tua bukan sekadar keterangan.** Nilainya nyata (`Masih Hidup` /
-`Telah Meninggal`) dan menentukan status yatim — yang berkaitan langsung dengan keringanan.
-Karena itu ia data sensitif sekaligus data operasional.
+**Mengapa `wali` punya `nik`.** Ekspor EMIS meminta data orang tua, dan berkas warisan sudah
+menyediakan `nik` untuk santri tapi tidak untuk walinya. Kolomnya disiapkan sekarang supaya
+pendataan berikutnya tidak menuntut migrasi skema — tapi **nullable**, karena mengisinya
+mensyaratkan pengumpulan data pribadi orang dewasa yang punya persyaratan persetujuannya
+sendiri (lihat "keputusan yang menggantung" di `STATE.md`).
+
+### Status yatim dihitung, tidak disimpan
+
+Sesuai keputusan: **`status_ibu` diperlakukan persis seperti `status_ayah`** — kolom yang sama
+bentuknya, aturan yang sama, di tabel `wali` yang sama. Tidak ada perlakuan khusus untuk
+salah satunya.
+
+Status keyatiman diturunkan dari keduanya, **tidak disimpan sebagai kolom**:
+
+| Ayah    | Ibu     | Status         |
+| ------- | ------- | -------------- |
+| hidup   | hidup   | —              |
+| wafat   | hidup   | `yatim`        |
+| hidup   | wafat   | `piatu`        |
+| wafat   | wafat   | `yatim_piatu`  |
+
+Ini konsisten dengan larangan menyimpan angka turunan (`AGENTS.md`): kalau status disimpan
+terpisah dari `wali.status_hidup`, keduanya akan menyimpang — dan yang menyimpang di sini
+adalah dasar pemberian keringanan.
+
+Nilai `tidak_diketahui` sengaja dibedakan dari `hidup`. Di data nyata `status_ibu` **kosong
+seluruhnya** sementara `status_ayah` terisi. Memperlakukan kosong sebagai "masih hidup" akan
+diam-diam menghapus status piatu seorang santri; memperlakukannya sebagai "wafat" akan
+mengarang keringanan. Keduanya salah, jadi ketidaktahuan dicatat apa adanya dan status
+keyatiman berstatus belum pasti sampai didata.
+
+**Ini data sensitif sekaligus data operasional** — dipakai untuk keringanan, jadi tidak bisa
+sekadar disembunyikan, tapi juga tidak boleh ikut ke prompt LLM mana pun.
 
 ## 4. Dimensi akademik: `jalur`, `marhalah`, `rombel`
 
@@ -198,18 +276,89 @@ sehingga riwayatnya hilang.
 
 Sumber: blok `MASTER NAMA SANTRI, MUDARIS, MUDARISAH` berkas 04, kolom 51–57.
 
-| Kolom              | Tipe | Asal                    | Catatan                                     |
-| ------------------ | ---- | ----------------------- | ------------------------------------------- |
-| `id`               | ULID | —                       |                                             |
-| `no_induk`         | text | `No Induk Pengajar`     |                                             |
-| `nama`             | text | `Nama Mudaris/Mudarisah`|                                             |
-| `jalur_kurikulum`  | enum | `Pengajar Diniyah` / `Pengajar Umum` | Dua kolom terpisah di sheet; hadir sejak berkas 01 |
-| `wali_kelas_rombel_id` | ULID? | `Wali Kelas`       |                                             |
+| Kolom                  | Tipe  | Asal                                 | Catatan                                                    |
+| ---------------------- | ----- | ------------------------------------ | ----------------------------------------------------------- |
+| `id`                   | ULID  | —                                    |                                                             |
+| `no_induk`             | text  | `No Induk Pengajar`                  | Berpola tahun + urut (`2301001`, `2302004`)                 |
+| `nik`                  | text? | —                                    | 16 digit. **Klasifikasi `terlarang`.** Nullable             |
+| `nama_lengkap`         | text  | `Nama Mudaris/Mudarisah`             | Boleh berisi kunyah bila itu satu-satunya nama yang diketahui |
+| `jalur_kurikulum`      | enum  | `Pengajar Diniyah` / `Pengajar Umum` | Dua kolom terpisah di sheet; hadir sejak berkas 01          |
+| `jalur`                | enum  | `MUDARIS BANIN` / `MUDARIS BANAT`    | `banin` \| `banat` \| `ra_paud`                             |
+| `wali_kelas_rombel_id` | ULID? | `Wali Kelas`                         |                                                             |
+
+**Mengapa `pengajar` punya `nik`.** Mukafaah adalah pembayaran berulang kepada orang dewasa;
+pelaporannya cepat atau lambat menuntut identitas resmi. Sama seperti `wali`: kolomnya
+disiapkan, nullable, dan diklasifikasikan `terlarang` sejak awal — bukan ditambahkan belakangan
+setelah terlanjur ada yang menyalinnya ke tempat yang salah.
 
 Mukafaah pengajar berperiode Hijriah — lihat ADR 0004. Besarannya bukan master data, ia
 transaksi.
 
-## 7. `akun_keuangan`
+## 7. Kurikulum: `mapel`, `kurikulum`, `skala_nilai`
+
+Daftar mapelnya sendiri **belum diketahui** — `STATE.md` mencatatnya sebagai keputusan yang
+menggantung, dan tidak ada sistem akademik di Drive untuk dibaca. Karena itu yang dirancang di
+sini adalah **wadahnya**, dan wadah itu dibuat supaya daftar mapel bisa diisi, diubah, dan
+berbeda antar jalur maupun antar tahun **tanpa mengubah skema sama sekali**.
+
+Aturan yang dipegang: **tidak ada satu pun nama mapel yang hidup di dalam skema.** Semuanya
+baris data. Skema yang menyebut `tahfidz` atau `matematika` di dalam enum akan menuntut migrasi
+setiap kali pesantren mengubah kurikulumnya — dan pesantren memang mengubahnya.
+
+### `mapel` — katalog datar
+
+| Kolom             | Tipe  | Catatan                                                              |
+| ----------------- | ----- | -------------------------------------------------------------------- |
+| `id`              | ULID  |                                                                      |
+| `kode`            | text unik | Dipakai di Sheet dan ekspor, stabil walau namanya diperbaiki      |
+| `nama`            | text  |                                                                      |
+| `nama_arab`       | text? | Mapel diniyah kerap punya nama Arab yang dipakai di rapor            |
+| `jalur_kurikulum` | enum  | `diniyah` \| `umum` — pembagian yang sudah ada sejak berkas 01       |
+| `jenis_penilaian` | enum  | `angka` \| `predikat` \| `hafalan` \| `deskriptif`                   |
+| `skala_nilai_id`  | ULID? | →`skala_nilai.id`; kosong bila `jenis_penilaian = hafalan`           |
+| `aktif`           | bool  | Mapel yang tidak lagi diajarkan **dinonaktifkan, tidak dihapus** — nilai lama tetap punya rujukan |
+
+Empat `jenis_penilaian` itu bukan hiasan; keempatnya benar-benar berbeda cara hidupnya:
+`angka` bernilai 0–100, `predikat` bernilai simbolik (mumtaz, jayyid jiddan, …), `hafalan`
+diukur sebagai capaian juz/halaman lewat `quran_surah` dan `quran_juz_batas` — bukan skor —
+dan `deskriptif` untuk aspek akhlak yang dinilai dengan kalimat.
+
+### `kurikulum` — di sinilah fleksibilitasnya
+
+Menghubungkan mapel ke **marhalah pada satu tahun ajaran**. Satu baris = "mapel ini diajarkan
+di marhalah ini, tahun ini".
+
+| Kolom             | Tipe  | Catatan                                                          |
+| ----------------- | ----- | ----------------------------------------------------------------- |
+| `tahun_ajaran_id` | ULID  |                                                                   |
+| `marhalah`        | enum  | `paud` \| `ra` \| `ibtidaiyyah` \| `mutawashitoh`                 |
+| `mapel_id`        | ULID  |                                                                   |
+| `tingkat`         | int?  | Bila mapel hanya untuk kelas tertentu (mis. hanya kelas 4–6)      |
+| `urutan`          | int   | Urutan tampil di rapor                                            |
+| `jam_per_pekan`   | int?  |                                                                   |
+| `kkm`             | int?  | Batas ketuntasan, bila `jenis_penilaian = angka`                  |
+
+Karena kuncinya memuat `tahun_ajaran_id`, **mengubah kurikulum tahun depan tidak menyentuh
+kurikulum tahun ini** — dan rapor lama tetap bisa dicetak ulang persis seperti aslinya. Ini
+alasan utama tabel ini dipisah dari `mapel`.
+
+Penugasan pengajar ke mapel per rombel (`pengampu`) menyusul bersama modul akademik; bentuknya
+`(rombel_id, mapel_id, pengajar_id)` dan tidak mengubah apa pun di atas.
+
+### `skala_nilai` dan `skala_nilai_butir`
+
+Supaya skala nilai diniyah — yang **masih terbuka** menurut `STATE.md` — bisa ditetapkan
+sebagai data seed lewat Sheet Pola, bukan sebagai perubahan kode.
+
+`skala_nilai`: `id`, `nama`, `jenis` (`angka` \| `predikat`), `nilai_min?`, `nilai_max?`
+
+`skala_nilai_butir`: `skala_nilai_id`, `kode`, `label`, `label_arab?`, `urutan`,
+`batas_bawah?`, `batas_atas?`
+
+Dengan ini skala Arab dan skala angka 0–100 hidup berdampingan tanpa saling memaksa, dan
+menambah skala baru cukup dengan menambah baris.
+
+## 8. `akun_keuangan`
 
 Bagan akun yang sudah dipakai, dikutip dari kolom `Akun Masuk` berkas 04:
 
@@ -234,7 +383,7 @@ Alokasi pengeluaran yang terbaca: `Mukafaah Pengajar`, `Mukafaah Pengelola`, `Mu
 `Papan Tulis`, `Konsumsi Pertemuan Wali Santri`, `Tausiah Ust Tamu`, `Transport pengajar`,
 `Biaya lainnya`.
 
-## 8. `komponen_biaya`
+## 9. `komponen_biaya`
 
 Terbaca dari header Kartu Kendali berkas 04: SPP, Biaya Pendaftaran, Biaya Uang Gedung,
 Biaya Sarana Prasarana, Biaya Modul/Buku/ATK (Banin-Banat-RA), Biaya Raport, **Biaya PKBM**.
@@ -245,7 +394,7 @@ ajaran, jadi tarif disimpan berversi per `tahun_ajaran`, bukan sebagai satu angk
 `Biaya PKBM` baru muncul di berkas 04 — bentuk kolomnya jelas, aturannya belum
 (**P3 pertanyaan 6**).
 
-## 9. `tahun_ajaran` dan periode
+## 10. `tahun_ajaran` dan periode
 
 Bentuknya sudah ditetapkan ADR 0004 dan diperkuat temuan berkas 04: ada **15 periode Masehi**
 (`01. APRIL` … `15. JUNI`) untuk masa peralihan, berdampingan dengan skema Hijriah 12 periode.
@@ -261,8 +410,8 @@ lupa didaftarkan akan tertahan, bukan lolos diam-diam.
 
 | Tingkat        | Kolom                                                                 | Aturan                                                             |
 | -------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| **terlarang**  | `santri.nik`, `wali.nik`, `no_kk`, nomor rekening                     | **Tidak pernah** keluar dari `core`. Tidak ke prompt, tidak ke Sheet, tidak ke log |
-| **sensitif**   | `tanggal_lahir`, `alamat`, `no_hp`, `wali.status_hidup`, status yatim  | Hanya ke pihak yang berhak menurut matriks peran; tidak pernah ke prompt LLM |
+| **terlarang**  | `santri.nik`, `wali.nik`, `pengajar.nik`, `no_kk`, nomor rekening      | **Tidak pernah** keluar dari `core`. Tidak ke prompt, tidak ke Sheet, tidak ke log |
+| **sensitif**   | `tanggal_lahir`, `alamat`, `no_hp`, `wali.status_hidup`, status yatim/piatu | Hanya ke pihak yang berhak menurut matriks peran; tidak pernah ke prompt LLM |
 | **internal**   | `nis`, `nisn`, `nama_lengkap`, `rombel`                               | Boleh ke pengurus dan pengajar; ke wali hanya untuk anaknya sendiri |
 | **publik**     | `marhalah`, `jalur`, nama rombel                                      | Bebas                                                               |
 
@@ -280,8 +429,13 @@ Tidak ada satu pun yang memblokir penulisan skema; semuanya tabel seed atau kolo
 2. **`NISN` kosong seluruhnya** dan ditandai `update NISN 2026`. Kolomnya dibuat nullable;
    pengisiannya urusan operasional (**P3 pertanyaan 9**).
 3. **`status_ibu` kosong** padahal `status_ayah` terisi. Belum jelas tidak pernah didata atau
-   memang tidak ada yang wafat.
-4. **Daftar mapel, skala nilai diniyah, aspek akhlak, jam KBM** — masih kosong seperti dicatat
-   `STATE.md`. Semuanya tabel seed lewat Sheet Pola, tidak memblokir.
-5. **Batas rombel Ibtidaiyyah dan Mutawashitoh** — berapa kelas masing-masing, dan apakah
+   memang tidak ada yang wafat — dan selama itu belum jelas, status piatu tidak bisa dipastikan
+   untuk siapa pun. Nilainya dicatat `tidak_diketahui`, bukan ditebak jadi `hidup`.
+4. **Isi daftar mapel, skala nilai diniyah, aspek akhlak, jam KBM** — masih kosong seperti
+   dicatat `STATE.md`. **Wadahnya sudah ada** (bagian 7), jadi pengisiannya adalah data seed
+   lewat Sheet Pola dan tidak menuntut perubahan skema. Tidak memblokir.
+5. **`nik` wali dan pengajar** sengaja nullable dan belum didata di sheet mana pun.
+   Pengumpulannya menyangkut persetujuan orang dewasa — masuk keputusan perlindungan data
+   yang masih menggantung di `STATE.md`, bukan sekadar pekerjaan entri.
+6. **Batas rombel Ibtidaiyyah dan Mutawashitoh** — berapa kelas masing-masing, dan apakah
    Mutawashitoh sudah punya rombel sendiri atau masih gabung.

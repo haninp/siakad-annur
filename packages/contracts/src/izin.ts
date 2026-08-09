@@ -53,6 +53,12 @@ const bentukUsulanIzin = z.object({
 
   status: StatusUsulan,
   ditanggapi_oleh_pengajar_id: Ulid.nullable(),
+  /**
+   * Pembatalan oleh pelapor. Terpisah dari `ditanggapi_oleh_pengajar_id` karena
+   * yang membatalkan adalah wali, bukan pengajar — dan pemisahan itu sekaligus
+   * yang menegakkan aturannya (lihat refine di bawah).
+   */
+  dibatalkan_oleh_wali_id: Ulid.nullable(),
   waktu_tanggap: WaktuIso.nullable(),
   dibuat_pada: WaktuIso,
 });
@@ -64,10 +70,33 @@ export const UsulanIzin = bentukUsulanIzin
   )
   .refine(
     (u) =>
-      u.status === 'menunggu'
-        ? u.ditanggapi_oleh_pengajar_id === null && u.waktu_tanggap === null
-        : u.ditanggapi_oleh_pengajar_id !== null && u.waktu_tanggap !== null,
-    'usulan yang sudah ditanggapi wajib mencatat penanggap dan waktunya, dan sebaliknya',
+      u.status !== 'menunggu' ||
+      (u.ditanggapi_oleh_pengajar_id === null &&
+        u.dibatalkan_oleh_wali_id === null &&
+        u.waktu_tanggap === null),
+    'usulan yang masih menunggu tidak boleh punya penanggap, pembatal, atau waktu tanggap',
+  )
+  .refine(
+    (u) =>
+      !(u.status === 'diterima' || u.status === 'ditolak') ||
+      (u.ditanggapi_oleh_pengajar_id !== null &&
+        u.dibatalkan_oleh_wali_id === null &&
+        u.waktu_tanggap !== null),
+    'usulan yang diterima atau ditolak wajib mencatat pengajar penanggap dan waktunya',
+  )
+  /**
+   * Pembatalan hanya sah selama belum di-_acknowledge_ wali kelas — dan itu
+   * ditegakkan **bentuknya**, bukan sekadar dijaga alur: baris yang pernah
+   * ditanggapi pengajar punya `ditanggapi_oleh_pengajar_id` terisi, sehingga
+   * baris batal yang juga memuatnya tidak akan lolos.
+   */
+  .refine(
+    (u) =>
+      u.status !== 'dibatalkan' ||
+      (u.dibatalkan_oleh_wali_id !== null &&
+        u.ditanggapi_oleh_pengajar_id === null &&
+        u.waktu_tanggap !== null),
+    'usulan batal wajib mencatat wali pembatal dan waktunya, dan tidak boleh sudah ditanggapi pengajar',
   );
 export type UsulanIzin = z.infer<typeof UsulanIzin>;
 
@@ -85,6 +114,7 @@ const klasifikasiUsulanIzin: PetaKlasifikasi<UsulanIzin> = {
   kanal: 'internal',
   status: 'internal',
   ditanggapi_oleh_pengajar_id: 'internal',
+  dibatalkan_oleh_wali_id: 'internal',
   waktu_tanggap: 'internal',
   dibuat_pada: 'internal',
 };
@@ -96,14 +126,29 @@ export const entitasUsulanIzin: Entitas<UsulanIzin> = {
   klasifikasi: klasifikasiUsulanIzin,
 };
 
+/** Satu-satunya tabel yang boleh disentuh handler tulis `bot-wali` (ADR 0010). */
+export const TABEL_TULIS_BOT_WALI = 'usulan_izin';
+
+export interface HandlerTulis {
+  readonly nama: string;
+  /** Harus selalu `usulan_izin`. Ini invarian yang sebenarnya dijaga. */
+  readonly tabel: string;
+  readonly operasi: 'sisip' | 'ubah';
+}
+
 /**
- * Daftar-putih handler tulis `apps/bot-wali`. Berisi **satu** nama (ADR 0009).
+ * Daftar-putih handler tulis `apps/bot-wali` (ADR 0009, diperluas ADR 0010).
  *
- * Penambahan kedua bukan perubahan kecil — ia menandakan invariannya sudah tidak
- * menahan apa-apa, dan menuntut ADR baru. Uji memeriksa **jumlahnya**, bukan hanya
- * isinya, supaya penambahan tidak lolos tanpa disadari.
+ * Yang dijaga **bukan jumlahnya**, melainkan sasarannya: setiap handler di sini
+ * hanya boleh menyentuh `usulan_izin`. Aturan berbasis hitungan akan tergerus
+ * satu per satu; aturan berbasis sasaran tidak.
+ *
+ * Jumlahnya tetap diuji sebagai pemicu tinjauan — bukan sebagai larangan.
  */
-export const HANDLER_TULIS_BOT_WALI: readonly string[] = ['ajukanIzin'];
+export const HANDLER_TULIS_BOT_WALI: readonly HandlerTulis[] = [
+  { nama: 'ajukanIzin', tabel: TABEL_TULIS_BOT_WALI, operasi: 'sisip' },
+  { nama: 'batalkanIzin', tabel: TABEL_TULIS_BOT_WALI, operasi: 'ubah' },
+];
 
 export const DDL_IZIN = `
 CREATE TABLE usulan_izin (
@@ -120,18 +165,34 @@ CREATE TABLE usulan_izin (
   status                       TEXT NOT NULL
     CHECK (status IN ('menunggu','diterima','ditolak','dibatalkan')),
   ditanggapi_oleh_pengajar_id  TEXT REFERENCES pengajar(id),
+  dibatalkan_oleh_wali_id      TEXT REFERENCES wali(id),
   waktu_tanggap                TEXT,
   dibuat_pada                  TEXT NOT NULL,
 
   CHECK (
     (dicatat_oleh_wali_id IS NULL) <> (dicatat_oleh_pengajar_id IS NULL)
   ),
+  -- Menunggu: belum ada yang menyentuh.
   CHECK (
-    (status = 'menunggu'
-      AND ditanggapi_oleh_pengajar_id IS NULL AND waktu_tanggap IS NULL)
-    OR
-    (status <> 'menunggu'
-      AND ditanggapi_oleh_pengajar_id IS NOT NULL AND waktu_tanggap IS NOT NULL)
+    status <> 'menunggu'
+    OR (ditanggapi_oleh_pengajar_id IS NULL
+        AND dibatalkan_oleh_wali_id IS NULL
+        AND waktu_tanggap IS NULL)
+  ),
+  -- Diterima / ditolak: wali kelas yang menutup.
+  CHECK (
+    status NOT IN ('diterima','ditolak')
+    OR (ditanggapi_oleh_pengajar_id IS NOT NULL
+        AND dibatalkan_oleh_wali_id IS NULL
+        AND waktu_tanggap IS NOT NULL)
+  ),
+  -- Dibatalkan: wali yang menutup, DAN belum pernah di-ack pengajar.
+  -- Ini yang menegakkan "batal hanya selama belum di-ack" di tingkat data.
+  CHECK (
+    status <> 'dibatalkan'
+    OR (dibatalkan_oleh_wali_id IS NOT NULL
+        AND ditanggapi_oleh_pengajar_id IS NULL
+        AND waktu_tanggap IS NOT NULL)
   )
 ) STRICT;
 

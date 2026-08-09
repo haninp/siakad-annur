@@ -2,6 +2,8 @@
 
 **Status:** diterima · 9 Agustus 2026
 **Mengubah:** ADR 0005 (dua bot terpisah) — tidak membatalkannya, mempersempit invariannya
+**Diperluas:** ADR 0010 — daftar-putih jadi dua handler, dan invariannya berpindah dari
+hitungan ke sasaran
 
 ## Konteks
 
@@ -81,9 +83,10 @@ kecil — ia menandakan invariannya sudah tidak menahan apa-apa, dan menuntut AD
 memutuskan apakah pemisahan dua bot masih layak dipertahankan. Uji build menyebut jumlahnya,
 bukan hanya isinya, supaya penambahan tidak lolos tanpa disadari.
 
-**Utang yang diakui.** Pembatalan usulan oleh wali belum dirancang. Membiarkan wali mengubah
-barisnya sendiri akan melanggar pagar 2, jadi bentuknya perlu diputuskan tersendiri —
-kemungkinan sebagai sisipan baru, bukan pengubahan.
+**Utang yang diakui — sudah dilunasi ADR 0010.** Pembatalan usulan oleh wali kini diizinkan
+selama belum di-_acknowledge_ wali kelas, lewat handler kedua `batalkanIzin`. Pagar 2 di atas
+karenanya berbunyi lebih tepat: wali tidak bisa **memberikan** klaim pada dirinya sendiri;
+menarik kembali klaim yang belum berlaku tidak dilarang.
 
 **Dokumen yang ikut berubah.** `AGENTS.md` dan `docs/02-roles-matrix.md` diperbarui bersama
 ADR ini. Membiarkan ketiganya berbeda akan mengulang persis kesalahan yang dilarang repo ini:

@@ -36,6 +36,7 @@ wali kelas dan pengajar mapel.
 | Baca santri yang diampu                          |  ✅   |    ✅    |          ✅          |       —       |
 | Baca santri yang tertaut padanya                 |  ✅   |    ✅    |          —           |      ✅       |
 | Ajukan izin absen anaknya (`usulan_izin`)        |  ✅   |    ✅    |          ✅          |      ✅       |
+| Batalkan usulan izin **selama belum di-ack**    |  ✅   |    ✅    |          —           |   pelapornya  |
 | Tanya-jawab bebas ke agent                       |  ✅   |    ✅    |          —           |       —       |
 | Lihat NIK / NISN / no. rekening                  |  ✅   |    ✅    |          —           | milik anaknya |
 
@@ -57,10 +58,14 @@ diverifikasi lewat uji build, bukan diasumsikan.
 
 Ini alasan utama memilih dua bot terpisah daripada satu bot dengan guard peran.
 
-**Pengecualian itu sempit dan disengaja** (ADR 0009): `ajukanIzin` hanya menyisipkan baris
-`usulan_izin`, tidak pernah menyentuh `absensi`, tidak bisa mengubah status usulan, dan hanya
-untuk santri yang tertaut pada wali pengirim. Daftar-putihnya berisi **satu** nama — uji build
-memeriksa jumlahnya, bukan hanya isinya.
+**Pengecualian itu sempit dan disengaja** (ADR 0009, diperluas ADR 0010): handler tulis
+`bot-wali` hanya boleh menyentuh `usulan_izin`, tidak pernah `absensi`, dan hanya untuk santri
+yang tertaut pada wali pengirim. Saat ini dua — `ajukanIzin` (sisip) dan `batalkanIzin` (ubah
+status `menunggu` → `dibatalkan`).
+
+Yang diuji build adalah **sasarannya**, bukan jumlahnya: aturan berbasis hitungan tergerus
+satu per satu, aturan berbasis sasaran tidak. Wali tetap tidak bisa menandai izin anaknya
+`diterima` — pembatalan hanya menghapus klaim, tidak memberikannya.
 
 ## Data pribadi
 

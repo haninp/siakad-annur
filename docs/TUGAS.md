@@ -31,6 +31,9 @@ model kuat tersedia (pemodelan OLAP, aturan izin, skema kontrak).
       → diputuskan: pengecualian sempit. `bot-wali` boleh menulis ke `usulan_izin` lewat tepat
       satu handler `ajukanIzin`. `AGENTS.md`, `docs/02-roles-matrix.md`, dan ADR 0005 ikut
       diperbarui supaya tidak saling bertentangan
+- [x] **0.9e** **ADR 0010 — pembatalan usulan izin** `[berat]`
+      → boleh selama belum di-ack wali kelas, ditegakkan CHECK bentuk data. Invarian
+      `bot-wali` berpindah dari hitungan handler ke **sasaran tabel**
 - [x] **0.10** `packages/contracts` — identitas, wali, akademik: zod + tipe + DDL SQLite,
       klasifikasi data pribadi berbasis metadata, dan status yatim sebagai fungsi turunan
       `[berat]` _(bagian keuangan menunggu 0.9)_

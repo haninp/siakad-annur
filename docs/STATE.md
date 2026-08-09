@@ -30,6 +30,12 @@ sebagai fungsi turunan. 58 test hijau.
 (`ajukanIzin`). `AGENTS.md`, `docs/02-roles-matrix.md`, dan ADR 0005 ikut diperbarui.
 `usulan_izin` sudah ada di `contracts` beserta DDL dan aturan bentuknya.
 
+**0.9e — ADR 0010, pembatalan usulan izin.** Wali boleh membatalkan selama belum di-_ack_
+wali kelas. Syaratnya ditegakkan **CHECK bentuk data**, bukan urutan alur: baris batal yang
+memuat `ditanggapi_oleh_pengajar_id` tidak akan lolos. Invarian `bot-wali` sekaligus berpindah
+dari **hitungan handler** ke **sasaran tabel** — batas berbasis hitungan tergerus satu per
+satu, batas berbasis sasaran tidak.
+
 ## Sedang dikerjakan
 
 Tidak ada. Sesi berhenti di batas tugas yang bersih.
@@ -57,10 +63,9 @@ tidak menunggu apa pun.
    master berkas 04, bukan risiko hipotetis.
 3. **Akademik**: daftar mapel per jalur & marhalah, skala nilai diniyah, aspek akhlak,
    hari & jam KBM. **Tidak memblokir** — keempatnya tabel seed, diisi lewat Sheet Pola.
-4. **Pembatalan usulan izin oleh wali** — belum dirancang. Membiarkan wali mengubah barisnya
-   sendiri melanggar pagar ADR 0009, jadi bentuknya perlu diputuskan tersendiri (kemungkinan
-   sebagai sisipan baru, bukan pengubahan). _(Jalur tulis `bot-wali` sendiri sudah terjawab
-   — lihat ADR 0009.)_
+4. **Batal lalu ajukan ulang untuk tanggal yang sama** — belum diputuskan apakah boleh.
+   Sementara ini tidak dilarang skema; bila disalahgunakan, batasnya ditambahkan di `core`.
+   _(Jalur tulis `bot-wali` dan pembatalan sudah terjawab — ADR 0009 dan 0010.)_
 5. **Sepuluh keputusan akademik lain** dari `docs/08-akademik-kebutuhan.md`: pagu poin, poin
    positif, nilai harian tampil seketika atau setelah ditinjau, poin di halaqah, izin satu hari
    menutup dua konteks, wali boleh melihat PR, bentuk grup Telegram, dan apakah ekstraksi kalimat bebas perlu LLM sama

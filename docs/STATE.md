@@ -50,7 +50,8 @@ tidak menunggu apa pun.
    tabel absensi maupun izin. Lihat tugas 0.9d.
 5. **Sepuluh keputusan akademik lain** dari `docs/08-akademik-kebutuhan.md`: pagu poin, poin
    positif, nilai harian tampil seketika atau setelah ditinjau, poin di halaqah, izin satu hari
-   menutup dua konteks, wali boleh melihat PR, bentuk grup Telegram, retensi data akun LLM.
+   menutup dua konteks, wali boleh melihat PR, bentuk grup Telegram, dan apakah ekstraksi kalimat bebas perlu LLM sama
+   sekali (kalau ya: retensi data pada Zen).
    _(Penyetelan ulang poin sudah terjawab: satu tabel `reset_poin` menutup pilihan "reset tiap
    tahun ajaran" maupun "akumulasi dengan reset sewaktu-waktu".)_
 
@@ -80,6 +81,9 @@ tidak menunggu apa pun.
   sistem poin sampai SP, kanal materi pertemuan berikutnya, nilai harian ke wali, dan laporan
   absen oleh wali. **Sumbernya percakapan, bukan berkas** — jadi tidak bisa diperiksa ulang
   seperti `docs/06` dan `07`; konfirmasi ulang sebelum dibekukan jadi skema.
+- **LLM diakses lewat Zen (prasyarat P5), bukan SDK vendor langsung.** Sejalan dengan ADR 0006:
+  `packages/core` harus memanggil lewat satu antarmuka penyedia, dan setiap keluaran divalidasi
+  zod — model murah sering tidak menjamin bentuk keluaran.
 - Prasyarat eksternal (token bot, service account, PDF kalender Kemenag, akun LLM) belum
   disiapkan. Hanya **P3** yang menghambat Fase 0; **P2** kini juga membatasi karena ekspor MCP
   tidak cukup untuk memastikan cakupan tanggal.

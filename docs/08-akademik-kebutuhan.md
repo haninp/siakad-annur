@@ -274,59 +274,88 @@ ditinggalkan orang.
 Keterangan pengelola: harus **mudah** — tombol, atau sekadar mengabari dengan kalimat biasa
 lalu chatbot yang merangkum.
 
-Rancangannya berlapis, dan lapisan pertama yang menanggung sebagian besar beban:
+### Aturan yang tidak boleh dilanggar: siapa dan kapan selalu eksplisit
 
-**Lapis 1 — tombol (menangani mayoritas kasus, biaya nol).** Wali membuka bot, menekan
-`Anak saya tidak masuk`, lalu memilih: anak yang mana (kalau lebih dari satu), `Sakit` atau
-`Izin`, dan `Hari ini` atau tanggal lain. Tiga ketukan, tidak ada yang perlu diketik, tidak ada
-model yang dipanggil, dan hasilnya sudah terstruktur sejak awal.
+**Satu wali bisa punya beberapa santri** — `wali_santri` memang n:m sejak `docs/01-domain-model.md`.
+Karena itu:
 
-**Lapis 2 — kalimat bebas (jaring pengaman).** Wali yang terlanjur mengetik
-_"assalamualaikum ustadz, hari ini Ahmad demam tidak bisa masuk"_ tetap terlayani: kalimatnya
-diekstrak jadi usulan terstruktur, lalu **ditampilkan kembali untuk dikonfirmasi wali** sebelum
-dikirim. Wali menekan `Benar` atau memperbaikinya.
+> **`usulan_izin` tidak pernah sah tanpa `santri_id` dan `tanggal` yang dipilih secara eksplisit.**
+> Keduanya tidak boleh disimpulkan dari siapa pengirimnya, dan tidak boleh ditebak dari kalimat.
 
-### Soal biaya — dan satu koreksi
+Konsekuensinya menyebar ke seluruh alur:
 
-**Ya, ada biaya, tapi kecil.** Model termurah yang tersedia saat ini adalah **Claude Haiku 4.5**
-(`claude-haiku-4-5`) — **$1 per juta token masukan, $5 per juta token keluaran**.
+- **Pemilihan santri selalu ditampilkan**, bahkan ketika wali hanya punya satu anak terdaftar.
+  Menyembunyikan pilihan "karena anaknya cuma satu" akan salah pada hari seorang adik didaftarkan
+  — dan salahnya senyap, karena izinnya tercatat untuk anak yang keliru.
+- **Beberapa anak sekaligus dimungkinkan**: satu wali melaporkan dua anaknya sakit menghasilkan
+  **dua baris** `usulan_izin`, bukan satu baris bercabang. Masing-masing di-_acknowledge_
+  terpisah, karena bisa jadi kelas dan wali kelasnya berbeda.
+- **Tanggal selalu dipilih**, bukan diasumsikan hari ini. "Besok tidak masuk" yang dikirim malam
+  hari adalah kasus yang sangat biasa.
+- **Kabar tidak hanya datang dari wali.** Pengampu absen yang diberi tahu lisan mengisi kolom
+  yang sama persis; yang berbeda hanya `dilaporkan_oleh`, `dicatat_oleh`, dan `kanal`
+  (lihat bagian 8). Bentuk datanya satu, pintu masuknya banyak.
 
-Sekali ekstraksi kira-kira 500 token masuk dan 100 token keluar, jadi **sekitar $0,001 per
-laporan** — kurang lebih **Rp16**. Pada 10 laporan sehari, biayanya **sekitar Rp5.000 sebulan**.
-Bahkan pada 50 laporan sehari masih di bawah Rp25.000 sebulan. Dan karena lapis 1 (tombol)
-tidak memanggil model sama sekali, angka nyatanya akan lebih rendah lagi.
+Rancangan alurnya berlapis, dan lapisan pertama yang menanggung hampir seluruh beban:
 
-**Tapi asumsi "cukup deterministik" perlu dikoreksi.** Mengekstrak maksud dari kalimat bebas
-manusia **tidak deterministik** — kalimat yang sama bisa menghasilkan keluaran berbeda, dan
-kalimat ambigu ("besok Ahmad ada acara keluarga, mungkin tidak masuk") bisa salah dibaca.
+**Lapis 1 — tombol.** Wali menekan `Anak saya tidak masuk`, lalu memilih **anak yang mana**
+(selalu ditanyakan, bisa lebih dari satu), `Sakit` atau `Izin`, dan **tanggal**. Tidak ada yang
+perlu diketik, tidak ada model yang dipanggil, dan hasilnya sudah terstruktur sejak awal.
 
-Yang **bisa** dijamin adalah **bentuk** keluarannya, bukan kebenarannya. Dengan fitur
-structured outputs, model dipaksa mengembalikan JSON yang sesuai skema — jadi tidak akan
-pernah ada keluaran yang gagal diurai. Isinya tetap harus dianggap **usulan**.
+**Lapis 2 — kalimat bebas.** Wali yang terlanjur mengetik
+_"assalamualaikum ustadz, hari ini Ahmad demam tidak bisa masuk"_ tetap terlayani — tapi
+**tetap melewati layar pemilihan yang sama**. Kalimatnya hanya mengisi nilai awal; santri dan
+tanggal tetap dikonfirmasi dengan tombol sebelum dikirim.
 
-Karena itu rancangannya sudah benar sejak awal: keluaran model masuk ke `usulan_izin`, wali
-mengonfirmasi, wali kelas meng-_acknowledge_, dan **baru** kode deterministik yang menulis
-`absensi`. Ini persis batas di `AGENTS.md`: LLM tidak pernah menulis ke basis data.
+### Setelah aturan di atas, pekerjaan model tinggal sedikit — dan itu temuan, bukan basa-basi
 
-### Perlindungan data: model tidak perlu tahu nama anak
+Begitu `santri_id` dan `tanggal` **wajib** dipilih lewat tombol, yang tersisa untuk model hanya:
+menebak `sakit` atau `izin`, dan menyalin alasan. Tombol sudah mengerjakan yang pertama dengan
+lebih benar, dan yang kedua tidak perlu model sama sekali — **kalimat wali bisa disimpan apa
+adanya sebagai `alasan`** untuk dibaca wali kelas.
 
-Ada jebakan yang mudah terlewat. Pesan wali memuat **nama anak dan keterangan kesehatannya** —
-data pribadi anak di bawah umur. Mengirim kalimat itu apa adanya ke API berarti data tersebut
-keluar dari pesantren.
+Ini artinya: **lapis 2 bisa dijalankan tanpa LLM sama sekali** — cukup tampilkan layar pemilihan
+begitu wali mengirim pesan apa pun, dengan kalimatnya terbawa sebagai alasan. Nol biaya, nol
+data keluar, nol ketidakpastian.
 
-Tidak perlu, dan menghindarinya juga menurunkan biaya:
+Saya sebutkan ini karena rancangan saya sebelumnya menaruh model di tempat yang ternyata sudah
+ditangani tombol. **Keputusan tetap di tangan pengelola** — kalau ekstraksi tetap diinginkan
+(misalnya supaya wali yang mengetik panjang tidak perlu menyentuh tombol sama sekali), pilihan
+di bawah berlaku. Kalau tidak, seluruh bagian ini gugur dan alurnya jadi lebih sederhana.
 
-- **Santri ditentukan kode, bukan model.** Bot sudah tahu siapa pengirimnya dari `telegram_id`,
-  jadi daftar anaknya diambil deterministik. Kalau anaknya satu, tidak ada yang perlu ditebak;
-  kalau lebih, tombol yang memilih.
-- **Model hanya mengembalikan tiga hal**: `jenis` (`sakit`/`izin`), `tanggal`, dan `alasan`
-  ringkas. Nama tidak perlu ikut, dan **prompt-nya tidak menyertakan daftar santri**.
-- Prompt caching tidak dipakai di sini: ambang minimum cache untuk Haiku 4.5 adalah 4.096 token,
-  jauh di atas ukuran prompt ekstraksi ini. Menambah panjang prompt hanya demi cache justru
-  menaikkan biaya.
+### Kalau ekstraksi tetap dipakai: lewat Zen, bukan API vendor langsung
 
-**Yang perlu diperiksa sebelum menyalakan lapis 2:** kebijakan retensi data pada akun LLM yang
-dipakai. Ini masuk keputusan perlindungan data yang sudah menggantung di `STATE.md`.
+Keterangan pengelola: **tidak memakai Haiku; rencananya lewat Zen dengan model murah.** Ini
+juga yang sudah tercatat sebagai prasyarat **P5** di `docs/TUGAS.md`.
+
+Itu **sejalan dengan ADR 0006 (portabilitas, anti lock-in)**, dan menetapkan satu keharusan
+desain:
+
+> **`packages/core` memanggil LLM lewat satu antarmuka penyedia, bukan SDK vendor tertentu.**
+> Mengganti model atau gateway harus jadi perubahan konfigurasi, bukan perubahan kode.
+
+Tiga hal yang harus dijaga karena modelnya murah dan bisa berganti-ganti:
+
+1. **Jangan bergantung pada jaminan bentuk keluaran.** Dukungan structured output berbeda-beda
+   antar model dan gateway; model murah sering tidak menjaminnya. Karena itu **setiap keluaran
+   divalidasi zod di `packages/contracts`**, dan yang tidak lolos ditolak — bukan diperbaiki
+   dengan menebak. Validasi ini kode deterministik, jadi tetap di dalam batas `AGENTS.md`.
+2. **Jangan kirim yang tidak perlu.** Prompt **tidak memuat daftar santri** dan tidak meminta
+   nama, karena santri sudah ditentukan tombol. Yang dikirim hanya kalimat walinya.
+3. **Perilaku saat model gagal harus jelas.** Gateway mati, kuota habis, atau keluaran tidak
+   lolos validasi → **jatuh ke tombol**, bukan menggantung. Alur izin tidak boleh berhenti
+   karena penyedia LLM sedang bermasalah.
+
+**Yang tetap perlu dikoreksi apa pun modelnya:** ekstraksi dari kalimat bebas **tidak
+deterministik**. Kalimat ambigu seperti _"besok Ahmad ada acara keluarga, mungkin tidak masuk"_
+bisa salah dibaca. Hasilnya selalu **usulan**: wali mengonfirmasi, wali kelas meng-_acknowledge_,
+dan **baru** kode deterministik menulis `absensi`. Persis batas di `AGENTS.md` — LLM tidak
+pernah menulis ke basis data.
+
+**Yang perlu diperiksa sebelum lapis 2 berbasis LLM dinyalakan:** kebijakan retensi data pada
+Zen dan pada model yang dipilih. Kalimat wali memuat nama anak dan keterangan kesehatannya
+walaupun sistem tidak membutuhkannya — data itu tetap ikut terkirim. Ini masuk keputusan
+perlindungan data yang sudah menggantung di `STATE.md`.
 
 ## 8. Kabar yang masuk lewat jalur pribadi — dan jalan keluarnya
 
@@ -407,7 +436,9 @@ mendesak karena memblokir bentuk tabel, sisanya memblokir aturan.
 7. **Bentuk grup Telegram**: satu supergrup ber-topik, atau satu grup per kelas.
 8. **Daftar jenis pelanggaran beserta poinnya** — tabel seed, tidak memblokir skema, tapi
    memblokir peluncuran.
-9. **Retensi data pada akun LLM** — perlu diperiksa sebelum lapis 2 (kalimat bebas) dinyalakan.
-   Masuk keputusan perlindungan data yang sudah menggantung di `STATE.md`.
+9. **Apakah lapis 2 perlu LLM sama sekali** — setelah santri dan tanggal wajib dipilih lewat
+    tombol, pekerjaan model tinggal sedikit dan alurnya bisa jalan tanpa LLM. Kalau tetap
+    dipakai: **retensi data pada Zen dan model yang dipilih** perlu diperiksa lebih dulu, karena
+    kalimat wali memuat nama anak dan keterangan kesehatannya.
 10. **Arti "di-ack oleh wali santri"** pada keterangan bagian 8 — ditafsirkan sebagai wali
     kelas; perlu konfirmasi.

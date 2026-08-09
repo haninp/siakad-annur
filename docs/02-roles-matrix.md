@@ -35,6 +35,7 @@ wali kelas dan pengajar mapel.
 | Baca seluruh santri                              |  ✅   |    ✅    |          —           |       —       |
 | Baca santri yang diampu                          |  ✅   |    ✅    |          ✅          |       —       |
 | Baca santri yang tertaut padanya                 |  ✅   |    ✅    |          —           |      ✅       |
+| Ajukan izin absen anaknya (`usulan_izin`)        |  ✅   |    ✅    |          ✅          |      ✅       |
 | Tanya-jawab bebas ke agent                       |  ✅   |    ✅    |          —           |       —       |
 | Lihat NIK / NISN / no. rekening                  |  ✅   |    ✅    |          —           | milik anaknya |
 
@@ -50,11 +51,16 @@ Tiga aturan yang harus punya unit test, bukan sekadar tertulis:
 
 ## Isolasi bot wali
 
-`apps/bot-wali` **tidak meng-import satu pun handler tulis dari `core`**. Kemampuan tulis
-absen dari binary-nya, bukan sekadar dijaga runtime guard — dan itu diverifikasi lewat uji
-build, bukan diasumsikan.
+`apps/bot-wali` **hanya meng-import satu handler tulis dari `core`: `ajukanIzin`**. Selebihnya
+kemampuan tulis absen dari binary-nya, bukan sekadar dijaga runtime guard — dan itu
+diverifikasi lewat uji build, bukan diasumsikan.
 
 Ini alasan utama memilih dua bot terpisah daripada satu bot dengan guard peran.
+
+**Pengecualian itu sempit dan disengaja** (ADR 0009): `ajukanIzin` hanya menyisipkan baris
+`usulan_izin`, tidak pernah menyentuh `absensi`, tidak bisa mengubah status usulan, dan hanya
+untuk santri yang tertaut pada wali pengirim. Daftar-putihnya berisi **satu** nama — uji build
+memeriksa jumlahnya, bukan hanya isinya.
 
 ## Data pribadi
 

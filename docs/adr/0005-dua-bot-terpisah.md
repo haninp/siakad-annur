@@ -1,6 +1,6 @@
 # ADR 0005 — Dua bot Telegram terpisah
 
-**Status:** diterima · 8 Agustus 2026
+**Status:** diterima · 8 Agustus 2026 · **dipersempit oleh ADR 0009** (9 Agustus 2026)
 
 ## Konteks
 
@@ -17,6 +17,9 @@ binary bot wali** — bukan sekadar dijaga runtime guard.
 
 `apps/bot-wali` tidak meng-import satu pun handler tulis dari `core`, dan itu diverifikasi
 lewat uji build.
+
+> **Diperbarui ADR 0009:** kini ada tepat **satu** pengecualian — `ajukanIzin`, yang hanya
+> menyisipkan baris `usulan_izin`. Alasan dan pagarnya ada di ADR 0009.
 
 ## Harga
 

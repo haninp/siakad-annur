@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { ENTITAS_MASTER_DATA } from './index.js';
+import { SEMUA_ENTITAS } from './index.js';
 import { entitasSantri, type Santri } from './identitas.js';
 import { saring, saringUmum, untukPrompt } from './klasifikasi.js';
 import { DDL_MASTER_DATA, TABEL_MASTER_DATA } from './ddl.js';
+import { DDL_IZIN, TABEL_IZIN } from './izin.js';
 
 /**
  * Inti dari uji ini: **kolom baru yang lupa diklasifikasikan harus menggagalkan
@@ -10,7 +11,7 @@ import { DDL_MASTER_DATA, TABEL_MASTER_DATA } from './ddl.js';
  * bekerja dari metadata, bukan dari daftar nama kolom yang ditulis manual.
  */
 describe('kelengkapan klasifikasi data pribadi', () => {
-  for (const entitas of ENTITAS_MASTER_DATA) {
+  for (const entitas of SEMUA_ENTITAS) {
     it(`${entitas.nama}: setiap kolom punya klasifikasi`, () => {
       const belumDiklasifikasi = entitas.kolom.filter((k) => entitas.klasifikasi[k] === undefined);
       expect(belumDiklasifikasi).toEqual([]);
@@ -24,13 +25,14 @@ describe('kelengkapan klasifikasi data pribadi', () => {
   }
 
   it('setiap entitas terdaftar di DDL, dan sebaliknya', () => {
-    const namaEntitas = ENTITAS_MASTER_DATA.map((e) => e.nama).sort();
-    expect(namaEntitas).toEqual([...TABEL_MASTER_DATA].sort());
+    const namaEntitas = SEMUA_ENTITAS.map((e) => e.nama).sort();
+    expect(namaEntitas).toEqual([...TABEL_MASTER_DATA, ...TABEL_IZIN].sort());
   });
 
   it('setiap tabel yang terdaftar benar-benar dibuat DDL', () => {
-    for (const tabel of TABEL_MASTER_DATA) {
-      expect(DDL_MASTER_DATA).toContain(`CREATE TABLE ${tabel} (`);
+    const ddl = DDL_MASTER_DATA + DDL_IZIN;
+    for (const tabel of [...TABEL_MASTER_DATA, ...TABEL_IZIN]) {
+      expect(ddl).toContain(`CREATE TABLE ${tabel} (`);
     }
   });
 });
@@ -80,7 +82,7 @@ describe('NIK tidak pernah lolos ke luar core', () => {
   });
 
   it('tidak ada satu pun kolom terlarang yang lolos ke prompt', () => {
-    for (const entitas of ENTITAS_MASTER_DATA) {
+    for (const entitas of SEMUA_ENTITAS) {
       const terlarang = entitas.kolom.filter((k) => entitas.klasifikasi[k] === 'terlarang');
       const baris = Object.fromEntries(entitas.kolom.map((k) => [k, 'nilai']));
       const hasil = saringUmum(entitas, baris, 'internal');

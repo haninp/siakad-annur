@@ -10,6 +10,7 @@ export * from './klasifikasi.js';
 export * from './identitas.js';
 export * from './akademik.js';
 export * from './turunan.js';
+export * from './izin.js';
 export * from './ddl.js';
 
 import {
@@ -22,6 +23,7 @@ import {
   entitasWaliAlias,
 } from './identitas.js';
 import { sebagaiEntitasUmum, type EntitasUmum } from './klasifikasi.js';
+import { entitasUsulanIzin } from './izin.js';
 import {
   entitasKurikulum,
   entitasMapel,
@@ -53,3 +55,12 @@ export const ENTITAS_MASTER_DATA: readonly EntitasUmum[] = [
   sebagaiEntitasUmum(entitasMapel),
   sebagaiEntitasUmum(entitasKurikulum),
 ];
+
+/**
+ * Entitas di luar master data. `usulan_izin` transaksional, bukan rujukan —
+ * dipisah supaya daftar master tetap berarti apa yang dinamakannya.
+ */
+export const ENTITAS_IZIN: readonly EntitasUmum[] = [sebagaiEntitasUmum(entitasUsulanIzin)];
+
+/** Seluruh entitas yang diuji kelengkapan klasifikasinya. */
+export const SEMUA_ENTITAS: readonly EntitasUmum[] = [...ENTITAS_MASTER_DATA, ...ENTITAS_IZIN];

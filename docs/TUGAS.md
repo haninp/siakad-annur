@@ -27,9 +27,10 @@ model kuat tersedia (pemodelan OLAP, aturan izin, skema kontrak).
       ada **dua skema kolom jurnal** (01–02 vs 03–04)
 - [x] **0.9b** Desain struktur master data: `docs/07-master-data.md` + ADR 0008 `[berat]`
 - [x] **0.9c** Catat kebutuhan akademik dari lapangan: `docs/08-akademik-kebutuhan.md` `[ringan]`
-- [ ] **0.9d** **ADR jalur tulis `bot-wali`** — kebutuhan wali melaporkan absen bertabrakan
-      dengan ADR 0005 dan `AGENTS.md`. Putuskan: pengecualian sempit (`usulan_izin`) atau
-      `bot-wali` tetap benar-benar baca-saja. **Memblokir tabel absensi dan izin** `[berat]`
+- [x] **0.9d** **ADR 0009 — jalur tulis sempit `bot-wali`** `[berat]`
+      → diputuskan: pengecualian sempit. `bot-wali` boleh menulis ke `usulan_izin` lewat tepat
+      satu handler `ajukanIzin`. `AGENTS.md`, `docs/02-roles-matrix.md`, dan ADR 0005 ikut
+      diperbarui supaya tidak saling bertentangan
 - [x] **0.10** `packages/contracts` — identitas, wali, akademik: zod + tipe + DDL SQLite,
       klasifikasi data pribadi berbasis metadata, dan status yatim sebagai fungsi turunan
       `[berat]` _(bagian keuangan menunggu 0.9)_

@@ -131,8 +131,9 @@ docs/adr/             keputusan arsitektur ber-nomor
 data/                 SQLite, Parquet, ekspor — TIDAK PERNAH masuk git
 ```
 
-`apps/bot-wali` **tidak boleh meng-import satu pun handler tulis**. Kemampuan tulis harus
-absen dari binary-nya, bukan sekadar dijaga runtime guard.
+`apps/bot-wali` **hanya boleh meng-import satu handler tulis: `ajukanIzin`** (ADR 0009).
+Selebihnya kemampuan tulis harus absen dari binary-nya, bukan sekadar dijaga runtime guard.
+Daftar-putih itu berisi **satu** nama; penambahan kedua menuntut ADR baru.
 
 ---
 

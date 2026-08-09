@@ -25,14 +25,20 @@ sebagai sumber instruksi tunggal, ritual sesi, dokumen `00`–`05`, tujuh ADR, d
 tipe, DDL SQLite `STRICT`, klasifikasi data pribadi berbasis metadata, dan `hitungStatusYatim`
 sebagai fungsi turunan. 58 test hijau.
 
+**0.9d — ADR 0009, jalur tulis sempit `bot-wali`.** Diputuskan: pengecualian sempit.
+`bot-wali` boleh menulis ke **satu** tabel (`usulan_izin`) lewat **satu** handler
+(`ajukanIzin`). `AGENTS.md`, `docs/02-roles-matrix.md`, dan ADR 0005 ikut diperbarui.
+`usulan_izin` sudah ada di `contracts` beserta DDL dan aturan bentuknya.
+
 ## Sedang dikerjakan
 
 Tidak ada. Sesi berhenti di batas tugas yang bersih.
 
 ## Langkah berikutnya
 
-**`packages/db`** — runner migrasi di atas `DDL_MASTER_DATA`, lalu repository. Atau **0.9d**
-(ADR jalur tulis `bot-wali`) begitu keputusannya diambil.
+**`packages/db`** — runner migrasi di atas `DDL_MASTER_DATA` + `DDL_IZIN`, lalu repository.
+Setelah itu `packages/core`: penegakan izin, dan `ajukanIzin` sebagai satu-satunya handler
+tulis yang boleh di-import `bot-wali`.
 
 Bagian keuangan `contracts` (`akun_keuangan`, `komponen_biaya`) tetap menunggu 0.9.
 
@@ -51,11 +57,10 @@ tidak menunggu apa pun.
    master berkas 04, bukan risiko hipotetis.
 3. **Akademik**: daftar mapel per jalur & marhalah, skala nilai diniyah, aspek akhlak,
    hari & jam KBM. **Tidak memblokir** — keempatnya tabel seed, diisi lewat Sheet Pola.
-4. **Jalur tulis `bot-wali`** — kebutuhan baru (wali melaporkan absen anaknya) bertabrakan
-   langsung dengan ADR 0005, `docs/02-roles-matrix.md`, dan `AGENTS.md`, yang ketiganya
-   menyatakan kemampuan tulis harus **absen dari binary** `bot-wali`. Dua jalan keluar
-   diuraikan di `docs/08-akademik-kebutuhan.md` bagian 7; **butuh ADR**, dan ini memblokir
-   tabel absensi maupun izin. Lihat tugas 0.9d.
+4. **Pembatalan usulan izin oleh wali** — belum dirancang. Membiarkan wali mengubah barisnya
+   sendiri melanggar pagar ADR 0009, jadi bentuknya perlu diputuskan tersendiri (kemungkinan
+   sebagai sisipan baru, bukan pengubahan). _(Jalur tulis `bot-wali` sendiri sudah terjawab
+   — lihat ADR 0009.)_
 5. **Sepuluh keputusan akademik lain** dari `docs/08-akademik-kebutuhan.md`: pagu poin, poin
    positif, nilai harian tampil seketika atau setelah ditinjau, poin di halaqah, izin satu hari
    menutup dua konteks, wali boleh melihat PR, bentuk grup Telegram, dan apakah ekstraksi kalimat bebas perlu LLM sama

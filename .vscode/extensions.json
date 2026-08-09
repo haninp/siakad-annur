@@ -1,0 +1,10 @@
+{
+  // Rekomendasi ekstensi, bukan keharusan. Repo ini tidak boleh bergantung pada
+  // editor mana pun (AGENTS.md aturan 5) — seluruh alur kerja tetap tersedia
+  // sebagai npm script: `npm run db:jelajah`, `npm run docker:jelajah`.
+  //
+  // Keduanya untuk menjelajah basis data SQLite di `data/sqlite/`:
+  //   qwtel.sqlite-viewer   baca-saja, klik berkas .db langsung terbuka
+  //   alexcvzz.vscode-sqlite  menjalankan SQL, untuk intervensi langsung
+  "recommendations": ["qwtel.sqlite-viewer", "alexcvzz.vscode-sqlite"]
+}

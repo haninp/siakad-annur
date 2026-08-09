@@ -97,6 +97,23 @@ pesantren berkedudukan sebagai pengendali data.
 Bot dan MCP server sama-sama memanggilnya. Jangan pernah menulis aturan izin di dua tempat —
 begitu terjadi, keduanya akan menyimpang dan tidak ada yang tahu mana yang benar.
 
+### Intervensi langsung ke basis data adalah tindakan luar biasa
+
+Menyunting isi basis data lewat ekstensi editor atau `sqlite3` **bukan alur kerja**. Ia
+melewati validasi zod di `contracts` dan — yang lebih menentukan — **tidak meninggalkan jejak
+di `audit_log`**. CHECK dan kunci asing tetap ditegakkan SQLite, jadi bentuk datanya aman;
+yang hilang adalah jawaban atas "siapa yang mengubah ini, dan kapan".
+
+Tiga syarat, tidak ada yang boleh dilewati:
+
+1. **Cadangkan dulu** — `npm run db:cadangkan`
+2. **Hentikan container** yang sedang memegang berkas itu
+3. **Tulis apa yang diubah dan mengapa** di `docs/handoff/` — itu satu-satunya pengganti
+   jejak audit yang hilang
+
+Kalau sesuatu perlu diintervensi berulang kali, itu bukan intervensi — itu fitur yang belum
+ditulis.
+
 ### Angka turunan tidak disimpan
 
 Tunggakan, saldo, dan capaian hafalan **dihitung dari transaksinya**, tidak disimpan sebagai
@@ -169,7 +186,9 @@ npm run selesai    # build + lint + test + pengingat STATE.md
 
 npm run db         # siapkan basis data SQLite + jalankan migrasi
 npm run db:isi     # sekalian isi data contoh (karangan, bukan data sungguhan)
+npm run db:ulang   # hapus lalu bangun ulang dari nol (hanya basis data pengembangan)
 npm run db:jelajah # shell sqlite3 pada berkas itu
+npm run db:cadangkan  # salinan aman sebelum intervensi langsung
 ```
 
 Setiap alur di atas punya pasangan Docker — `docker:db`, `docker:db:isi`, `docker:jelajah` —

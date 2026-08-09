@@ -53,6 +53,12 @@ begitu pula `wali.alamat`. Keempatnya sudah ada di `docs/01`, terlewat di `docs/
 diperbaiki. Migrasi 1 disunting langsung — sah **hanya selama belum ada data sungguhan**;
 `npm run db:ulang` untuk membangun ulang basis data pengembangan.
 
+**Intervensi langsung ke basis data ditetapkan sebagai tindakan luar biasa** (`AGENTS.md`).
+Menyunting lewat ekstensi editor melewati zod dan — yang lebih menentukan — tidak
+meninggalkan jejak di `audit_log`. Tiga syarat: cadangkan (`npm run db:cadangkan`), hentikan
+container, tulis apa yang diubah di `docs/handoff/`. `.vscode/extensions.json` menyarankan
+`qwtel.sqlite-viewer` (baca-saja) dan `alexcvzz.vscode-sqlite` (menjalankan SQL).
+
 **Infrastruktur Docker (ADR 0011).** `infra/Dockerfile` multi-stage + `infra/compose.yaml`.
 RENCANA.md sudah menetapkan "Docker sejak hari pertama" sejak awal, tapi `docs/` dan `adr/`
 diam soal itu dan `infra/` kosong — jadi keputusannya praktis tidak pernah berlaku. Sudah

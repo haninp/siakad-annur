@@ -25,7 +25,11 @@ token*.json
 Thumbs.db
 
 # Editor
-.vscode/
+# Setelan pribadi diabaikan, rekomendasi ekstensi dibagikan. Polanya harus
+# `.vscode/*`, bukan `.vscode/` — git tidak bisa membatalkan pengabaian berkas
+# di dalam direktori yang sudah diabaikan seluruhnya.
+.vscode/*
+!.vscode/extensions.json
 .idea/
 
 # Cache perkakas

@@ -1,59 +1,92 @@
 # 06 — Migrasi dari Spreadsheet Lama
 
-> **Status: draf.** Bagian "yang sudah terbaca" berasal dari pembacaan langsung dan sudah
-> dapat dipakai. Bagian "pertanyaan terbuka" menunggu sesi dengan pemegang pengetahuan
-> keuangan (prasyarat **P3**) — dan itu yang memblokir bagian keuangan pada `contracts`.
+> **Status: draf.** Keempat berkas rantai (01–04) sudah dibaca. Bagian "yang sudah terbaca"
+> berasal dari pembacaan langsung dan sudah dapat dipakai — **dengan batas metode di bawah**.
+> Bagian "pertanyaan terbuka" menunggu sesi dengan pemegang pengetahuan keuangan
+> (prasyarat **P3**) — dan itu yang memblokir bagian keuangan pada `contracts`.
 
 ## Cakupan pembacaan
 
-| Berkas                                             | Dibaca                                           | Catatan                                                           |
-| -------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------- |
-| **04. DATABASE KEUANGAN TA 1446-1447 (2026-2027)** | 8 Agu 2026, ~656 rb karakter dari berkas ~1 MB   | Nama sheet **tidak** terbawa ekspor; tabel dipetakan lewat header |
-| **03. Database Keuangan KBM ... 1446H-1447H**      | 8 Agu 2026, ~613 rb karakter dari berkas ~1,5 MB | Sama                                                              |
+Keempat berkas rantai sudah dibaca lewat ekspor MCP Google Drive:
 
-**Keduanya parsial.** Sebagian sheet kemungkinan tidak ikut terekspor — `MutasiBSI`,
-`HALAQOH`, dan `is_bebas_spp` terlihat pada cuplikan pencarian Drive tetapi tidak pada isi
-ekspor. Angka-angka di bawah menunjukkan **struktur dan tren**, bukan agregat bisnis.
+| Berkas                                             | ID Drive                                       | Ukuran   | Dibaca      |
+| -------------------------------------------------- | ---------------------------------------------- | -------- | ----------- |
+| `01. Database Keuangan KBM Masjid An Nuur Limo`    | `16Anl1Q93g5k4pT5Lr8faqlle0NwV8Qnz89N-nsxDrZI` | 786 KB   | 9 Agu 2026  |
+| `02. Sementara-Keuangan KBM ... 1445H-1446H`       | `1Z5snJ9T6lsnKsbmvsmZWcpeoM7XJ-1zaxlztd08al8o` | 1,5 MB   | 9 Agu 2026  |
+| `03. Database Keuangan KBM ... 1446H-1447H`        | `14_t7WKQntdaXUWeoYpcL7AL0ldsTmJVcbFtp46-wdNw` | 1,5 MB   | 9 Agu 2026  |
+| `04. DATABASE KEUANGAN TA 1446-1447 (2026-2027)`   | `1aBZYsIgNl14j6IsWFd5hHKozVt7YXF84ex9NQDOacpo` | 1,0 MB   | 9 Agu 2026  |
 
-## Temuan utama: tiap generasi berkas MULAI DARI NOL
+### Batas metode — baca ini sebelum memercayai angka mana pun di bawah
 
-Sebaran tahun pada tanggal transaksi (`dd/mm/yyyy`):
+Ekspor MCP tidak membawa nama sheet, jadi tabel dipetakan lewat baris header. Lebih penting:
+**ekspor bersifat cuplikan renggang, bukan potongan awal.** Buktinya jurnal warisan 2023
+yang muncul di keempat berkas: kolom `No` berjalan **63 sampai 220** tetapi hanya **78 baris**
+yang terbawa. Ada lubang di tengahnya.
 
-| Tahun    | File 03 | File 04 |
-| -------- | ------: | ------: |
-| 2023     |     324 |     324 |
-| 2024     |      68 |      47 |
-| **2025** | **422** |   **1** |
-| 2026     |     144 |     325 |
+Konsekuensinya keras: **rentang tanggal di bawah adalah batas bawah, bukan cakupan sebenarnya.**
+Ekspor ini bisa membuktikan sebuah periode _ada_ di suatu berkas; ia **tidak bisa** membuktikan
+sebuah periode _tidak ada_. Kesimpulan final tentang cakupan menunggu akses Sheets API
+(prasyarat **P2**).
 
-**File 04 praktis tidak membawa data 2025** — satu tanggal, sementara 03 punya 422.
-File 04 **tidak mewarisi** riwayat 03; ia mulai dari nol untuk 2026.
+Sheet `MutasiBSI`, `HALAQOH`, `is_bebas_spp`, `spp_khusus`, dan blok `EMIS` **nihil di isi
+keempat ekspor** meski sebagiannya terlihat di cuplikan pencarian Drive. Statusnya:
+belum terverifikasi, bukan tidak ada.
 
-_(Angka 2023 yang identik di keduanya kemungkinan blok rujukan statis — master tanggal —
-yang disalin turun-temurun, bukan transaksi.)_
+## Koreksi: sebaran tahun versi lama tidak mengukur transaksi
 
-### Konsekuensi: cakupan impor adalah RANTAI berkas, bukan berkas terakhir
+Revisi dokumen sebelumnya memuat tabel sebaran tahun untuk 03 dan 04 yang dihitung dengan
+mencocokkan pola `dd/mm/yyyy` **ke seluruh isi ekspor**. Pembacaan 01 dan 02 membongkar apa
+yang sebenarnya ikut terhitung di sana:
 
-Berhentinya sebuah berkas dipakai untuk entri baru **tidak** membuatnya usang sebagai
-sumber riwayat. File 03 tetap satu-satunya tempat transaksi 2025 berada.
+| Sumber tanggal dalam ekspor    | Sifat                                    | Contoh sumbangan       |
+| ------------------------------ | ---------------------------------------- | ---------------------- |
+| Sheet log add-on Document Studio | **Bukan transaksi** — jejak cetak berkas | 164× 2023 + 47× 2024   |
+| Jurnal warisan 2023            | Transaksi, tapi **disalin ke 4 berkas**  | 156 (78 baris × 2 kolom) |
+| Cuplikan header `MUTASI ... BSI` | Contoh baris, bukan data                 | 4× 2023                |
+| Kolom tanggal lahir santri     | **Data pribadi**, bukan transaksi        | seluruh tahun 2013–2018 |
+| Kartu Kendali & mutasi bank    | Turunan / rekening, bukan jurnal         | ratusan                |
 
-Mengimpor 04 saja berarti kehilangan satu tahun penuh riwayat keuangan — termasuk tunggakan
-terbawa dari tahun sebelumnya, yang justru menentukan benar-tidaknya saldo awal tiap santri.
+Angka `324` untuk tahun 2023 yang identik di 02, 03, dan 04 kini terjelaskan seluruhnya:
+`4 + 156 + 164 = 324`. Itu **boilerplate warisan**, bukan "blok master tanggal" seperti
+diduga sebelumnya.
 
-**Dugaan yang harus diperiksa:** pola ini berarti berkas **01** dan **02** kemungkinan
-memegang riwayat 2023–2024. Keduanya ada di Drive:
+Dan angka `47` untuk 2024 di file 04 **seluruhnya** berasal dari log Document Studio —
+nol transaksi. Tabel lama membandingkan derau, bukan data.
 
-| Berkas                                          | ID                                             | Terakhir diubah |
-| ----------------------------------------------- | ---------------------------------------------- | --------------- |
-| `01. Database Keuangan KBM Masjid An Nuur Limo` | `16Anl1Q93g5k4pT5Lr8faqlle0NwV8Qnz89N-nsxDrZI` | 23 Mei 2026     |
-| `02. Sementara-Keuangan KBM ... 1445H-1446H`    | `1Z5snJ9T6lsnKsbmvsmZWcpeoM7XJ-1zaxlztd08al8o` | 23 Mei 2026     |
+## Sebaran tanggal transaksi yang sebenarnya
 
-Sebelum importer ditulis, keduanya **wajib diperiksa dengan cara yang sama**: sebaran tahun
-tanggal transaksi, untuk memastikan tidak ada periode yang tak terwakili berkas mana pun.
+Dihitung dari kolom `Tanggal Transaksi` / `TGL Transaksi` pada blok jurnal saja:
 
-Ada juga kemungkinan **tumpang tindih** antar berkas (2024 muncul di 03 dan 04, 2026 muncul
-di keduanya). Importer harus melakukan deduplikasi — kunci alaminya kemungkinan
-`No Transaksi`, yang pada file 04 ditandai `Auto (Nomor UNIK)`.
+| Berkas | Jurnal aktif — bulan terbaca                | Baris | `No`   | `No Transaksi`    |
+| ------ | ------------------------------------------- | ----: | ------ | ----------------- |
+| **01** | Juli 2023                                   |    51 | 1–51   | 451081 – 451089   |
+| **02** | Maret–April 2024                            |    75 | 1–75   | 453631 – 454229   |
+| **03** | Februari–Maret 2025                         |    66 | 1–67   | 457061 – 458035   |
+| **04** | Januari–Mei 2026                            |    68 | 1–68   | 461331 – 461651   |
+
+Ditambah **satu jurnal warisan Juli–Agustus 2023** (78 baris, `No` 63–220) yang hadir
+**identik baris-per-baris di keempat berkas** — sudah diperiksa: sama persis, bukan mirip.
+
+### Dua hal yang berubah dari kesimpulan lama
+
+**1. "Tiap generasi mulai dari nol" perlu diperhalus.** Yang benar: tiap berkas memulai
+**jurnal aktif** yang baru untuk periodenya sendiri, sementara **satu sheet arsip 2023
+ikut disalin turun-temurun**. Jadi pewarisan memang terjadi — hanya saja yang diwariskan
+sheet arsip lama, bukan jurnal tahun sebelumnya.
+
+**2. Kesimpulan pokoknya tetap berdiri, malah menguat.** Tiap berkas memegang periode yang
+tidak dipegang berkas lain: 01→2023, 02→2024, 03→2025, 04→2026. **Cakupan impor adalah
+rantai berkas 01–04, bukan berkas terakhir.** Mengimpor 04 saja berarti membuang tiga tahun
+riwayat — termasuk tunggakan terbawa yang menentukan benar-tidaknya saldo awal tiap santri.
+
+### Kabar baik: `No Transaksi` adalah deret global
+
+Rentang `No Transaksi` naik monoton lintas generasi dan **tidak saling tumpang tindih**:
+451xxx (2023) → 453xxx (2024) → 457xxx (2025) → 461xxx (2026).
+
+Artinya penomoran berjalan lintas berkas, bukan diulang per berkas. Ini membuat
+**deduplikasi lewat `No Transaksi` aman** — dan satu-satunya duplikasi nyata yang ditemukan
+(sheet arsip 2023 di keempat berkas) justru persis yang akan ditangkapnya.
 
 ## Kerusakan bertambah antar generasi
 
@@ -91,20 +124,58 @@ tagihan nyata.
 
 ## Apa yang baru, apa yang bertahan
 
-| Istilah                            | 03  | 04  | Bacaan                                                    |
-| ---------------------------------- | :-: | :-: | --------------------------------------------------------- |
-| PROTA                              | ✅  | ✅  | Pola inti, bertahan lintas generasi                       |
-| KERINGANAN                         | ✅  | ✅  | Pola inti                                                 |
-| Cicilan                            | ✅  | ✅  | Pola inti                                                 |
-| NISN                               | ✅  | ✅  | Pola inti                                                 |
-| `Cek Abu ...` (kontrol empat mata) | ✅  | ✅  | Pola inti — **pertahankan**                               |
-| Pengajar Diniyah / Umum            | ✅  | ✅  | Dua jalur kurikulum sudah lama ada                        |
-| **TAYSIR**                         |  —  | ✅  | **Baru di 04** — integrasi yang hidup, bukan warisan mati |
-| **Lebih Bayar**                    |  —  | ✅  | **Baru di 04** — penanganan lebih bayar relatif baru      |
-| **Biaya PKBM**                     |  —  | ✅  | **Baru di 04** — afiliasi/pembiayaan PKBM relatif baru    |
+Angka = jumlah kemunculan istilah dalam ekspor. Pembacaan 01 dan 02 **memundurkan** beberapa
+pola yang sebelumnya disangka warisan lama:
 
-Yang bertahan lintas generasi aman dijadikan skema. Yang baru muncul di 04 justru perlu
-ditanyakan — kemunculannya berarti aturannya sedang terbentuk, bukan sudah mapan.
+| Istilah                            | 01  | 02  | 03  | 04  | Bacaan                                                          |
+| ---------------------------------- | --: | --: | --: | --: | --------------------------------------------------------------- |
+| `Cek Abu ...` (kontrol empat mata) |   2 |   2 |   2 |   2 | **Benar-benar pola inti** — ada sejak 01. Pertahankan            |
+| Cicilan                            |   3 |   9 |   5 |   4 | **Benar-benar pola inti** — ada sejak 01                        |
+| Mukafaah                           |   8 |   8 |   9 |   8 | Pola inti                                                        |
+| Ta'awun / TAAWUN                   |  14 |  10 |  65 |   7 | Pola inti                                                        |
+| Tunggakan                          |  96 | 179 | 225 | 266 | Pola inti — porsinya membesar tiap generasi                      |
+| Pengajar Diniyah / Umum            |   2 |   2 |   1 |   1 | Dua jalur kurikulum sudah lama ada                               |
+| **PROTA**                          |   — |   1 |  25 |  13 | **Bukan warisan lama.** Muncul di 02 sebagai "ALOKASI TAAWUN PROTA", matang di 03 |
+| **KERINGANAN**                     |   — |   1 |   4 |  15 | **Bukan warisan lama.** Muncul di 02, tumbuh terus              |
+| **NISN**                           |   — |   — |   8 |  16 | **Baru di 03**, dan di sana ditandai `update NISN 2026` — masih backfill |
+| **Lebih Bayar**                    |   — |   — |   2 |  62 | Di 03 **hanya legenda kode warna**; jadi besaran yang dikelola baru di 04 |
+| **TAYSIR**                         |   — |   — |   — |   2 | Baru di 04                                                       |
+| **Biaya PKBM**                     |   — |   — |   — |  33 | Baru di 04 — komponen biaya sejajar SPP, Pendaftaran, Uang Gedung, Sarpras, Modul/Buku/ATK, Raport |
+
+**Yang berubah dari bacaan sebelumnya:** PROTA, KERINGANAN, dan NISN sempat dicatat sebagai
+"pola inti yang bertahan lintas generasi". Ternyata ketiganya **absen di berkas 01**. Umurnya
+dua sampai tiga tahun, bukan sejak awal — jadi aturannya belum tentu mapan dan **tetap perlu
+ditanyakan**, tidak boleh langsung dibekukan jadi skema.
+
+Yang benar-benar aman dibekukan hanya yang hadir sejak 01: kontrol empat mata, cicilan,
+mukafaah, ta'awun, tunggakan, dan dua jalur pengajar.
+
+## Silsilah kolom jurnal — ada dua skema, bukan satu
+
+Patahan besar terjadi antara **02 dan 03**, bukan 03→04:
+
+| Generasi  | Identitas santri di jurnal          | Akun                            | Ciri khas                                        |
+| --------- | ----------------------------------- | ------------------------------- | ------------------------------------------------ |
+| **01–02** | `Nama`, `No Induk`, `Kelas`, `Banin/Ra/Banat` | `Akun Transaksi` (satu kolom)   | `Terbilang`, `cetak/belum`, kolom Document Studio |
+| **03–04** | `NAMA`, `ORANG TUA`, `NIS`, `KELAS` | `AKUN MASUK` + `AKUN KELUAR` (terpisah) | `NILAI PROTA`, `Cicilan ke - (Max 6)`      |
+
+Perbedaan 03→04 hanya penghalusan: `Tanggal Transaksi` → `TGL Transaksi`, tambahan
+`khusus entri PROTA`, `Jika Akun Masuk SPP atau PROTA`, `AKUN KELUAR (KHUSUS CATAT PENGELUARAN)`,
+dan satu kolom mati bernama `DELL`.
+
+Beberapa hal khas per generasi yang perlu dicatat importer:
+
+- **`Tunggakan` sebagai kolom jurnal hanya ada di 01.** Angka turunan disimpan di baris
+  transaksi — persis anti-pola yang dilarang ADR. Jangan diimpor; hitung ulang.
+- **`Nama Bapak` dan `NILAI TAAWUN` hanya ada di 02**, lalu hilang.
+- **Kolom Document Studio (`File Status`, `File Link`) hanya di 01** — cetak kuitansi lewat
+  add-on adalah kebiasaan generasi pertama.
+- **`Bulan SPP` berganti isi**: di 04 memuat label Hijriah (`9. Jumadil Akhir 1447 H`)
+  sementara `Bulan Masehi (Transaksi)` berdiri sendiri.
+
+**Konsekuensi importer:** siapkan **dua pemetaan kolom**, satu untuk 01–02 dan satu untuk
+03–04. Satu pemetaan tunggal akan menggeser kolom secara diam-diam — dan pergeseran kolom
+pada data keuangan tidak menghasilkan galat, hanya angka yang salah.
 
 ## Struktur yang ditemukan (file 04)
 
@@ -145,9 +216,12 @@ Semua ini tersimpul dari anotasi kolom dan isi data, tidak terdokumentasi di man
 
 ## Strategi migrasi
 
-**Impor seluruh rantai berkas, bukan hanya yang terakhir.** Lihat temuan utama di atas:
-tiap generasi mulai dari nol, sehingga riwayat tersebar di beberapa berkas. Deduplikasi
-lewat `No Transaksi`.
+**Impor seluruh rantai berkas, bukan hanya yang terakhir.** Tiap berkas memegang periode yang
+tidak dipegang berkas lain (01→2023, 02→2024, 03→2025, 04→2026), sehingga riwayat tersebar.
+Deduplikasi lewat `No Transaksi`, yang sudah terbukti sebagai deret global lintas berkas.
+
+**Pakai dua pemetaan kolom** — 01–02 dan 03–04 memakai tata kolom yang berbeda. Lihat
+"Silsilah kolom jurnal" di atas.
 
 **Impor entrinya, hitung ulang turunannya.**
 
@@ -162,12 +236,32 @@ transaksinya sendiri data entri dan kemungkinan besar masih sehat.
 
 ## Pertanyaan terbuka — untuk sesi P3
 
+Diperbarui setelah pembacaan 01 dan 02. Beberapa pertanyaan berubah bentuk karena umur tiap
+pola sudah diketahui — yang ditanyakan sekarang bukan lagi "apakah ada", melainkan "kapan
+dan mengapa berubah", yang jauh lebih mudah dijawab manusia.
+
 1. **TAYSIR** — masih hidup atau sudah ditinggalkan? Arah pertukaran data ke mana, dan field
    apa yang jadi kunci pencocokan? _(Baru muncul di 04, jadi kemungkinan besar masih hidup.)_
-2. **Aturan penetapan besaran keringanan** — siapa memutuskan, atas dasar apa, berlaku berapa lama?
+2. **Keringanan mulai dipakai sekitar berkas 02 (2024)** — apa yang memicunya, siapa yang
+   memutuskan besarannya, atas dasar apa, dan berlaku berapa lama?
 3. **Santri keluar di tengah tahun** — tagihan berjalan dihapus, ditagih penuh, atau prorata?
-4. **Sisa dana PROTA** yang tidak teralokasi — dikembalikan ke donatur atau digulirkan?
-5. **Awal tahun ajaran** — benarkah bergeser ke Juli, mengikuti deretan 15 periode itu?
-6. **`Lebih Bayar` dan `Biaya PKBM`** baru muncul di 04 — aturannya sudah mapan atau masih
-   dicoba-coba?
+4. **PROTA juga baru mulai di 02** dan matang di 03. Bagaimana aturannya sekarang, dan sisa
+   dana yang tidak teralokasi — dikembalikan ke donatur atau digulirkan?
+5. **Awal tahun ajaran** — deretan 15 periode di 04 menunjukkan pergeseran ke Juli. Kapan
+   diputuskan, dan apakah periode transisi April–Juni 2026 ditagih seperti bulan biasa?
+6. **`Lebih Bayar`** sudah ada di 03 tapi hanya sebagai kode warna status, lalu jadi besaran
+   yang dikelola di 04. Apa yang berubah — mulai dikembalikan tunai, atau dipotong tagihan
+   berikutnya? **`Biaya PKBM`** yang benar-benar baru di 04: siapa yang menanggung, dan
+   apakah dikenakan ke semua santri?
 7. Kolom bertanda **`Khusus PROTA`** pada tabel transaksi — apa persisnya yang dicatat di sana?
+8. **Sheet arsip Juli–Agustus 2023 disalin utuh ke keempat berkas.** Disengaja sebagai
+   rujukan saldo awal, atau sisa salin-tempel yang terbawa? Jawabannya menentukan apakah ia
+   diimpor sekali atau diabaikan sama sekali.
+9. **`NISN` masih kosong** di master berkas 04 dan ditandai `update NISN 2026` sejak berkas 03.
+   Apakah pengisiannya sedang berjalan, dan dari sumber mana?
+
+### Yang tidak lagi perlu ditanyakan
+
+- Apakah `No Transaksi` bisa dipakai deduplikasi — **sudah terjawab: bisa**, deretnya global
+  dan tidak tumpang tindih antar berkas.
+- Apakah 01 dan 02 memegang periode yang tak terwakili — **sudah terjawab: ya**, 2023 dan 2024.

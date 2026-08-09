@@ -25,8 +25,9 @@ model kuat tersedia (pemodelan OLAP, aturan izin, skema kontrak).
       → 01 memegang 2023, 02 memegang 2024. Rantai 01–04 terkonfirmasi. Sekalian membongkar
       bahwa tabel sebaran versi lama menghitung derau (log add-on, tanggal lahir), dan bahwa
       ada **dua skema kolom jurnal** (01–02 vs 03–04)
-- [ ] **0.10** `packages/contracts` — identitas, wali, akademik `[berat]`
-      _(bagian keuangan menunggu 0.9; sisanya boleh jalan lebih dulu)_
+- [x] **0.9b** Desain struktur master data: `docs/07-master-data.md` + ADR 0008 `[berat]`
+- [ ] **0.10** `packages/contracts` — terjemahkan `docs/07-master-data.md` ke zod + tipe + DDL
+      `[berat]` _(bagian keuangan menunggu 0.9; sisanya boleh jalan lebih dulu)_
 
 ---
 

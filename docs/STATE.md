@@ -36,6 +36,11 @@ memuat `ditanggapi_oleh_pengajar_id` tidak akan lolos. Invarian `bot-wali` sekal
 dari **hitungan handler** ke **sasaran tabel** — batas berbasis hitungan tergerus satu per
 satu, batas berbasis sasaran tidak.
 
+**Aturan bisnis pertama di `packages/core`.** `bolehAjukanIzin` dan `bolehBatalkanIzin`,
+dengan batas **3 kali** batal-lalu-ajukan-ulang per anak per tanggal. Pesan penolakannya
+diuji: wajib menyebut nama anak dan tanggal terbaca, wajib memuat arahan langkah berikutnya,
+dan **dilarang memuat** nama tabel, nama kolom, atau istilah teknis.
+
 ## Sedang dikerjakan
 
 Tidak ada. Sesi berhenti di batas tugas yang bersih.
@@ -63,9 +68,8 @@ tidak menunggu apa pun.
    master berkas 04, bukan risiko hipotetis.
 3. **Akademik**: daftar mapel per jalur & marhalah, skala nilai diniyah, aspek akhlak,
    hari & jam KBM. **Tidak memblokir** — keempatnya tabel seed, diisi lewat Sheet Pola.
-4. **Batal lalu ajukan ulang untuk tanggal yang sama** — belum diputuskan apakah boleh.
-   Sementara ini tidak dilarang skema; bila disalahgunakan, batasnya ditambahkan di `core`.
-   _(Jalur tulis `bot-wali` dan pembatalan sudah terjawab — ADR 0009 dan 0010.)_
+4. _(Jalur tulis `bot-wali`, pembatalan, dan batas pengulangannya sudah terjawab — ADR 0009
+   dan 0010. Tidak ada yang menggantung di jalur izin absen.)_
 5. **Sepuluh keputusan akademik lain** dari `docs/08-akademik-kebutuhan.md`: pagu poin, poin
    positif, nilai harian tampil seketika atau setelah ditinjau, poin di halaqah, izin satu hari
    menutup dua konteks, wali boleh melihat PR, bentuk grup Telegram, dan apakah ekstraksi kalimat bebas perlu LLM sama

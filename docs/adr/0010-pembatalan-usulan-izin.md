@@ -92,6 +92,15 @@ sasaran, dan itu bertahan terhadap pertumbuhan.
 selain `usulan_izin`, itu **bukan** perluasan daftar — itu pembatalan ADR 0005, dan harus
 diperlakukan begitu.
 
-**Yang belum diputuskan.** Apakah wali boleh membatalkan lalu mengajukan ulang untuk tanggal
-yang sama, atau pembatalan bersifat final untuk hari itu. Sementara ini tidak dilarang skema;
-bila ternyata disalahgunakan, batasnya ditambahkan di `core`, bukan di sini.
+**Batas pengulangan — sudah diputuskan.** Wali boleh membatalkan lalu mengajukan ulang untuk
+anak dan tanggal yang sama **paling banyak tiga kali**. Batasnya hidup di `packages/core`
+(`BATAS_PEMBATALAN_PER_TANGGAL`), bukan di skema, karena ia butuh **riwayat** untuk
+diputuskan — bukan sesuatu yang bisa dinilai dari satu baris.
+
+Alasannya bukan kecurigaan terhadap wali: pembatalan berulang membuat wali kelas menerima
+pemberitahuan yang tidak habis-habis untuk anak yang sama, dan pemberitahuan yang terlalu
+sering akhirnya tidak dibaca sama sekali. Setelah batas tercapai, wali diarahkan menghubungi
+wali kelas langsung — bukan dibiarkan buntu.
+
+Usulan yang **ditolak** wali kelas tidak ikut menghabiskan jatah; yang dihitung hanya
+pembatalan oleh wali sendiri.

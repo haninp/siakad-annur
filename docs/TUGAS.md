@@ -34,6 +34,8 @@ model kuat tersedia (pemodelan OLAP, aturan izin, skema kontrak).
 - [x] **0.9e** **ADR 0010 — pembatalan usulan izin** `[berat]`
       → boleh selama belum di-ack wali kelas, ditegakkan CHECK bentuk data. Invarian
       `bot-wali` berpindah dari hitungan handler ke **sasaran tabel**
+- [x] **0.11** `packages/core` — aturan izin absen: batas 3 kali batal-lalu-ajukan-ulang
+      per anak per tanggal, plus uji mutu pesan untuk wali santri `[ringan]`
 - [x] **0.10** `packages/contracts` — identitas, wali, akademik: zod + tipe + DDL SQLite,
       klasifikasi data pribadi berbasis metadata, dan status yatim sebagai fungsi turunan
       `[berat]` _(bagian keuangan menunggu 0.9)_

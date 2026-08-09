@@ -9,12 +9,12 @@
 
 Keempat berkas rantai sudah dibaca lewat ekspor MCP Google Drive:
 
-| Berkas                                             | ID Drive                                       | Ukuran   | Dibaca      |
-| -------------------------------------------------- | ---------------------------------------------- | -------- | ----------- |
-| `01. Database Keuangan KBM Masjid An Nuur Limo`    | `16Anl1Q93g5k4pT5Lr8faqlle0NwV8Qnz89N-nsxDrZI` | 786 KB   | 9 Agu 2026  |
-| `02. Sementara-Keuangan KBM ... 1445H-1446H`       | `1Z5snJ9T6lsnKsbmvsmZWcpeoM7XJ-1zaxlztd08al8o` | 1,5 MB   | 9 Agu 2026  |
-| `03. Database Keuangan KBM ... 1446H-1447H`        | `14_t7WKQntdaXUWeoYpcL7AL0ldsTmJVcbFtp46-wdNw` | 1,5 MB   | 9 Agu 2026  |
-| `04. DATABASE KEUANGAN TA 1446-1447 (2026-2027)`   | `1aBZYsIgNl14j6IsWFd5hHKozVt7YXF84ex9NQDOacpo` | 1,0 MB   | 9 Agu 2026  |
+| Berkas                                           | ID Drive                                       | Ukuran | Dibaca     |
+| ------------------------------------------------ | ---------------------------------------------- | ------ | ---------- |
+| `01. Database Keuangan KBM Masjid An Nuur Limo`  | `16Anl1Q93g5k4pT5Lr8faqlle0NwV8Qnz89N-nsxDrZI` | 786 KB | 9 Agu 2026 |
+| `02. Sementara-Keuangan KBM ... 1445H-1446H`     | `1Z5snJ9T6lsnKsbmvsmZWcpeoM7XJ-1zaxlztd08al8o` | 1,5 MB | 9 Agu 2026 |
+| `03. Database Keuangan KBM ... 1446H-1447H`      | `14_t7WKQntdaXUWeoYpcL7AL0ldsTmJVcbFtp46-wdNw` | 1,5 MB | 9 Agu 2026 |
+| `04. DATABASE KEUANGAN TA 1446-1447 (2026-2027)` | `1aBZYsIgNl14j6IsWFd5hHKozVt7YXF84ex9NQDOacpo` | 1,0 MB | 9 Agu 2026 |
 
 ### Batas metode — baca ini sebelum memercayai angka mana pun di bawah
 
@@ -42,13 +42,13 @@ Revisi dokumen sebelumnya memuat tabel sebaran tahun untuk 03 dan 04 yang dihitu
 mencocokkan pola `dd/mm/yyyy` **ke seluruh isi ekspor**. Pembacaan 01 dan 02 membongkar apa
 yang sebenarnya ikut terhitung di sana:
 
-| Sumber tanggal dalam ekspor    | Sifat                                    | Contoh sumbangan       |
-| ------------------------------ | ---------------------------------------- | ---------------------- |
-| Sheet log add-on Document Studio | **Bukan transaksi** — jejak cetak berkas | 164× 2023 + 47× 2024   |
-| Jurnal warisan 2023            | Transaksi, tapi **disalin ke 4 berkas**  | 156 (78 baris × 2 kolom) |
-| Cuplikan header `MUTASI ... BSI` | Contoh baris, bukan data                 | 4× 2023                |
-| Kolom tanggal lahir santri     | **Data pribadi**, bukan transaksi        | seluruh tahun 2013–2018 |
-| Kartu Kendali & mutasi bank    | Turunan / rekening, bukan jurnal         | ratusan                |
+| Sumber tanggal dalam ekspor      | Sifat                                    | Contoh sumbangan         |
+| -------------------------------- | ---------------------------------------- | ------------------------ |
+| Sheet log add-on Document Studio | **Bukan transaksi** — jejak cetak berkas | 164× 2023 + 47× 2024     |
+| Jurnal warisan 2023              | Transaksi, tapi **disalin ke 4 berkas**  | 156 (78 baris × 2 kolom) |
+| Cuplikan header `MUTASI ... BSI` | Contoh baris, bukan data                 | 4× 2023                  |
+| Kolom tanggal lahir santri       | **Data pribadi**, bukan transaksi        | seluruh tahun 2013–2018  |
+| Kartu Kendali & mutasi bank      | Turunan / rekening, bukan jurnal         | ratusan                  |
 
 Angka `324` untuk tahun 2023 yang identik di 02, 03, dan 04 kini terjelaskan seluruhnya:
 `4 + 156 + 164 = 324`. Itu **boilerplate warisan**, bukan "blok master tanggal" seperti
@@ -61,12 +61,12 @@ nol transaksi. Tabel lama membandingkan derau, bukan data.
 
 Dihitung dari kolom `Tanggal Transaksi` / `TGL Transaksi` pada blok jurnal saja:
 
-| Berkas | Jurnal aktif — bulan terbaca                | Baris | `No`   | `No Transaksi`    |
-| ------ | ------------------------------------------- | ----: | ------ | ----------------- |
-| **01** | Juli 2023                                   |    51 | 1–51   | 451081 – 451089   |
-| **02** | Maret–April 2024                            |    75 | 1–75   | 453631 – 454229   |
-| **03** | Februari–Maret 2025                         |    66 | 1–67   | 457061 – 458035   |
-| **04** | Januari–Mei 2026                            |    68 | 1–68   | 461331 – 461651   |
+| Berkas | Jurnal aktif — bulan terbaca | Baris | `No` | `No Transaksi`  |
+| ------ | ---------------------------- | ----: | ---- | --------------- |
+| **01** | Juli 2023                    |    51 | 1–51 | 451081 – 451089 |
+| **02** | Maret–April 2024             |    75 | 1–75 | 453631 – 454229 |
+| **03** | Februari–Maret 2025          |    66 | 1–67 | 457061 – 458035 |
+| **04** | Januari–Mei 2026             |    68 | 1–68 | 461331 – 461651 |
 
 Ditambah **satu jurnal warisan Juli–Agustus 2023** (78 baris, `No` 63–220) yang hadir
 **identik baris-per-baris di keempat berkas** — sudah diperiksa: sama persis, bukan mirip.
@@ -131,19 +131,19 @@ tagihan nyata.
 Angka = jumlah kemunculan istilah dalam ekspor. Pembacaan 01 dan 02 **memundurkan** beberapa
 pola yang sebelumnya disangka warisan lama:
 
-| Istilah                            | 01  | 02  | 03  | 04  | Bacaan                                                          |
-| ---------------------------------- | --: | --: | --: | --: | --------------------------------------------------------------- |
-| `Cek Abu ...` (kontrol empat mata) |   2 |   2 |   2 |   2 | **Benar-benar pola inti** — ada sejak 01. Pertahankan            |
-| Cicilan                            |   3 |   9 |   5 |   4 | **Benar-benar pola inti** — ada sejak 01                        |
-| Mukafaah                           |   8 |   8 |   9 |   8 | Pola inti                                                        |
-| Ta'awun / TAAWUN                   |  14 |  10 |  65 |   7 | Pola inti                                                        |
-| Tunggakan                          |  96 | 179 | 225 | 266 | Pola inti — porsinya membesar tiap generasi                      |
-| Pengajar Diniyah / Umum            |   2 |   2 |   1 |   1 | Dua jalur kurikulum sudah lama ada                               |
-| **PROTA**                          |   — |   1 |  25 |  13 | **Bukan warisan lama.** Muncul di 02 sebagai "ALOKASI TAAWUN PROTA", matang di 03 |
-| **KERINGANAN**                     |   — |   1 |   4 |  15 | **Bukan warisan lama.** Muncul di 02, tumbuh terus              |
-| **NISN**                           |   — |   — |   8 |  16 | **Baru di 03**, dan di sana ditandai `update NISN 2026` — masih backfill |
-| **Lebih Bayar**                    |   — |   — |   2 |  62 | Di 03 **hanya legenda kode warna**; jadi besaran yang dikelola baru di 04 |
-| **TAYSIR**                         |   — |   — |   — |   2 | Baru di 04                                                       |
+| Istilah                            |  01 |  02 |  03 |  04 | Bacaan                                                                                             |
+| ---------------------------------- | --: | --: | --: | --: | -------------------------------------------------------------------------------------------------- |
+| `Cek Abu ...` (kontrol empat mata) |   2 |   2 |   2 |   2 | **Benar-benar pola inti** — ada sejak 01. Pertahankan                                              |
+| Cicilan                            |   3 |   9 |   5 |   4 | **Benar-benar pola inti** — ada sejak 01                                                           |
+| Mukafaah                           |   8 |   8 |   9 |   8 | Pola inti                                                                                          |
+| Ta'awun / TAAWUN                   |  14 |  10 |  65 |   7 | Pola inti                                                                                          |
+| Tunggakan                          |  96 | 179 | 225 | 266 | Pola inti — porsinya membesar tiap generasi                                                        |
+| Pengajar Diniyah / Umum            |   2 |   2 |   1 |   1 | Dua jalur kurikulum sudah lama ada                                                                 |
+| **PROTA**                          |   — |   1 |  25 |  13 | **Bukan warisan lama.** Muncul di 02 sebagai "ALOKASI TAAWUN PROTA", matang di 03                  |
+| **KERINGANAN**                     |   — |   1 |   4 |  15 | **Bukan warisan lama.** Muncul di 02, tumbuh terus                                                 |
+| **NISN**                           |   — |   — |   8 |  16 | **Baru di 03**, dan di sana ditandai `update NISN 2026` — masih backfill                           |
+| **Lebih Bayar**                    |   — |   — |   2 |  62 | Di 03 **hanya legenda kode warna**; jadi besaran yang dikelola baru di 04                          |
+| **TAYSIR**                         |   — |   — |   — |   2 | Baru di 04                                                                                         |
 | **Biaya PKBM**                     |   — |   — |   — |  33 | Baru di 04 — komponen biaya sejajar SPP, Pendaftaran, Uang Gedung, Sarpras, Modul/Buku/ATK, Raport |
 
 **Yang berubah dari bacaan sebelumnya:** PROTA, KERINGANAN, dan NISN sempat dicatat sebagai
@@ -158,10 +158,10 @@ mukafaah, ta'awun, tunggakan, dan dua jalur pengajar.
 
 Patahan besar terjadi antara **02 dan 03**, bukan 03→04:
 
-| Generasi  | Identitas santri di jurnal          | Akun                            | Ciri khas                                        |
-| --------- | ----------------------------------- | ------------------------------- | ------------------------------------------------ |
-| **01–02** | `Nama`, `No Induk`, `Kelas`, `Banin/Ra/Banat` | `Akun Transaksi` (satu kolom)   | `Terbilang`, `cetak/belum`, kolom Document Studio |
-| **03–04** | `NAMA`, `ORANG TUA`, `NIS`, `KELAS` | `AKUN MASUK` + `AKUN KELUAR` (terpisah) | `NILAI PROTA`, `Cicilan ke - (Max 6)`      |
+| Generasi  | Identitas santri di jurnal                    | Akun                                    | Ciri khas                                         |
+| --------- | --------------------------------------------- | --------------------------------------- | ------------------------------------------------- |
+| **01–02** | `Nama`, `No Induk`, `Kelas`, `Banin/Ra/Banat` | `Akun Transaksi` (satu kolom)           | `Terbilang`, `cetak/belum`, kolom Document Studio |
+| **03–04** | `NAMA`, `ORANG TUA`, `NIS`, `KELAS`           | `AKUN MASUK` + `AKUN KELUAR` (terpisah) | `NILAI PROTA`, `Cicilan ke - (Max 6)`             |
 
 Perbedaan 03→04 hanya penghalusan: `Tanggal Transaksi` → `TGL Transaksi`, tambahan
 `khusus entri PROTA`, `Jika Akun Masuk SPP atau PROTA`, `AKUN KELUAR (KHUSUS CATAT PENGELUARAN)`,

@@ -14,16 +14,16 @@ skema ditulis.
 
 ## Ringkasan: delapan kebutuhan
 
-| #   | Kebutuhan                                            | Yang sudah ada di model    | Yang baru        |
-| --- | ---------------------------------------------------- | -------------------------- | ---------------- |
-| 1   | Grup WA kelas dipindah ke Telegram                   | —                          | kanal, bukan tabel |
-| 2   | PR antar kelas terlihat semua pengajar, on-demand    | —                          | `tugas`          |
-| 3   | Pemisahan halaqah dan kelas belajar                  | **sudah lengkap**          | tidak ada        |
-| 4   | Sistem poin pelanggaran sampai SP                    | —                          | `pelanggaran`, `ambang_sanksi` |
-| 5   | Kanal info materi pertemuan berikutnya               | `pengumuman` (terlalu umum) | `rencana_pertemuan` |
-| 6   | Nilai PR & latihan langsung ke wali                  | `nilai` (jenis kurang)     | perluasan `jenis` |
-| 7   | Wali melaporkan absen ke sistem, di-acknowledge wali kelas | `absensi`            | `usulan_izin` + **konflik ADR** |
-| 8   | Kabar absen yang masuk lewat jalur pribadi/lisan     | —                          | `kanal` + rekap tertunggak |
+| #   | Kebutuhan                                                  | Yang sudah ada di model     | Yang baru                       |
+| --- | ---------------------------------------------------------- | --------------------------- | ------------------------------- |
+| 1   | Grup WA kelas dipindah ke Telegram                         | —                           | kanal, bukan tabel              |
+| 2   | PR antar kelas terlihat semua pengajar, on-demand          | —                           | `tugas`                         |
+| 3   | Pemisahan halaqah dan kelas belajar                        | **sudah lengkap**           | tidak ada                       |
+| 4   | Sistem poin pelanggaran sampai SP                          | —                           | `pelanggaran`, `ambang_sanksi`  |
+| 5   | Kanal info materi pertemuan berikutnya                     | `pengumuman` (terlalu umum) | `rencana_pertemuan`             |
+| 6   | Nilai PR & latihan langsung ke wali                        | `nilai` (jenis kurang)      | perluasan `jenis`               |
+| 7   | Wali melaporkan absen ke sistem, di-acknowledge wali kelas | `absensi`                   | `usulan_izin` + **konflik ADR** |
+| 8   | Kabar absen yang masuk lewat jalur pribadi/lisan           | —                           | `kanal` + rekap tertunggak      |
 
 ---
 
@@ -97,13 +97,13 @@ Betul, ini sudah dibahas dan sudah tercatat di `docs/01-domain-model.md` serta
 **Santri berada di dua pengelompokan sekaligus, dan keduanya sejajar — bukan yang satu bagian
 dari yang lain.**
 
-| | **Kelas** | **Halaqah** |
-| --- | --- | --- |
-| Untuk apa | Pembelajaran diniyah & umum | Tahfidz (hafalan Al-Qur'an) |
-| Penanggung jawab | Wali kelas | Mudaris / mudarisah |
-| Anggotanya ditentukan | Jenjang dan tingkat | Kemampuan hafalan |
-| Yang dicatat | Nilai mapel, PR, latihan | Setoran ziyadah & murojaah |
-| Tabel keanggotaan | `santri_kelas` | `santri_halaqah` |
+|                       | **Kelas**                   | **Halaqah**                 |
+| --------------------- | --------------------------- | --------------------------- |
+| Untuk apa             | Pembelajaran diniyah & umum | Tahfidz (hafalan Al-Qur'an) |
+| Penanggung jawab      | Wali kelas                  | Mudaris / mudarisah         |
+| Anggotanya ditentukan | Jenjang dan tingkat         | Kemampuan hafalan           |
+| Yang dicatat          | Nilai mapel, PR, latihan    | Setoran ziyadah & murojaah  |
+| Tabel keanggotaan     | `santri_kelas`              | `santri_halaqah`            |
 
 **Kenapa harus dipisah, bukan disatukan jadi "kelompok":**
 
@@ -437,8 +437,8 @@ mendesak karena memblokir bentuk tabel, sisanya memblokir aturan.
 8. **Daftar jenis pelanggaran beserta poinnya** — tabel seed, tidak memblokir skema, tapi
    memblokir peluncuran.
 9. **Apakah lapis 2 perlu LLM sama sekali** — setelah santri dan tanggal wajib dipilih lewat
-    tombol, pekerjaan model tinggal sedikit dan alurnya bisa jalan tanpa LLM. Kalau tetap
-    dipakai: **retensi data pada Zen dan model yang dipilih** perlu diperiksa lebih dulu, karena
-    kalimat wali memuat nama anak dan keterangan kesehatannya.
+   tombol, pekerjaan model tinggal sedikit dan alurnya bisa jalan tanpa LLM. Kalau tetap
+   dipakai: **retensi data pada Zen dan model yang dipilih** perlu diperiksa lebih dulu, karena
+   kalimat wali memuat nama anak dan keterangan kesehatannya.
 10. **Arti "di-ack oleh wali santri"** pada keterangan bagian 8 — ditafsirkan sebagai wali
     kelas; perlu konfirmasi.

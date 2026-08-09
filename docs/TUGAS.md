@@ -30,8 +30,9 @@ model kuat tersedia (pemodelan OLAP, aturan izin, skema kontrak).
 - [ ] **0.9d** **ADR jalur tulis `bot-wali`** — kebutuhan wali melaporkan absen bertabrakan
       dengan ADR 0005 dan `AGENTS.md`. Putuskan: pengecualian sempit (`usulan_izin`) atau
       `bot-wali` tetap benar-benar baca-saja. **Memblokir tabel absensi dan izin** `[berat]`
-- [ ] **0.10** `packages/contracts` — terjemahkan `docs/07-master-data.md` ke zod + tipe + DDL
-      `[berat]` _(bagian keuangan menunggu 0.9; sisanya boleh jalan lebih dulu)_
+- [x] **0.10** `packages/contracts` — identitas, wali, akademik: zod + tipe + DDL SQLite,
+      klasifikasi data pribadi berbasis metadata, dan status yatim sebagai fungsi turunan
+      `[berat]` _(bagian keuangan menunggu 0.9)_
 
 ---
 

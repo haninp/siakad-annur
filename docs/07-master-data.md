@@ -86,25 +86,25 @@ daftar nama kolom yang ditulis manual dan pasti akan ketinggalan.
 Sumber: blok master berkas 04 kolom 2–19, disilangkan dengan blok berformat EMIS
 (kolom 121–153) yang **hanya ada di berkas 04** dan merupakan bentuk yang diminta kementerian.
 
-| Kolom            | Tipe        | Asal di sheet     | Catatan                                                   |
-| ---------------- | ----------- | ----------------- | --------------------------------------------------------- |
-| `id`             | ULID        | —                 | Kunci primer. Tidak pernah berubah, tidak pernah dipakai ulang |
-| `nis`            | text unik   | `NIS`             | Bermakna: 4 digit tahun ajaran masuk + 3 digit urut (`2627001`). **Boleh berubah** |
-| `nisn`           | text? unik  | `NISN`            | **Kosong seluruhnya** di data nyata; ditandai `update NISN 2026` sejak berkas 03 |
-| `nik`            | text?       | `NIK` / `nik`     | 16 digit. **Data pribadi anak** — lihat klasifikasi di bawah |
-| `nama_lengkap`   | text        | `Nama Santri`     | Nama kanonik. Varian lain masuk `santri_alias`             |
-| `jenis_kelamin`  | enum        | `JENIS KELAMIN`   | `laki_laki` \| `perempuan`                                 |
-| `tempat_lahir`   | text        | `TEMPAT`          |                                                            |
-| `tanggal_lahir`  | date        | `TGL LAHIR`       | Di sheet dua format berbeda: `25 Oktober 2021` dan `16/08/2018`. Importer harus menerima keduanya |
-| `alamat`         | text?       | `alamat`          |                                                            |
-| `desa_kelurahan` | text?       | `desa_kelurahan`  | Dekomposisi wilayah mengikuti bentuk EMIS —                |
-| `kecamatan`      | text?       | `kecamatan`       | supaya ekspor kementerian tidak perlu mengurai teks bebas  |
-| `kabupaten`      | text?       | `kabupaten`       |                                                            |
-| `provinsi`       | text?       | `provinsi`        |                                                            |
-| `kode_pos`       | text?       | `kode_pos`        |                                                            |
-| `status`         | enum        | `status`          | `aktif` \| `lulus` \| `keluar` \| `pindah`                 |
-| `anak_ke`        | int?        | `anak_ke`         |                                                            |
-| `jumlah_saudara` | int?        | `jumlah_saudara`  |                                                            |
+| Kolom            | Tipe       | Asal di sheet    | Catatan                                                                                           |
+| ---------------- | ---------- | ---------------- | ------------------------------------------------------------------------------------------------- |
+| `id`             | ULID       | —                | Kunci primer. Tidak pernah berubah, tidak pernah dipakai ulang                                    |
+| `nis`            | text unik  | `NIS`            | Bermakna: 4 digit tahun ajaran masuk + 3 digit urut (`2627001`). **Boleh berubah**                |
+| `nisn`           | text? unik | `NISN`           | **Kosong seluruhnya** di data nyata; ditandai `update NISN 2026` sejak berkas 03                  |
+| `nik`            | text?      | `NIK` / `nik`    | 16 digit. **Data pribadi anak** — lihat klasifikasi di bawah                                      |
+| `nama_lengkap`   | text       | `Nama Santri`    | Nama kanonik. Varian lain masuk `santri_alias`                                                    |
+| `jenis_kelamin`  | enum       | `JENIS KELAMIN`  | `laki_laki` \| `perempuan`                                                                        |
+| `tempat_lahir`   | text       | `TEMPAT`         |                                                                                                   |
+| `tanggal_lahir`  | date       | `TGL LAHIR`      | Di sheet dua format berbeda: `25 Oktober 2021` dan `16/08/2018`. Importer harus menerima keduanya |
+| `alamat`         | text?      | `alamat`         |                                                                                                   |
+| `desa_kelurahan` | text?      | `desa_kelurahan` | Dekomposisi wilayah mengikuti bentuk EMIS —                                                       |
+| `kecamatan`      | text?      | `kecamatan`      | supaya ekspor kementerian tidak perlu mengurai teks bebas                                         |
+| `kabupaten`      | text?      | `kabupaten`      |                                                                                                   |
+| `provinsi`       | text?      | `provinsi`       |                                                                                                   |
+| `kode_pos`       | text?      | `kode_pos`       |                                                                                                   |
+| `status`         | enum       | `status`         | `aktif` \| `lulus` \| `keluar` \| `pindah`                                                        |
+| `anak_ke`        | int?       | `anak_ke`        |                                                                                                   |
+| `jumlah_saudara` | int?       | `jumlah_saudara` |                                                                                                   |
 
 **Yang sengaja tidak diambil:** `NIS CLONING` (duplikat `NIS`), `UPDATE DATABASE?` (catatan
 kerja — isinya benar-benar `Rizki : Update Tanggal 19 Mei 2026`), `Nomor Induk` (duplikat
@@ -117,12 +117,12 @@ Tiga tabel berbentuk sama, satu untuk tiap entitas orang. Bentuknya identik sehi
 dari satu skema zod yang sama, tetapi kunci asingnya terpisah supaya integritas rujukan tetap
 ditegakkan basis data — bukan oleh kolom `jenis_entitas` yang tidak bisa diperiksa siapa pun.
 
-| Kolom      | Tipe | Catatan                                                                     |
-| ---------- | ---- | ---------------------------------------------------------------------------- |
-| `<x>_id`   | ULID | →`santri.id` / `wali.id` / `pengajar.id`                                     |
-| `nama`     | text |                                                                              |
-| `jenis`    | enum | `ktp` \| `kunyah` \| `keuangan` \| `panggilan` \| `ejaan_lama`               |
-| `sumber`   | enum | `berkas_01` … `berkas_04` \| `manual` — supaya asal-usul tiap alias terlacak |
+| Kolom    | Tipe | Catatan                                                                      |
+| -------- | ---- | ---------------------------------------------------------------------------- |
+| `<x>_id` | ULID | →`santri.id` / `wali.id` / `pengajar.id`                                     |
+| `nama`   | text |                                                                              |
+| `jenis`  | enum | `ktp` \| `kunyah` \| `keuangan` \| `panggilan` \| `ejaan_lama`               |
+| `sumber` | enum | `berkas_01` … `berkas_04` \| `manual` — supaya asal-usul tiap alias terlacak |
 
 **Mengapa tidak disatukan jadi satu tabel `orang`.** Sudah diperiksa di data: dari 100 nama
 wali dan 24 nama pengajar, **irisannya nol**. Tidak ada wali yang sekaligus pengajar, jadi
@@ -174,23 +174,23 @@ dan pada model lama nomor HP-nya tersimpan berkali-kali lalu menyimpang.
 
 `wali`
 
-| Kolom          | Tipe  | Asal                         | Catatan                                                         |
-| -------------- | ----- | ---------------------------- | ---------------------------------------------------------------- |
-| `id`           | ULID  | —                            |                                                                  |
+| Kolom          | Tipe  | Asal                         | Catatan                                                                                        |
+| -------------- | ----- | ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| `id`           | ULID  | —                            |                                                                                                |
 | `nik`          | text? | —                            | 16 digit. **Data pribadi — klasifikasi `terlarang`.** Nullable: belum didata di sheet mana pun |
-| `nama_lengkap` | text  | `NAMA BAPAK` / `NAMA IBU`    | Kunyah dipisahkan ke `wali_alias`, tidak disimpan dalam kurung   |
-| `no_hp`        | text? | `NO HP`                      | Kunci pencocokan akun Telegram                                   |
-| `status_hidup` | enum  | `status_ayah` / `Status Ibu` | `hidup` \| `wafat` \| `tidak_diketahui`                          |
+| `nama_lengkap` | text  | `NAMA BAPAK` / `NAMA IBU`    | Kunyah dipisahkan ke `wali_alias`, tidak disimpan dalam kurung                                 |
+| `no_hp`        | text? | `NO HP`                      | Kunci pencocokan akun Telegram                                                                 |
+| `status_hidup` | enum  | `status_ayah` / `Status Ibu` | `hidup` \| `wafat` \| `tidak_diketahui`                                                        |
 
 `santri_wali`
 
-| Kolom                 | Tipe    | Catatan                                                     |
-| --------------------- | ------- | ------------------------------------------------------------ |
-| `santri_id`           | ULID    | →`santri.id`                                                |
-| `wali_id`             | ULID    | →`wali.id`                                                  |
-| `hubungan`            | enum    | `ayah` \| `ibu` \| `wali`                                   |
-| `penanggung_biaya`    | boolean | Ya atau tidak. Bukan enum, bukan nullable                   |
-| `penerima_notifikasi` | boolean | Ya atau tidak. Bukan enum, bukan nullable                   |
+| Kolom                 | Tipe    | Catatan                                   |
+| --------------------- | ------- | ----------------------------------------- |
+| `santri_id`           | ULID    | →`santri.id`                              |
+| `wali_id`             | ULID    | →`wali.id`                                |
+| `hubungan`            | enum    | `ayah` \| `ibu` \| `wali`                 |
+| `penanggung_biaya`    | boolean | Ya atau tidak. Bukan enum, bukan nullable |
+| `penerima_notifikasi` | boolean | Ya atau tidak. Bukan enum, bukan nullable |
 
 **Keduanya `true`/`false`, dan sengaja tidak lebih dari itu.**
 
@@ -223,12 +223,12 @@ salah satunya.
 
 Status keyatiman diturunkan dari keduanya, **tidak disimpan sebagai kolom**:
 
-| Ayah    | Ibu     | Status         |
-| ------- | ------- | -------------- |
-| hidup   | hidup   | —              |
-| wafat   | hidup   | `yatim`        |
-| hidup   | wafat   | `piatu`        |
-| wafat   | wafat   | `yatim_piatu`  |
+| Ayah  | Ibu   | Status        |
+| ----- | ----- | ------------- |
+| hidup | hidup | —             |
+| wafat | hidup | `yatim`       |
+| hidup | wafat | `piatu`       |
+| wafat | wafat | `yatim_piatu` |
 
 Ini konsisten dengan larangan menyimpan angka turunan (`AGENTS.md`): kalau status disimpan
 terpisah dari `wali.status_hidup`, keduanya akan menyimpang — dan yang menyimpang di sini
@@ -264,12 +264,12 @@ Dipisah tiga karena ketiganya berubah dengan irama berbeda.
 - **`rombel`** — kelas nyata tempat santri belajar, milik satu `tahun_ajaran`.
   Nilai nyata, dengan jumlah kemunculan di berkas 03 + 04:
 
-  | Marhalah     | Rombel                                                            |
-  | ------------ | ----------------------------------------------------------------- |
-  | PAUD         | `PA - PAUD`                                                       |
-  | RA           | `RA - Tingkat A` / `RA - KELAS A`, `RA - Tingkat B`               |
+  | Marhalah     | Rombel                                                                                                  |
+  | ------------ | ------------------------------------------------------------------------------------------------------- |
+  | PAUD         | `PA - PAUD`                                                                                             |
+  | RA           | `RA - Tingkat A` / `RA - KELAS A`, `RA - Tingkat B`                                                     |
   | Ibtidaiyyah  | `1 (SATU)` 153× · `2 (DUA)` 117× · `3 (TIGA)` 81× · `4 (EMPAT)` 122× · `5 (LIMA)` 134× · `6 (ENAM)` 38× |
-  | Mutawashitoh | `7 (TUJUH)` 23× · `8 (DELAPAN)` 32×                               |
+  | Mutawashitoh | `7 (TUJUH)` 23× · `8 (DELAPAN)` 32×                                                                     |
 
   Dua penulisan untuk rombel RA yang sama (`Tingkat A` dan `KELAS A`) adalah contoh persis
   mengapa dimensi ini butuh daftar nilai tertutup.
@@ -280,28 +280,33 @@ Menghubungkan santri ke rombel **per tahun ajaran**. Inilah yang membuat pertany
 "kelas berapa dia waktu itu" bisa dijawab — pada model lama, kelas ditimpa setiap kenaikan
 sehingga riwayatnya hilang.
 
-| Kolom            | Tipe | Catatan                                        |
-| ---------------- | ---- | ---------------------------------------------- |
-| `santri_id`      | ULID |                                                |
-| `tahun_ajaran_id`| ULID |                                                |
-| `rombel_id`      | ULID |                                                |
-| `tanggal_masuk`  | date | Dasar prorata SPP                              |
-| `tanggal_keluar` | date? | Aturan tagihannya **menunggu P3 pertanyaan 3** |
-| `status`         | enum | `aktif` \| `naik` \| `tinggal` \| `keluar` \| `lulus` |
+| Kolom             | Tipe  | Catatan                                               |
+| ----------------- | ----- | ----------------------------------------------------- |
+| `santri_id`       | ULID  |                                                       |
+| `tahun_ajaran_id` | ULID  |                                                       |
+| `rombel_id`       | ULID  |                                                       |
+| `tanggal_masuk`   | date  | Dasar prorata SPP                                     |
+| `tanggal_keluar`  | date? | Aturan tagihannya **menunggu P3 pertanyaan 3**        |
+| `status`          | enum  | `aktif` \| `naik` \| `tinggal` \| `keluar` \| `lulus` |
 
 ## 6. `pengajar`
 
 Sumber: blok `MASTER NAMA SANTRI, MUDARIS, MUDARISAH` berkas 04, kolom 51–57.
 
-| Kolom                  | Tipe  | Asal                                 | Catatan                                                    |
-| ---------------------- | ----- | ------------------------------------ | ----------------------------------------------------------- |
-| `id`                   | ULID  | —                                    |                                                             |
-| `no_induk`             | text  | `No Induk Pengajar`                  | Berpola tahun + urut (`2301001`, `2302004`)                 |
-| `nik`                  | text? | —                                    | 16 digit. **Klasifikasi `terlarang`.** Nullable             |
+| Kolom                  | Tipe  | Asal                                 | Catatan                                                       |
+| ---------------------- | ----- | ------------------------------------ | ------------------------------------------------------------- |
+| `id`                   | ULID  | —                                    |                                                               |
+| `no_induk`             | text  | `No Induk Pengajar`                  | Berpola tahun + urut (`2301001`, `2302004`)                   |
+| `nik`                  | text? | —                                    | 16 digit. **Klasifikasi `terlarang`.** Nullable               |
 | `nama_lengkap`         | text  | `Nama Mudaris/Mudarisah`             | Boleh berisi kunyah bila itu satu-satunya nama yang diketahui |
-| `jalur_kurikulum`      | enum  | `Pengajar Diniyah` / `Pengajar Umum` | Dua kolom terpisah di sheet; hadir sejak berkas 01          |
-| `jalur`                | enum  | `MUDARIS BANIN` / `MUDARIS BANAT`    | `banin` \| `banat` \| `ra_paud`                             |
-| `wali_kelas_rombel_id` | ULID? | `Wali Kelas`                         |                                                             |
+| `jalur_kurikulum`      | enum  | `Pengajar Diniyah` / `Pengajar Umum` | Dua kolom terpisah di sheet; hadir sejak berkas 01            |
+| `jalur`                | enum  | `MUDARIS BANIN` / `MUDARIS BANAT`    | `banin` \| `banat` \| `ra_paud`                               |
+| ~~`wali_kelas_rombel_id`~~ | —  | `Wali Kelas`                         |                                                               |
+
+> **Koreksi saat implementasi (0.10):** `wali_kelas_rombel_id` **dibuang dari `pengajar`.**
+> Penugasan wali kelas kini hidup hanya di `rombel.wali_kelas_pengajar_id`. Menaruhnya di dua
+> sisi berarti fakta yang sama disimpan dua kali dan pasti menyimpang — dan penugasan itu
+> berganti tiap tahun, jadi tempatnya memang di `rombel`, yang sudah terikat tahun ajaran.
 
 **Mengapa `pengajar` punya `nik`.** Mukafaah adalah pembayaran berulang kepada orang dewasa;
 pelaporannya cepat atau lambat menuntut identitas resmi. Sama seperti `wali`: kolomnya
@@ -324,16 +329,16 @@ setiap kali pesantren mengubah kurikulumnya — dan pesantren memang mengubahnya
 
 ### `mapel` — katalog datar
 
-| Kolom             | Tipe  | Catatan                                                              |
-| ----------------- | ----- | -------------------------------------------------------------------- |
-| `id`              | ULID  |                                                                      |
-| `kode`            | text unik | Dipakai di Sheet dan ekspor, stabil walau namanya diperbaiki      |
-| `nama`            | text  |                                                                      |
-| `nama_arab`       | text? | Mapel diniyah kerap punya nama Arab yang dipakai di rapor            |
-| `jalur_kurikulum` | enum  | `diniyah` \| `umum` — pembagian yang sudah ada sejak berkas 01       |
-| `jenis_penilaian` | enum  | `angka` \| `predikat` \| `hafalan` \| `deskriptif`                   |
-| `skala_nilai_id`  | ULID? | →`skala_nilai.id`; kosong bila `jenis_penilaian = hafalan`           |
-| `aktif`           | bool  | Mapel yang tidak lagi diajarkan **dinonaktifkan, tidak dihapus** — nilai lama tetap punya rujukan |
+| Kolom             | Tipe      | Catatan                                                                                           |
+| ----------------- | --------- | ------------------------------------------------------------------------------------------------- |
+| `id`              | ULID      |                                                                                                   |
+| `kode`            | text unik | Dipakai di Sheet dan ekspor, stabil walau namanya diperbaiki                                      |
+| `nama`            | text      |                                                                                                   |
+| `nama_arab`       | text?     | Mapel diniyah kerap punya nama Arab yang dipakai di rapor                                         |
+| `jalur_kurikulum` | enum      | `diniyah` \| `umum` — pembagian yang sudah ada sejak berkas 01                                    |
+| `jenis_penilaian` | enum      | `angka` \| `predikat` \| `hafalan` \| `deskriptif`                                                |
+| `skala_nilai_id`  | ULID?     | →`skala_nilai.id`; kosong bila `jenis_penilaian = hafalan`                                        |
+| `aktif`           | bool      | Mapel yang tidak lagi diajarkan **dinonaktifkan, tidak dihapus** — nilai lama tetap punya rujukan |
 
 Empat `jenis_penilaian` itu bukan hiasan; keempatnya benar-benar berbeda cara hidupnya:
 `angka` bernilai 0–100, `predikat` bernilai simbolik (mumtaz, jayyid jiddan, …), `hafalan`
@@ -345,15 +350,15 @@ dan `deskriptif` untuk aspek akhlak yang dinilai dengan kalimat.
 Menghubungkan mapel ke **marhalah pada satu tahun ajaran**. Satu baris = "mapel ini diajarkan
 di marhalah ini, tahun ini".
 
-| Kolom             | Tipe  | Catatan                                                          |
-| ----------------- | ----- | ----------------------------------------------------------------- |
-| `tahun_ajaran_id` | ULID  |                                                                   |
-| `marhalah`        | enum  | `paud` \| `ra` \| `ibtidaiyyah` \| `mutawashitoh`                 |
-| `mapel_id`        | ULID  |                                                                   |
-| `tingkat`         | int?  | Bila mapel hanya untuk kelas tertentu (mis. hanya kelas 4–6)      |
-| `urutan`          | int   | Urutan tampil di rapor                                            |
-| `jam_per_pekan`   | int?  |                                                                   |
-| `kkm`             | int?  | Batas ketuntasan, bila `jenis_penilaian = angka`                  |
+| Kolom             | Tipe | Catatan                                                      |
+| ----------------- | ---- | ------------------------------------------------------------ |
+| `tahun_ajaran_id` | ULID |                                                              |
+| `marhalah`        | enum | `paud` \| `ra` \| `ibtidaiyyah` \| `mutawashitoh`            |
+| `mapel_id`        | ULID |                                                              |
+| `tingkat`         | int? | Bila mapel hanya untuk kelas tertentu (mis. hanya kelas 4–6) |
+| `urutan`          | int  | Urutan tampil di rapor                                       |
+| `jam_per_pekan`   | int? |                                                              |
+| `kkm`             | int? | Batas ketuntasan, bila `jenis_penilaian = angka`             |
 
 Karena kuncinya memuat `tahun_ajaran_id`, **mengubah kurikulum tahun depan tidak menyentuh
 kurikulum tahun ini** — dan rapor lama tetap bisa dicetak ulang persis seperti aslinya. Ini
@@ -388,29 +393,29 @@ tabel kecil bertumpuk**, `No | Akun Masuk | Kode` dan tepat di bawahnya `No | Ak
 
 ### Akun masuk — 8 baris, dan penomorannya memang melompat
 
-| Kode | Nama persis di sheet             |
-| ---: | -------------------------------- |
-|    1 | `1. SPP`                         |
-|    2 | `2. UANG PENDAFTARAN`            |
-|    3 | `3. UANG GEDUNG`                 |
-|    4 | `4. SARPRAS`                     |
-|    5 | `5. RAPORT`                      |
-|    6 | `6. MODUL`                       |
-|   11 | `11. PROTA (TAAWUN KBM)`         |
+| Kode | Nama persis di sheet               |
+| ---: | ---------------------------------- |
+|    1 | `1. SPP`                           |
+|    2 | `2. UANG PENDAFTARAN`              |
+|    3 | `3. UANG GEDUNG`                   |
+|    4 | `4. SARPRAS`                       |
+|    5 | `5. RAPORT`                        |
+|    6 | `6. MODUL`                         |
+|   11 | `11. PROTA (TAAWUN KBM)`           |
 |   12 | `12. SUMBANGAN KBM (Dana Ta'awun)` |
 
 ### Akun keluar — 21 sampai 31
 
 Terbaca utuh di **berkas 03**; salinan di berkas 04 terpotong ekspor renggang.
 
-| Kode | Nama persis di sheet          | Kode | Nama persis di sheet   |
-| ---: | ----------------------------- | ---: | ---------------------- |
-|   21 | `21. Admin Bank`              |   27 | `27. KEGIATAN SANTRI`  |
-|   22 | `22. MUKAFAAH`                |   28 | `28. KONSUMSI`         |
-|   23 | `23. GEDUNG (Perbaikan/Sewa)` |   29 | `29. TRANSPORTASI`     |
-|   24 | `24. SARPRAS (PERBAIKAN/BELI)`|   30 | `30. ATK`              |
-|   25 | `25. RAPORT (PEMBELIAN)`      |   31 | `31. LISTRIK`          |
-|   26 | `26. MODUL (PEMBELIAN)`       |      |                        |
+| Kode | Nama persis di sheet           | Kode | Nama persis di sheet  |
+| ---: | ------------------------------ | ---: | --------------------- |
+|   21 | `21. Admin Bank`               |   27 | `27. KEGIATAN SANTRI` |
+|   22 | `22. MUKAFAAH`                 |   28 | `28. KONSUMSI`        |
+|   23 | `23. GEDUNG (Perbaikan/Sewa)`  |   29 | `29. TRANSPORTASI`    |
+|   24 | `24. SARPRAS (PERBAIKAN/BELI)` |   30 | `30. ATK`             |
+|   25 | `25. RAPORT (PEMBELIAN)`       |   31 | `31. LISTRIK`         |
+|   26 | `26. MODUL (PEMBELIAN)`        |      |                       |
 
 ### Koreksi: kode 7–10 bukan data yang gagal terbaca
 
@@ -475,12 +480,12 @@ Dipakai `packages/core` untuk menyaring sebelum data keluar. Penanda melekat pad
 kolom di `packages/contracts`, sehingga penyaring bekerja dari metadata — kolom baru yang
 lupa didaftarkan akan tertahan, bukan lolos diam-diam.
 
-| Tingkat        | Kolom                                                                 | Aturan                                                             |
-| -------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| **terlarang**  | `santri.nik`, `wali.nik`, `pengajar.nik`, `no_kk`, nomor rekening      | **Tidak pernah** keluar dari `core`. Tidak ke prompt, tidak ke Sheet, tidak ke log |
-| **sensitif**   | `tanggal_lahir`, `alamat`, `no_hp`, `wali.status_hidup`, status yatim/piatu | Hanya ke pihak yang berhak menurut matriks peran; tidak pernah ke prompt LLM |
-| **internal**   | `nis`, `nisn`, `nama_lengkap`, `rombel`                               | Boleh ke pengurus dan pengajar; ke wali hanya untuk anaknya sendiri |
-| **publik**     | `marhalah`, `jalur`, nama rombel                                      | Bebas                                                               |
+| Tingkat       | Kolom                                                                       | Aturan                                                                             |
+| ------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **terlarang** | `santri.nik`, `wali.nik`, `pengajar.nik`, `no_kk`, nomor rekening           | **Tidak pernah** keluar dari `core`. Tidak ke prompt, tidak ke Sheet, tidak ke log |
+| **sensitif**  | `tanggal_lahir`, `alamat`, `no_hp`, `wali.status_hidup`, status yatim/piatu | Hanya ke pihak yang berhak menurut matriks peran; tidak pernah ke prompt LLM       |
+| **internal**  | `nis`, `nisn`, `nama_lengkap`, `rombel`                                     | Boleh ke pengurus dan pengajar; ke wali hanya untuk anaknya sendiri                |
+| **publik**    | `marhalah`, `jalur`, nama rombel                                            | Bebas                                                                              |
 
 Ini data anak di bawah umur dan UU PDP berlaku — lihat `AGENTS.md`. `NIK` **terisi nyata**
 di berkas 04 (10 dari 11 baris contoh), jadi ini bukan risiko hipotetis.

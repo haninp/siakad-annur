@@ -21,16 +21,20 @@ hasil keterangan langsung pengelola. **Sumbernya percakapan, bukan berkas.**
 Sebelumnya (Fase 0 tugas 0.1–0.8) sudah selesai dan ter-commit: struktur monorepo, AGENTS.md
 sebagai sumber instruksi tunggal, ritual sesi, dokumen `00`–`05`, tujuh ADR, dua skill fondasi.
 
+**0.10 — `packages/contracts`.** Empat belas entitas master identitas dan akademik: skema zod,
+tipe, DDL SQLite `STRICT`, klasifikasi data pribadi berbasis metadata, dan `hitungStatusYatim`
+sebagai fungsi turunan. 58 test hijau.
+
 ## Sedang dikerjakan
 
-**0.10 — `packages/contracts`**, bagian identitas, wali, dan akademik.
+Tidak ada. Sesi berhenti di batas tugas yang bersih.
 
 ## Langkah berikutnya
 
-Lanjutkan 0.10 sampai `build`, `lint`, dan `test` hijau. Bagian keuangan (`akun_keuangan`,
-`komponen_biaya`) **sengaja ditunda** sampai 0.9 selesai; sisanya tidak menunggu siapa pun.
+**`packages/db`** — runner migrasi di atas `DDL_MASTER_DATA`, lalu repository. Atau **0.9d**
+(ADR jalur tulis `bot-wali`) begitu keputusannya diambil.
 
-Setelah itu: 0.9d (ADR jalur tulis `bot-wali`) begitu keputusannya diambil, lalu `packages/db`.
+Bagian keuangan `contracts` (`akun_keuangan`, `komponen_biaya`) tetap menunggu 0.9.
 
 Rujukan statis `quran_surah` dan `quran_juz_batas` tetap bisa di-seed kapan saja — data publik,
 tidak menunggu apa pun.

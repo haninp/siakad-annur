@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PAKET } from '@siakad/contracts';
+import { Santri, TABEL_MASTER_DATA } from '@siakad/contracts';
 
 /**
  * Uji kabel workspace, bukan uji fitur.
@@ -10,6 +10,10 @@ import { PAKET } from '@siakad/contracts';
  */
 describe('kabel workspace', () => {
   it('paket lain dapat meng-import @siakad/contracts', () => {
-    expect(PAKET).toBe('contracts');
+    expect(TABEL_MASTER_DATA).toContain('santri');
+  });
+
+  it('skema zod terbawa lintas paket, bukan hanya tipenya', () => {
+    expect(Santri.safeParse({}).success).toBe(false);
   });
 });

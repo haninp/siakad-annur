@@ -12,7 +12,7 @@ skema ditulis.
 
 ---
 
-## Ringkasan: tujuh kebutuhan
+## Ringkasan: delapan kebutuhan
 
 | #   | Kebutuhan                                            | Yang sudah ada di model    | Yang baru        |
 | --- | ---------------------------------------------------- | -------------------------- | ---------------- |
@@ -23,6 +23,7 @@ skema ditulis.
 | 5   | Kanal info materi pertemuan berikutnya               | `pengumuman` (terlalu umum) | `rencana_pertemuan` |
 | 6   | Nilai PR & latihan langsung ke wali                  | `nilai` (jenis kurang)     | perluasan `jenis` |
 | 7   | Wali melaporkan absen ke sistem, di-acknowledge wali kelas | `absensi`            | `usulan_izin` + **konflik ADR** |
+| 8   | Kabar absen yang masuk lewat jalur pribadi/lisan     | —                          | `kanal` + rekap tertunggak |
 
 ---
 
@@ -138,17 +139,39 @@ gaya — `AGENTS.md` melarangnya, dan sistem lama rusak persis karena angka turu
 terpisah dari sumbernya lalu menyimpang. Poin yang salah di sini berujung pada SP yang salah
 untuk anak orang.
 
-**Yang perlu diputuskan sebelum ini bisa ditulis:**
+### Penyetelan ulang poin — terjawab, dan satu mekanisme menutup keduanya
 
-1. **Poin awal berapa, dan dikurangi sampai batas mana?** "Poin dikurangi" menyiratkan ada
-   pagu awal — 100, atau lain.
-2. **Kapan poin disetel ulang?** Tiap semester, tiap tahun ajaran, atau tidak pernah. Ini
-   menentukan apakah pelanggaran kelas 1 masih membebani anak di kelas 5.
-3. **Apakah ada poin positif** yang memulihkan? Tanpa jalan pemulihan, sistem poin hanya
-   menghitung menuju hukuman.
-4. **Siapa yang berwenang mencatat pelanggaran** — semua pengajar, hanya wali kelas, atau
+Keterangan pengelola: _"sepertinya akan di-reset setiap tahun ajaran, atau terakumulasi namun
+bisa di-reset sewaktu-waktu."_
+
+Dua pilihan itu **tidak perlu dipilih sekarang**, karena satu mekanisme memenuhi keduanya:
+
+```
+reset_poin   santri_id? · tahun_ajaran_id? · berlaku_sejak · alasan · disetujui_oleh
+```
+
+Poin berjalan dihitung sebagai: **pagu awal dikurangi pelanggaran sejak titik reset terakhir
+yang berlaku bagi santri itu.**
+
+- **Reset tiap tahun ajaran** = satu baris `reset_poin` otomatis di awal tahun ajaran, dengan
+  `santri_id` kosong (berlaku untuk semua).
+- **Reset sewaktu-waktu** = satu baris manual, boleh untuk satu santri atau semua, dengan
+  alasan dan penyetujunya tercatat.
+- **Akumulasi tanpa reset** = tidak ada baris sama sekali.
+
+Ini tetap mematuhi larangan menyimpan angka turunan: yang disimpan adalah **peristiwa reset**,
+bukan saldo poin. Dan karena tiap reset menyimpan alasan serta siapa yang menyetujui, "poin
+anak saya kok tiba-tiba pulih" selalu bisa dijawab.
+
+**Yang masih perlu diputuskan:**
+
+1. **Pagu poin awal berapa** — 100, atau lain.
+2. **Apakah ada poin positif** yang memulihkan di tengah jalan? Tanpa jalan pemulihan, sistem
+   poin hanya menghitung menuju hukuman. Catatan: reset **bukan** pengganti poin positif —
+   reset menghapus riwayat, poin positif mengakui perbaikan.
+3. **Siapa yang berwenang mencatat pelanggaran** — semua pengajar, hanya wali kelas, atau
    pengurus.
-5. **SP diterbitkan otomatis atau perlu persetujuan manusia?** Saran kuat: **perlu persetujuan.**
+4. **SP diterbitkan otomatis atau perlu persetujuan manusia?** Saran kuat: **perlu persetujuan.**
    Sanksi yang terkirim otomatis ke wali karena ambang terlampaui akan salah pada kasus yang
    ada konteksnya, dan kepercayaan yang hilang karenanya sulit dipulihkan.
 
@@ -246,6 +269,126 @@ harus menyetujui bagian halaqah secara terpisah. Saran: **cukup wali kelas**, de
 diberi tahu — menuntut dua persetujuan untuk satu anak yang sakit akan membuat alurnya
 ditinggalkan orang.
 
+### Cara wali melapor: tombol dulu, chatbot sebagai jaring pengaman
+
+Keterangan pengelola: harus **mudah** — tombol, atau sekadar mengabari dengan kalimat biasa
+lalu chatbot yang merangkum.
+
+Rancangannya berlapis, dan lapisan pertama yang menanggung sebagian besar beban:
+
+**Lapis 1 — tombol (menangani mayoritas kasus, biaya nol).** Wali membuka bot, menekan
+`Anak saya tidak masuk`, lalu memilih: anak yang mana (kalau lebih dari satu), `Sakit` atau
+`Izin`, dan `Hari ini` atau tanggal lain. Tiga ketukan, tidak ada yang perlu diketik, tidak ada
+model yang dipanggil, dan hasilnya sudah terstruktur sejak awal.
+
+**Lapis 2 — kalimat bebas (jaring pengaman).** Wali yang terlanjur mengetik
+_"assalamualaikum ustadz, hari ini Ahmad demam tidak bisa masuk"_ tetap terlayani: kalimatnya
+diekstrak jadi usulan terstruktur, lalu **ditampilkan kembali untuk dikonfirmasi wali** sebelum
+dikirim. Wali menekan `Benar` atau memperbaikinya.
+
+### Soal biaya — dan satu koreksi
+
+**Ya, ada biaya, tapi kecil.** Model termurah yang tersedia saat ini adalah **Claude Haiku 4.5**
+(`claude-haiku-4-5`) — **$1 per juta token masukan, $5 per juta token keluaran**.
+
+Sekali ekstraksi kira-kira 500 token masuk dan 100 token keluar, jadi **sekitar $0,001 per
+laporan** — kurang lebih **Rp16**. Pada 10 laporan sehari, biayanya **sekitar Rp5.000 sebulan**.
+Bahkan pada 50 laporan sehari masih di bawah Rp25.000 sebulan. Dan karena lapis 1 (tombol)
+tidak memanggil model sama sekali, angka nyatanya akan lebih rendah lagi.
+
+**Tapi asumsi "cukup deterministik" perlu dikoreksi.** Mengekstrak maksud dari kalimat bebas
+manusia **tidak deterministik** — kalimat yang sama bisa menghasilkan keluaran berbeda, dan
+kalimat ambigu ("besok Ahmad ada acara keluarga, mungkin tidak masuk") bisa salah dibaca.
+
+Yang **bisa** dijamin adalah **bentuk** keluarannya, bukan kebenarannya. Dengan fitur
+structured outputs, model dipaksa mengembalikan JSON yang sesuai skema — jadi tidak akan
+pernah ada keluaran yang gagal diurai. Isinya tetap harus dianggap **usulan**.
+
+Karena itu rancangannya sudah benar sejak awal: keluaran model masuk ke `usulan_izin`, wali
+mengonfirmasi, wali kelas meng-_acknowledge_, dan **baru** kode deterministik yang menulis
+`absensi`. Ini persis batas di `AGENTS.md`: LLM tidak pernah menulis ke basis data.
+
+### Perlindungan data: model tidak perlu tahu nama anak
+
+Ada jebakan yang mudah terlewat. Pesan wali memuat **nama anak dan keterangan kesehatannya** —
+data pribadi anak di bawah umur. Mengirim kalimat itu apa adanya ke API berarti data tersebut
+keluar dari pesantren.
+
+Tidak perlu, dan menghindarinya juga menurunkan biaya:
+
+- **Santri ditentukan kode, bukan model.** Bot sudah tahu siapa pengirimnya dari `telegram_id`,
+  jadi daftar anaknya diambil deterministik. Kalau anaknya satu, tidak ada yang perlu ditebak;
+  kalau lebih, tombol yang memilih.
+- **Model hanya mengembalikan tiga hal**: `jenis` (`sakit`/`izin`), `tanggal`, dan `alasan`
+  ringkas. Nama tidak perlu ikut, dan **prompt-nya tidak menyertakan daftar santri**.
+- Prompt caching tidak dipakai di sini: ambang minimum cache untuk Haiku 4.5 adalah 4.096 token,
+  jauh di atas ukuran prompt ekstraksi ini. Menambah panjang prompt hanya demi cache justru
+  menaikkan biaya.
+
+**Yang perlu diperiksa sebelum menyalakan lapis 2:** kebijakan retensi data pada akun LLM yang
+dipakai. Ini masuk keputusan perlindungan data yang sudah menggantung di `STATE.md`.
+
+## 8. Kabar yang masuk lewat jalur pribadi — dan jalan keluarnya
+
+Keterangan pengelola, dan ini masalah paling menarik dari seluruh dokumen ini:
+
+> Ada kasus pengampu absen langsung menerima informasi sementara wali kelas bahkan tidak,
+> karena kedekatan personal wali santri dengan pengampu absen. Penyampaiannya pun tidak tertib,
+> hanya verbal.
+
+**Jangan lawan kanal informalnya — tangkap.** Melarang wali mengabari lewat jalur yang sudah
+nyaman bagi mereka tidak akan berhasil; yang terjadi hanya kabarnya tetap lewat situ dan
+sistemnya yang ditinggalkan. Yang bisa diperbaiki adalah memastikan kabar itu **meninggalkan
+jejak**, dari mana pun masuknya.
+
+Empat hal yang menyelesaikannya:
+
+**1. Siapa pun yang berwenang boleh mencatatkan atas nama wali.** `usulan_izin` memisahkan tiga
+peran yang selama ini tercampur:
+
+```
+usulan_izin   ... · dilaporkan_oleh (wali)   ⟵ sumber kabar
+                  · dicatat_oleh   (siapa pun yang memasukkan)
+                  · kanal (bot_wali | lisan | grup | telepon)
+```
+
+Pengampu absen yang diberi tahu secara lisan cukup menekan satu tombol: pilih santri, pilih
+`Sakit`, kanal terisi `lisan` otomatis. **Satu ketukan, bukan satu formulir** — kalau lebih
+berat dari memberitahu wali kelas lewat WhatsApp, tidak akan dipakai.
+
+**2. Penyebaran otomatis, apa pun pintu masuknya.** Begitu baris `usulan_izin` lahir, wali kelas
+dan pengajar hari itu langsung diberi tahu — tidak peduli kabarnya masuk lewat bot wali atau
+diketikkan pengampu absen. **Ini yang menghapus masalahnya:** wali kelas tidak lagi bergantung
+pada seseorang ingat meneruskan.
+
+**3. Yang belum di-_acknowledge_ tidak menghilang.** Rekap harian pengampu absen menampilkan
+tiga kelompok terpisah: sudah dikonfirmasi, **menunggu konfirmasi**, dan tanpa kabar sama
+sekali. Anak yang walinya sudah mengabari tapi belum ada yang mengonfirmasi **tidak tercatat
+`alpa`** — ia tampil sebagai "izin belum dikonfirmasi", yang beda artinya. Dengan begitu
+rekapitulasi pengampu absen sekaligus jadi alat pemeriksa.
+
+**4. Kanal dicatat, sehingga polanya terukur.** Kalau enam bulan lagi ternyata 40% kabar masih
+masuk lisan, itu **angka**, bukan kesan. Tujuannya bukan menihilkan jalur lisan — tujuannya
+supaya jalur lisan tidak lagi berarti kabarnya hilang.
+
+### Acknowledge boleh tertunda, tapi tidak boleh menguap
+
+Keterangan pengelola: wali kelas **harus** meng-_acknowledge_, boleh tertunda karena kesibukan,
+dan pengampu absen sebaiknya hanya merekapitulasi.
+
+- **Pengingat bertingkat.** Belum di-_ack_ sampai KBM mulai → wali kelas diingatkan. Sampai
+  akhir hari → muncul di rekap sebagai tertunggak. Beberapa hari berturut-turut → pengurus tahu.
+  Yang naik ke atas adalah **pola**, bukan tiap kejadian.
+- **Wewenang cadangan, bukan pemindahan.** Kalau wali kelas berhalangan berhari-hari, pengurus
+  boleh meng-_ack_ — tercatat sebagai `di-ack oleh pengurus`, bukan menyamar sebagai wali kelas.
+  Tanpa jalan cadangan, wali kelas yang sakit seminggu membekukan absensi seluruh kelasnya.
+
+> **Satu bagian keterangan yang belum jelas dan perlu dikonfirmasi:** kalimat "harapannya bisa
+> di-ack oleh wali santri" — saya menafsirkannya sebagai **wali kelas**, karena maksud
+> keseluruhannya adalah membebaskan pengampu absen dari pekerjaan meneruskan kabar. Kalau yang
+> dimaksud memang **wali santri** yang mengonfirmasi sesuatu, alurnya berbeda dan bagian ini
+> perlu ditulis ulang.
+
 ---
 
 ## Keputusan yang menggantung dari dokumen ini
@@ -255,8 +398,8 @@ mendesak karena memblokir bentuk tabel, sisanya memblokir aturan.
 
 1. **Jalur tulis `bot-wali`** (bagian 7) — pengecualian sempit atau tetap baca-saja.
    **Butuh ADR.** Ini yang paling menentukan.
-2. **Poin**: pagu awal, kapan disetel ulang, ada poin positif atau tidak, siapa yang berwenang
-   mencatat, dan apakah SP otomatis.
+2. **Poin**: pagu awal, ada poin positif atau tidak, siapa yang berwenang mencatat, dan apakah
+   SP otomatis. _(Penyetelan ulang sudah terjawab — lihat bagian 4.)_
 3. **Nilai harian ke wali**: seketika atau setelah ditinjau.
 4. **Poin dan pelanggaran di halaqah**: berlaku atau tidak, dan mudaris berwenang atau tidak.
 5. **Izin satu hari menutup kelas dan halaqah sekaligus**, atau perlu dua persetujuan.
@@ -264,3 +407,7 @@ mendesak karena memblokir bentuk tabel, sisanya memblokir aturan.
 7. **Bentuk grup Telegram**: satu supergrup ber-topik, atau satu grup per kelas.
 8. **Daftar jenis pelanggaran beserta poinnya** — tabel seed, tidak memblokir skema, tapi
    memblokir peluncuran.
+9. **Retensi data pada akun LLM** — perlu diperiksa sebelum lapis 2 (kalimat bebas) dinyalakan.
+   Masuk keputusan perlindungan data yang sudah menggantung di `STATE.md`.
+10. **Arti "di-ack oleh wali santri"** pada keterangan bagian 8 — ditafsirkan sebagai wali
+    kelas; perlu konfirmasi.

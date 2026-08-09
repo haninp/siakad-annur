@@ -48,9 +48,11 @@ tidak menunggu apa pun.
    menyatakan kemampuan tulis harus **absen dari binary** `bot-wali`. Dua jalan keluar
    diuraikan di `docs/08-akademik-kebutuhan.md` bagian 7; **butuh ADR**, dan ini memblokir
    tabel absensi maupun izin. Lihat tugas 0.9d.
-5. **Tujuh keputusan akademik lain** dari `docs/08-akademik-kebutuhan.md`: pagu dan penyetelan
-   ulang poin, nilai harian tampil seketika atau setelah ditinjau, poin di halaqah, izin satu
-   hari menutup dua konteks, wali boleh melihat PR, bentuk grup Telegram.
+5. **Sepuluh keputusan akademik lain** dari `docs/08-akademik-kebutuhan.md`: pagu poin, poin
+   positif, nilai harian tampil seketika atau setelah ditinjau, poin di halaqah, izin satu hari
+   menutup dua konteks, wali boleh melihat PR, bentuk grup Telegram, retensi data akun LLM.
+   _(Penyetelan ulang poin sudah terjawab: satu tabel `reset_poin` menutup pilihan "reset tiap
+   tahun ajaran" maupun "akumulasi dengan reset sewaktu-waktu".)_
 
 ## Temuan penting dari pembacaan data lama
 

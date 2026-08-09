@@ -43,6 +43,14 @@ tidak menunggu apa pun.
    master berkas 04, bukan risiko hipotetis.
 3. **Akademik**: daftar mapel per jalur & marhalah, skala nilai diniyah, aspek akhlak,
    hari & jam KBM. **Tidak memblokir** — keempatnya tabel seed, diisi lewat Sheet Pola.
+4. **Jalur tulis `bot-wali`** — kebutuhan baru (wali melaporkan absen anaknya) bertabrakan
+   langsung dengan ADR 0005, `docs/02-roles-matrix.md`, dan `AGENTS.md`, yang ketiganya
+   menyatakan kemampuan tulis harus **absen dari binary** `bot-wali`. Dua jalan keluar
+   diuraikan di `docs/08-akademik-kebutuhan.md` bagian 7; **butuh ADR**, dan ini memblokir
+   tabel absensi maupun izin. Lihat tugas 0.9d.
+5. **Tujuh keputusan akademik lain** dari `docs/08-akademik-kebutuhan.md`: pagu dan penyetelan
+   ulang poin, nilai harian tampil seketika atau setelah ditinjau, poin di halaqah, izin satu
+   hari menutup dua konteks, wali boleh melihat PR, bentuk grup Telegram.
 
 ## Temuan penting dari pembacaan data lama
 
@@ -66,6 +74,10 @@ tidak menunggu apa pun.
 - **Rencana lengkap ada di `docs/RENCANA.md`.** Bila berbeda dengan `docs/00`–`07` atau
   `docs/adr/`, **yang terakhir yang berlaku**; RENCANA.md dokumen asal, bukan sumber kebenaran.
 - **Akademik adalah lahan kosong** — tidak ada sistem akademik di Drive. Dirancang dari awal.
+  Kebutuhan lapangannya kini tercatat di `docs/08-akademik-kebutuhan.md`: PR lintas kelas,
+  sistem poin sampai SP, kanal materi pertemuan berikutnya, nilai harian ke wali, dan laporan
+  absen oleh wali. **Sumbernya percakapan, bukan berkas** — jadi tidak bisa diperiksa ulang
+  seperti `docs/06` dan `07`; konfirmasi ulang sebelum dibekukan jadi skema.
 - Prasyarat eksternal (token bot, service account, PDF kalender Kemenag, akun LLM) belum
   disiapkan. Hanya **P3** yang menghambat Fase 0; **P2** kini juga membatasi karena ekspor MCP
   tidak cukup untuk memastikan cakupan tanggal.

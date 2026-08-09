@@ -26,6 +26,10 @@ model kuat tersedia (pemodelan OLAP, aturan izin, skema kontrak).
       bahwa tabel sebaran versi lama menghitung derau (log add-on, tanggal lahir), dan bahwa
       ada **dua skema kolom jurnal** (01–02 vs 03–04)
 - [x] **0.9b** Desain struktur master data: `docs/07-master-data.md` + ADR 0008 `[berat]`
+- [x] **0.9c** Catat kebutuhan akademik dari lapangan: `docs/08-akademik-kebutuhan.md` `[ringan]`
+- [ ] **0.9d** **ADR jalur tulis `bot-wali`** — kebutuhan wali melaporkan absen bertabrakan
+      dengan ADR 0005 dan `AGENTS.md`. Putuskan: pengecualian sempit (`usulan_izin`) atau
+      `bot-wali` tetap benar-benar baca-saja. **Memblokir tabel absensi dan izin** `[berat]`
 - [ ] **0.10** `packages/contracts` — terjemahkan `docs/07-master-data.md` ke zod + tipe + DDL
       `[berat]` _(bagian keuangan menunggu 0.9; sisanya boleh jalan lebih dulu)_
 

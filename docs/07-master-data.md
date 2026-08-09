@@ -184,13 +184,30 @@ dan pada model lama nomor HP-nya tersimpan berkali-kali lalu menyimpang.
 
 `santri_wali`
 
-| Kolom                 | Tipe | Catatan                                                        |
-| --------------------- | ---- | -------------------------------------------------------------- |
-| `santri_id`           | ULID | →`santri.id`                                                   |
-| `wali_id`             | ULID | →`wali.id`                                                     |
-| `hubungan`            | enum | `ayah` \| `ibu` \| `wali`                                      |
-| `penanggung_biaya`    | bool | Dari `yg_membiayai_sekolah` (nilai nyata: `Orang Tua`)         |
-| `penerima_notifikasi` | bool | Menentukan siapa yang di-broadcast bot wali                    |
+| Kolom                 | Tipe    | Catatan                                                     |
+| --------------------- | ------- | ------------------------------------------------------------ |
+| `santri_id`           | ULID    | →`santri.id`                                                |
+| `wali_id`             | ULID    | →`wali.id`                                                  |
+| `hubungan`            | enum    | `ayah` \| `ibu` \| `wali`                                   |
+| `penanggung_biaya`    | boolean | Ya atau tidak. Bukan enum, bukan nullable                   |
+| `penerima_notifikasi` | boolean | Ya atau tidak. Bukan enum, bukan nullable                   |
+
+**Keduanya `true`/`false`, dan sengaja tidak lebih dari itu.**
+
+`penanggung_biaya` berasal dari kolom `yg_membiayai_sekolah` di berkas 04, yang isinya
+**`Orang Tua` untuk seluruh baris** — tidak ada satu pun nilai lain. Membuatnya enum berarti
+merancang cabang yang tidak pernah dipakai. Pembiayaan dari pihak lain memang ada, tetapi
+bentuknya PROTA dan keringanan, dan keduanya **transaksi**, bukan sifat melekat pada hubungan
+santri–wali. Menaruhnya di sini akan menduplikasi kebenaran yang sudah hidup di jurnal.
+
+Justru karena keduanya boolean **per baris**, dua orang tua bisa sama-sama `true` — ayah dan
+ibu sama-sama menerima notifikasi, atau berdua menanggung biaya. Satu kolom "wali utama" di
+tabel `santri` tidak bisa menyatakan itu.
+
+Penegakan yang perlu ada di `packages/core`, bukan di skema: **tiap santri harus punya
+sekurang-kurangnya satu baris `penerima_notifikasi = true`.** Santri tanpa penerima notifikasi
+berarti walinya tidak pernah dikabari apa pun, dan tidak ada yang akan menyadarinya sampai ada
+yang mengeluh.
 
 **Mengapa `wali` punya `nik`.** Ekspor EMIS meminta data orang tua, dan berkas warisan sudah
 menyediakan `nik` untuk santri tapi tidak untuk walinya. Kolomnya disiapkan sekarang supaya

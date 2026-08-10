@@ -49,7 +49,7 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
 
 - [x] **1.0** `packages/db`: repository untuk master data dan `usulan_izin` di atas runner
       migrasi yang sudah ada `[ringan]`
-- [ ] **1.1** `packages/core`: penegakan izin peran + handler `ajukanIzin` / `batalkanIzin`
+- [x] **1.1** `packages/core`: penegakan izin peran + handler `ajukanIzin` / `batalkanIzin`
       yang boleh di-import `apps/bot-wali` `[berat]`
 - [ ] **1.2** `packages/contracts`: skema keuangan — `akun_keuangan`, `komponen_biaya`,
       `tagihan`, `pembayaran`, `prota`, `keringanan`, `lebih_bayar` — berdasarkan ADR 0012

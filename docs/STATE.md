@@ -3,11 +3,18 @@
 > Diperbarui di akhir setiap sesi. Berkas ini yang dibaca lebih dulu oleh agent berikutnya,
 > apa pun mereknya. STATE yang basi lebih berbahaya daripada tidak ada, karena ia dipercaya.
 
-**Terakhir diperbarui:** 9 Agustus 2026
+**Terakhir diperbarui:** 10 Agustus 2026
 
 ---
 
 ## Yang baru selesai
+
+**Jawaban P3 — sesi pemegang pengetahuan keuangan.** Sembilan pertanyaan di ujung
+`docs/06-migrasi-legacy.md` terjawab: TAYSIR ditangguhkan/berpotensi dihentikan, keringanan
+murni kebijakan pengurus, keluar di tengah tahun tidak refund, sisa PROTA digulirkan, tahun
+ajaran mengikuti kalender nasional, lebih bayar dipotong tagihan berikutnya, NISN dilengkapi
+belakangan. Dua pertanyaan (kolom `Khusus PROTA` dan sheet arsip 2023) ditunda. Hasilnya
+masuk ke `docs/06-migrasi-legacy.md`.
 
 **0.8b — pembacaan berkas 01 dan 02, dan koreksi metode.** Keempat berkas rantai kini sudah
 dibaca. Hasilnya di `docs/06-migrasi-legacy.md`.
@@ -74,21 +81,20 @@ Tidak ada. Sesi berhenti di batas tugas yang bersih.
 di atas runner yang sudah ada. Setelah itu `packages/core`: penegakan izin peran, dan
 `ajukanIzin` / `batalkanIzin` sebagai handler yang boleh di-import `bot-wali`.
 
-Semua itu jalan **tanpa menunggu keputusan siapa pun**. Yang menunggu: bagian keuangan
-(P3) dan seluruh daftar di bawah.
+Semua itu jalan **tanpa menunggu keputusan siapa pun**.
 
-Bagian keuangan `contracts` (`akun_keuangan`, `komponen_biaya`) tetap menunggu 0.9.
+Bagian keuangan `contracts` (`akun_keuangan`, `komponen_biaya`) sudah tidak lagi diblokir
+penuh oleh P3; bisa mulai dirancang. Dua hal keuangan masih ditunda: makna kolom
+`Khusus PROTA` dan nasib sheet arsip Juli–Agustus 2023.
 
 Rujukan statis `quran_surah` dan `quran_juz_batas` tetap bisa di-seed kapan saja — data publik,
 tidak menunggu apa pun.
 
 ## Keputusan yang menggantung
 
-1. **P3 — sesi dengan pemegang pengetahuan keuangan.** Daftar pertanyaan di ujung
-   `docs/06-migrasi-legacy.md` sudah **diperbarui jadi sembilan** dan dipertajam: dua
-   pertanyaan lama sudah terjawab sendiri oleh pembacaan 01/02, beberapa lain berubah dari
-   "apakah ada" menjadi "kapan dan mengapa berubah". Ditambah pertanyaan **kode akun 8, 9, 10**
-   yang tidak terbaca di ekspor. Ini memblokir bagian keuangan pada `contracts`, dan hanya itu.
+1. **P3 — sesi dengan pemegang pengetahuan keuangan.** Terjawab sebagian besar pada
+   10 Agustus 2026. Yang masih terbuka: makna kolom `Khusus PROTA` dan nasib sheet arsip
+   Juli–Agustus 2023. Bagian keuangan pada `contracts` sudah tidak lagi diblokir penuh.
 2. **Perlindungan data**: bentuk persetujuan wali, retensi data alumni, akses wali setelah
    santri keluar, penanggung jawab data. Sekarang lebih mendesak — `NIK` **terisi nyata** di
    master berkas 04, bukan risiko hipotetis.

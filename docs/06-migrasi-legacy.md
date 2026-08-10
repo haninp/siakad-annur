@@ -1,9 +1,10 @@
 # 06 — Migrasi dari Spreadsheet Lama
 
-> **Status: draf.** Keempat berkas rantai (01–04) sudah dibaca. Bagian "yang sudah terbaca"
-> berasal dari pembacaan langsung dan sudah dapat dipakai — **dengan batas metode di bawah**.
-> Bagian "pertanyaan terbuka" menunggu sesi dengan pemegang pengetahuan keuangan
-> (prasyarat **P3**) — dan itu yang memblokir bagian keuangan pada `contracts`.
+> **Status: draf; P3 terjawab sebagian.** Keempat berkas rantai (01–04) sudah dibaca. Bagian
+> "yang sudah terbaca" berasal dari pembacaan langsung dan sudah dapat dipakai — **dengan
+> batas metode di bawah**. Jawaban sesi P3 dicatat di bagian bawah; dua pertanyaan masih
+> terbuka (no. 7 dan 8), dan satu keputusan akademik nasional perlu diterjemahkan ke periode
+> tagihan. Bagian keuangan pada `contracts` sudah tidak lagi diblokir penuh oleh P3.
 
 ## Cakupan pembacaan
 
@@ -262,7 +263,28 @@ dan mengapa berubah", yang jauh lebih mudah dijawab manusia.
    rujukan saldo awal, atau sisa salin-tempel yang terbawa? Jawabannya menentukan apakah ia
    diimpor sekali atau diabaikan sama sekali.
 9. **`NISN` masih kosong** di master berkas 04 dan ditandai `update NISN 2026` sejak berkas 03.
-   Apakah pengisiannya sedang berjalan, dan dari sumber mana?
+    Apakah pengisiannya sedang berjalan, dan dari sumber mana?
+
+## Jawaban P3 — 10 Agustus 2026
+
+Berdasarkan sesi dengan pemegang pengetahuan keuangan:
+
+1. **TAYSIR** — saat ini **ditangguhkan**. Kalau SIAKAD berjalan, TAYSIR kemungkinan besar
+   dihentikan (`terminated`), sehingga **tidak perlu diintegrasikan** ke sistem baru.
+2. **KERINGANAN** — murni **kebijakan pengurus** dengan mempertimbangkan kondisi keuangan
+   wali santri. Bisa juga diawali dari **permintaan resmi wali santri ke pengurus**.
+3. **Santri keluar di tengah tahun** — tagihan yang belum dihapuskan **masih ditagih**, dan
+   **uang yang sudah dibayarkan tidak dikembalikan**.
+4. **PROTA** — sisa dana yang tidak teralokasi **tidak dikembalikan ke donatur**, melainkan
+   **disimpan untuk kebutuhan PROTA periode selanjutnya**.
+5. **Awal tahun ajaran** — mengikuti **kalender akademik nasional** (Juli–Juni).
+6. **Lebih Bayar** — dipotong untuk **tagihan berikutnya**, tidak dikembalikan tunai.
+7. **Kolom `Khusus PROTA`** — **belum bisa dijawab**. Perlu sesi tindak lanjut atau contoh
+   entri nyata untuk memahami isinya.
+8. **Sheet arsip Juli–Agustus 2023** — **di-skip dulu**; keputusan impor ditunda hingga ada
+   arahan lebih lanjut.
+9. **NISN** — akan **dilengkapi belakangan**; kolom ini boleh kosong untuk sementara dan
+   tidak menghalangi go-live.
 
 ### Yang tidak lagi perlu ditanyakan
 

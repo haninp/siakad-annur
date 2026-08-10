@@ -18,9 +18,10 @@ model kuat tersedia (pemodelan OLAP, aturan izin, skema kontrak).
 - [x] **0.6** ADR `0001`–`0007` `[berat]`
 - [x] **0.7** Skill fondasi: `skills/siakad-domain`, `skills/agent-handoff` `[berat]`
 - [x] **0.8** Baca file **03**, bandingkan dengan 04, catat pola tetap vs berubah `[ringan]`
-- [ ] **0.9** `docs/06-migrasi-legacy.md` — draf sudah ditulis dari pembacaan 03 & 04;
-      **tinggal menjawab 7 pertanyaan terbuka di ujung dokumen** bersama pemegang
-      pengetahuan keuangan (prasyarat P3) `[berat]`
+- [x] **0.9** `docs/06-migrasi-legacy.md` — draf sudah ditulis dari pembacaan 03 & 04;
+      **9 pertanyaan P3 terjawab sebagian besar pada 10 Agustus 2026**. Dua pertanyaan
+      masih terbuka: makna kolom `Khusus PROTA` dan nasib sheet arsip Juli–Agustus 2023.
+      Bagian keuangan pada `contracts` sudah tidak lagi diblokir penuh `[berat]`
 - [x] **0.8b** Periksa berkas **01** dan **02**: sebaran tahun tanggal transaksi `[ringan]`
       → 01 memegang 2023, 02 memegang 2024. Rantai 01–04 terkonfirmasi. Sekalian membongkar
       bahwa tabel sebaran versi lama menghitung derau (log add-on, tanggal lahir), dan bahwa
@@ -44,14 +45,19 @@ model kuat tersedia (pemodelan OLAP, aturan izin, skema kontrak).
 
 ## Fase 1 — OLTP keuangan
 
-_Belum dirinci. Rujuk plan Fase 1 sebelum memulai._
+Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang pasti:
 
+- [ ] **1.0** `packages/db`: repository untuk master data dan `usulan_izin` di atas runner
+      migrasi yang sudah ada `[ringan]`
+- [ ] **1.1** `packages/core`: penegakan izin peran + handler `ajukanIzin` / `batalkanIzin`
+      yang boleh di-import `apps/bot-wali` `[berat]`
+- [ ] **1.2** `packages/contracts`: skema keuangan — `akun_keuangan`, `komponen_biaya`,
+      `tagihan`, `pembayaran`, `prota`, `keringanan`, `lebih_bayar` — berdasarkan ADR 0012
+      dan `docs/06-migrasi-legacy.md` `[berat]`
+- [ ] **1.3** `packages/db`: migrasi + repository untuk tabel keuangan `[berat]`
+- [ ] **1.4** `packages/core`: aturan bisnis keuangan — tagihan, prorata, cicilan,
+      keringanan, PROTA, lebih bayar `[berat]`
 - [ ] Seed `kalender_hijriah` dari PDF Kemenag (butuh prasyarat P4)
-- [x] `packages/db`: runner migrasi + koneksi ber-pragma _(repository menyusul)_
-- [x] **Infrastruktur Docker** (ADR 0011): `infra/Dockerfile` + `infra/compose.yaml`,
-      npm script berpasangan host/Docker. _(Metabase, healthcheck, backup-sebelum-migrasi,
-      dan watchdog menyusul di Fase 4)_
-- [ ] `packages/core`: aturan keuangan (tagihan, prorata, cicilan, keringanan, PROTA, lebih bayar) + izin
 
 ---
 
@@ -63,7 +69,7 @@ Hanya **P3** yang menghambat Fase 0.
 | ------ | ---------------------------------------------------------------- | --------- |
 | P1     | Dua token bot Telegram via @BotFather + username bot wali        | belum     |
 | P2     | Google Cloud service account + akses folder Drive `SIAKAD-ANNUR` | belum     |
-| **P3** | **Sesi dengan pemegang pengetahuan keuangan** (memblokir 0.9)    | **belum** |
+| **P3** | **Sesi dengan pemegang pengetahuan keuangan** (0.9 terjawab sebagian) | **terjawab sebagian** |
 | P4     | PDF Kalender Hijriah Kemenag 2026 & 2027                         | belum     |
 | P5     | Langganan opencode Go + saldo Zen terpisah                       | belum     |
 | P6     | ID grup Telegram pengurus                                        | belum     |

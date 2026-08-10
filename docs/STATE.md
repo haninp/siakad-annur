@@ -3,16 +3,22 @@
 > Diperbarui di akhir setiap sesi. Berkas ini yang dibaca lebih dulu oleh agent berikutnya,
 > apa pun mereknya. STATE yang basi lebih berbahaya daripada tidak ada, karena ia dipercaya.
 
-**Terakhir diperbarui:** 11 Agustus 2026
+**Terakhir diperbarui:** 11 Agustus 2026 (sesi berlanjut)
 
 ---
 
 ## Yang baru selesai
 
+**1.1 — `packages/core`: handler `ajukanIzin` / `batalkanIzin`.** Penegakan izin peran di
+satu tempat: wali hanya bisa mengajukan/membatalkan untuk santri yang tertaut padanya,
+ditegakkan lewat `santri_wali.aktif`. Handler menerima repository sebagai dependency,
+mengembalikan pesan substantif ke wali, dan memakai aturan `bolehAjukanIzin`/
+`bolehBatalkanIzin` yang sudah ada. Test: 143 test hijau.
+
 **1.0 — repository `packages/db` untuk master data dan `usulan_izin`.** 14 repository
 master data (id tunggal & komposit) plus `RepoUsulanIzin` dengan method `ajukan`,
 `batalkan`, `tanggap`, `cariMenunggu`, dan `cariBySantri`. Helper otomatis mengonversi
-boolean zod ke INTEGER SQLite 0/1 dan kembali. Test: 136 test hijau.
+boolean zod ke INTEGER SQLite 0/1 dan kembali.
 
 **Jawaban P3 — sesi pemegang pengetahuan keuangan.** Sembilan pertanyaan di ujung
 `docs/06-migrasi-legacy.md` terjawab: TAYSIR ditangguhkan/berpotensi dihentikan, keringanan
@@ -82,9 +88,9 @@ Tidak ada. Sesi berhenti di batas tugas yang bersih.
 
 ## Langkah berikutnya
 
-**1.1 `packages/core`: penegakan izin peran + handler `ajukanIzin` / `batalkanIzin`** —
-handler yang boleh di-import `apps/bot-wali`, di atas repository `usulan_izin` yang sudah
-ada.
+**1.2 `packages/contracts`: skema keuangan** — `akun_keuangan`, `komponen_biaya`,
+`tagihan`, `pembayaran`, `prota`, `keringanan`, `lebih_bayar` — berdasarkan ADR 0012 dan
+`docs/06-migrasi-legacy.md`.
 
 Semua itu jalan **tanpa menunggu keputusan siapa pun**.
 

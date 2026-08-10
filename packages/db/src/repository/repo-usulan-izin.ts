@@ -37,6 +37,12 @@ export interface RepoUsulanIzin {
 
   /** Ambil seluruh riwayat usulan satu santri, terbaru dulu. */
   readonly cariBySantri: (santriId: string) => UsulanIzin[];
+
+  /** Ambil riwayat usulan satu santri pada satu tanggal. */
+  readonly cariBySantriDanTanggal: (santriId: string, tanggal: string) => UsulanIzin[];
+
+  /** Ambil satu usulan berdasarkan id. */
+  readonly cariById: (id: string) => UsulanIzin | undefined;
 }
 
 export function repoUsulanIzin(db: DatabaseSync): RepoUsulanIzin {
@@ -45,6 +51,8 @@ export function repoUsulanIzin(db: DatabaseSync): RepoUsulanIzin {
     .join(', ')})`;
   const selectMenunggu = `SELECT ${KOLOM} FROM ${TABEL} WHERE status = 'menunggu' ORDER BY tanggal, dibuat_pada`;
   const selectBySantri = `SELECT ${KOLOM} FROM ${TABEL} WHERE santri_id = ? ORDER BY dibuat_pada DESC`;
+  const selectBySantriDanTanggal = `SELECT ${KOLOM} FROM ${TABEL} WHERE santri_id = ? AND tanggal = ? ORDER BY dibuat_pada DESC`;
+  const selectById = `SELECT ${KOLOM} FROM ${TABEL} WHERE id = ?`;
 
   return {
     ajukan: (baris) => {
@@ -89,6 +97,18 @@ export function repoUsulanIzin(db: DatabaseSync): RepoUsulanIzin {
     cariBySantri: (santriId) => {
       const rows = db.prepare(selectBySantri).all(santriId) as Record<string, unknown>[];
       return rows.map((r) => dariSql(entitasUsulanIzin, r));
+    },
+
+    cariBySantriDanTanggal: (santriId, tanggal) => {
+      const rows = db
+        .prepare(selectBySantriDanTanggal)
+        .all(santriId, tanggal) as Record<string, unknown>[];
+      return rows.map((r) => dariSql(entitasUsulanIzin, r));
+    },
+
+    cariById: (id) => {
+      const row = db.prepare(selectById).get(id) as Record<string, unknown> | undefined;
+      return row ? dariSql(entitasUsulanIzin, row) : undefined;
     },
   };
 }

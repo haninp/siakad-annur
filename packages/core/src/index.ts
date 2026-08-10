@@ -6,3 +6,4 @@
  */
 
 export * from './izin.js';
+export * from './izin-handler.js';

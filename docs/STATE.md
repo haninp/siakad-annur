@@ -3,11 +3,16 @@
 > Diperbarui di akhir setiap sesi. Berkas ini yang dibaca lebih dulu oleh agent berikutnya,
 > apa pun mereknya. STATE yang basi lebih berbahaya daripada tidak ada, karena ia dipercaya.
 
-**Terakhir diperbarui:** 10 Agustus 2026
+**Terakhir diperbarui:** 11 Agustus 2026
 
 ---
 
 ## Yang baru selesai
+
+**1.0 — repository `packages/db` untuk master data dan `usulan_izin`.** 14 repository
+master data (id tunggal & komposit) plus `RepoUsulanIzin` dengan method `ajukan`,
+`batalkan`, `tanggap`, `cariMenunggu`, dan `cariBySantri`. Helper otomatis mengonversi
+boolean zod ke INTEGER SQLite 0/1 dan kembali. Test: 136 test hijau.
 
 **Jawaban P3 — sesi pemegang pengetahuan keuangan.** Sembilan pertanyaan di ujung
 `docs/06-migrasi-legacy.md` terjawab: TAYSIR ditangguhkan/berpotensi dihentikan, keringanan
@@ -77,9 +82,9 @@ Tidak ada. Sesi berhenti di batas tugas yang bersih.
 
 ## Langkah berikutnya
 
-**Repository di `packages/db`** — pembacaan dan penulisan `usulan_izin` serta master data,
-di atas runner yang sudah ada. Setelah itu `packages/core`: penegakan izin peran, dan
-`ajukanIzin` / `batalkanIzin` sebagai handler yang boleh di-import `bot-wali`.
+**1.1 `packages/core`: penegakan izin peran + handler `ajukanIzin` / `batalkanIzin`** —
+handler yang boleh di-import `apps/bot-wali`, di atas repository `usulan_izin` yang sudah
+ada.
 
 Semua itu jalan **tanpa menunggu keputusan siapa pun**.
 

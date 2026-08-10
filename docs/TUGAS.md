@@ -47,7 +47,7 @@ model kuat tersedia (pemodelan OLAP, aturan izin, skema kontrak).
 
 Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang pasti:
 
-- [ ] **1.0** `packages/db`: repository untuk master data dan `usulan_izin` di atas runner
+- [x] **1.0** `packages/db`: repository untuk master data dan `usulan_izin` di atas runner
       migrasi yang sudah ada `[ringan]`
 - [ ] **1.1** `packages/core`: penegakan izin peran + handler `ajukanIzin` / `batalkanIzin`
       yang boleh di-import `apps/bot-wali` `[berat]`

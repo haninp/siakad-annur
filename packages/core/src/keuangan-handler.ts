@@ -4,6 +4,8 @@ import type {
   RepoMasterKomposit,
   RepoTagihan,
   RepoTarifKomponen,
+  RepoKeringanan,
+  RepoPembayaran,
 } from '@siakad/db';
 import type {
   Santri,
@@ -11,13 +13,19 @@ import type {
   TahunAjaran,
   Pendaftaran,
   Rombel,
+  Pembayaran,
+  MetodePembayaran,
+  SumberPembayaran,
 } from '@siakad/contracts';
 import type { Aktor, HasilHandler } from './aktor.js';
 import { peranCukup } from './aktor.js';
 import {
   apakahPeriodeBerlaku,
   cariTarifBerlaku,
+  cicilanBerikutnya,
   hitungJatuhTempoDefault,
+  hitungOutstanding,
+  MAKS_CICILAN,
   type LookupTarif,
 } from './keuangan.js';
 import { formatPeriode, formatRupiah } from './format.js';
@@ -40,6 +48,8 @@ export interface DepKeuangan {
   readonly repoPendaftaran: RepoMasterKomposit<Pendaftaran>;
   readonly repoRombel: RepoMasterIdTunggal<Rombel>;
   readonly repoTahunAjaran: RepoMasterIdTunggal<TahunAjaran>;
+  readonly repoKeringanan: RepoKeringanan;
+  readonly repoPembayaran: RepoPembayaran;
 }
 
 export interface TerbitkanTagihanInput {
@@ -50,6 +60,18 @@ export interface TerbitkanTagihanInput {
   readonly periode: string;
   readonly skemaPeriode: 'masehi' | 'hijriah';
   readonly jatuhTempo?: string;
+  readonly waktu: string;
+}
+
+export interface CatatPembayaranInput {
+  readonly aktor: Aktor;
+  readonly tagihanId: string;
+  readonly tanggal: string;
+  readonly nominal: number;
+  readonly metode: MetodePembayaran;
+  readonly sumber: SumberPembayaran;
+  /** true bila pembayaran ini adalah bagian dari cicilan (akan diisi cicilan_ke). */
+  readonly sebagaiCicilan: boolean;
   readonly waktu: string;
 }
 
@@ -175,6 +197,105 @@ export function buatHandlerKeuangan(dep: DepKeuangan) {
           `Tagihan ${komponen.nama} untuk ${santri.nama_lengkap}, ${kapan}, ` +
           `sebesar ${formatRupiah(tarif.nominal)} sudah diterbitkan.`,
         data: tagihan,
+      };
+    },
+
+    catatPembayaran(input: CatatPembayaranInput): HasilHandler<Pembayaran> {
+      if (!peranCukup(input.aktor, 'pengurus')) {
+        return {
+          ok: false,
+          pesan: 'Hanya pengurus dan admin yang boleh mencatat pembayaran.',
+        };
+      }
+
+      if (input.nominal <= 0) {
+        return { ok: false, pesan: 'Nominal pembayaran harus lebih dari nol.' };
+      }
+
+      const tagihan = dep.repoTagihan.ambil(input.tagihanId);
+      if (tagihan === undefined) {
+        return { ok: false, pesan: 'Tagihan tidak ditemukan.' };
+      }
+
+      if (tagihan.status === 'lunas') {
+        return { ok: false, pesan: 'Tagihan ini sudah lunas. Tidak ada pembayaran lagi.' };
+      }
+      if (tagihan.status === 'dibatalkan') {
+        return { ok: false, pesan: 'Tagihan ini sudah dibatalkan. Tidak bisa menerima pembayaran.' };
+      }
+
+      const santri = dep.repoSantri.ambil(tagihan.santri_id);
+      const namaSantri = santri?.nama_lengkap ?? 'santri';
+
+      const komponen = dep.repoKomponenBiaya.ambil(tagihan.komponen_biaya_id);
+      const namaKomponen = komponen?.nama ?? 'tagihan';
+
+      const keringanan = dep.repoKeringanan.cariByTagihan(input.tagihanId);
+      const sudahBayar = dep.repoPembayaran.hitungTotalByTagihan(input.tagihanId);
+      const outstanding = hitungOutstanding({
+        nominal: tagihan.nominal,
+        keringanan,
+        sudahBayar,
+      });
+
+      if (input.nominal > outstanding) {
+        const kapan = formatPeriode(tagihan.periode, tagihan.skema_periode);
+        return {
+          ok: false,
+          pesan:
+            `Jumlah melebihi sisa tagihan ${namaKomponen} ${namaSantri} untuk ${kapan}. ` +
+            `Sisa yang bisa dibayar ${formatRupiah(outstanding)}. ` +
+            `Bayar tepat sisa, atau hubungi pengurus bila ada kelebihan.`,
+        };
+      }
+
+      const pembayaranLalu = dep.repoPembayaran.cariByTagihan(input.tagihanId);
+      const nomorCicilan = input.sebagaiCicilan ? cicilanBerikutnya(pembayaranLalu) : null;
+      if (nomorCicilan !== null && nomorCicilan > MAKS_CICILAN) {
+        return {
+          ok: false,
+          pesan: `Cicilan untuk tagihan ${namaKomponen} ${namaSantri} sudah mencapai batas ${MAKS_CICILAN} kali.`,
+        };
+      }
+
+      const pembayaran: Pembayaran = {
+        id: buatUlid(),
+        tagihan_id: input.tagihanId,
+        tanggal: input.tanggal,
+        nominal: input.nominal,
+        metode: input.metode,
+        sumber: input.sumber,
+        cicilan_ke: nomorCicilan,
+        dicatat_oleh: input.aktor.id,
+        waktu: input.waktu,
+      };
+
+      dep.repoPembayaran.sisip(pembayaran);
+
+      const totalSetelah = sudahBayar + input.nominal;
+      const outstandingSetelah = hitungOutstanding({
+        nominal: tagihan.nominal,
+        keringanan,
+        sudahBayar: totalSetelah,
+      });
+
+      if (outstandingSetelah <= 0) {
+        dep.repoTagihan.tandaiLunas(input.tagihanId);
+      }
+
+      const kapan = formatPeriode(tagihan.periode, tagihan.skema_periode);
+      const pesanLunas = outstandingSetelah <= 0 ? ' Tagihan sudah lunas.' : '';
+      const pesanSisa =
+        outstandingSetelah > 0 ? ` Sisa tagihan ${formatRupiah(outstandingSetelah)}.` : '';
+
+      return {
+        ok: true,
+        pesan:
+          `Pembayaran ${namaKomponen} ${namaSantri} untuk ${kapan} ` +
+          `sebesar ${formatRupiah(input.nominal)} sudah dicatat.` +
+          pesanLunas +
+          pesanSisa,
+        data: pembayaran,
       };
     },
   };

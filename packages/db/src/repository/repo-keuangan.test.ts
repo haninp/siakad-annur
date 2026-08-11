@@ -10,6 +10,7 @@ import {
   repoKomponenBiaya,
   repoLebihBayar,
   repoPembayaran,
+  repoPemakaianLebihBayar,
   repoProta,
   repoTagihan,
   repoTarifKomponen,
@@ -532,6 +533,36 @@ describe('RepoKeuangan', () => {
       });
       expect(repo.hitungSaldo(dasar.santriId)).toBe(200_000);
       expect(repo.hitungSaldo(buatUlid(1_000_000_000_999))).toBe(0);
+    });
+
+    it('hitungSaldo memperhitungkan pemakaian_lebih_bayar', () => {
+      const repoLebih = repoLebihBayar(db);
+      const repoPemakaian = repoPemakaianLebihBayar(db);
+      const repoT = repoTagihan(db);
+      const santriId = dasar.santriId;
+
+      const tagihanId = buatUlid(1_000_000_000_008);
+      repoT.sisip(tagihanSah(tagihanId, santriId, dasar.tahunAjaranId, dasar.komponenId));
+
+      repoLebihBayar(db).tambahSaldo({
+        id: buatUlid(1_000_000_000_007),
+        santri_id: santriId,
+        nominal: 200_000,
+        asal_pembayaran_id: null,
+        waktu: '2026-08-10T10:00:00+07:00',
+      });
+
+      repoPemakaian.sisip({
+        id: buatUlid(1_000_000_000_009),
+        santri_id: santriId,
+        tagihan_id: tagihanId,
+        nominal: 120_000,
+        waktu: '2026-08-15T10:00:00+07:00',
+      });
+
+      expect(repoLebih.hitungSaldo(santriId)).toBe(80_000);
+      expect(repoPemakaian.cariBySantri(santriId)).toHaveLength(1);
+      expect(repoPemakaian.cariByTagihan(tagihanId)).toHaveLength(1);
     });
   });
 });

@@ -43,6 +43,7 @@ import {
   entitasKomponenBiaya,
   entitasLebihBayar,
   entitasPembayaran,
+  entitasPemakaianLebihBayar,
   entitasProta,
   entitasTagihan,
   entitasTarifKomponen,
@@ -87,6 +88,7 @@ export const ENTITAS_KEUANGAN: readonly EntitasUmum[] = [
   sebagaiEntitasUmum(entitasProta),
   sebagaiEntitasUmum(entitasAlokasiProta),
   sebagaiEntitasUmum(entitasLebihBayar),
+  sebagaiEntitasUmum(entitasPemakaianLebihBayar),
 ];
 
 /** Seluruh entitas yang diuji kelengkapan klasifikasinya. */

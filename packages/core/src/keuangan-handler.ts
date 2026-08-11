@@ -8,6 +8,8 @@ import type {
   RepoPembayaran,
   RepoProta,
   RepoAlokasiProta,
+  RepoLebihBayar,
+  RepoPemakaianLebihBayar,
 } from '@siakad/db';
 import type {
   Santri,
@@ -17,8 +19,9 @@ import type {
   Rombel,
   Pembayaran,
   Keringanan,
-  Prota,
   AlokasiProta,
+  LebihBayar,
+  PemakaianLebihBayar,
   MetodePembayaran,
   SumberPembayaran,
 } from '@siakad/contracts';
@@ -60,6 +63,8 @@ export interface DepKeuangan {
   readonly repoPembayaran: RepoPembayaran;
   readonly repoProta: RepoProta;
   readonly repoAlokasiProta: RepoAlokasiProta;
+  readonly repoLebihBayar: RepoLebihBayar;
+  readonly repoPemakaianLebihBayar: RepoPemakaianLebihBayar;
   readonly transaksi: DukunganTransaksi;
 }
 
@@ -100,6 +105,12 @@ export interface AlokasiProtaInput {
   readonly protaId: string;
   readonly tagihanId: string;
   readonly nominal: number;
+  readonly waktu: string;
+}
+
+export interface TerapkanLebihBayarInput {
+  readonly aktor: Aktor;
+  readonly tagihanId: string;
   readonly waktu: string;
 }
 
@@ -266,15 +277,61 @@ export function buatHandlerKeuangan(dep: DepKeuangan) {
         sudahBayar,
       });
 
-      if (input.nominal > outstanding) {
-        const kapan = formatPeriode(tagihan.periode, tagihan.skema_periode);
+      const kapan = formatPeriode(tagihan.periode, tagihan.skema_periode);
+
+      if (outstanding === 0) {
         return {
           ok: false,
-          pesan:
-            `Jumlah melebihi sisa tagihan ${namaKomponen} ${namaSantri} untuk ${kapan}. ` +
-            `Sisa yang bisa dibayar ${formatRupiah(outstanding)}. ` +
-            `Bayar tepat sisa, atau hubungi pengurus bila ada kelebihan.`,
+          pesan: `Tagihan ${namaKomponen} ${namaSantri} untuk ${kapan} sudah lunas. Tidak ada yang perlu dibayar.`,
         };
+      }
+
+      // Overpayment: bayar outstanding penuh, sisanya jadi lebih bayar (1.4e).
+      if (input.nominal > outstanding) {
+        const kelebihan = input.nominal - outstanding;
+        try {
+          const pembayaran = dep.transaksi.jalankanTransaksi(() => {
+            const pembayaran: Pembayaran = {
+              id: buatUlid(),
+              tagihan_id: input.tagihanId,
+              tanggal: input.tanggal,
+              nominal: outstanding,
+              metode: input.metode,
+              sumber: input.sumber,
+              cicilan_ke: null,
+              dicatat_oleh: input.aktor.id,
+              waktu: input.waktu,
+            };
+            dep.repoPembayaran.sisip(pembayaran);
+
+            const lebihBayar: LebihBayar = {
+              id: buatUlid(),
+              santri_id: tagihan.santri_id,
+              nominal: kelebihan,
+              asal_pembayaran_id: pembayaran.id,
+              waktu: input.waktu,
+            };
+            dep.repoLebihBayar.tambahSaldo(lebihBayar);
+
+            return pembayaran;
+          });
+
+          dep.repoTagihan.tandaiLunas(input.tagihanId);
+
+          return {
+            ok: true,
+            pesan:
+              `Pembayaran ${namaKomponen} ${namaSantri} untuk ${kapan} ` +
+              `sebesar ${formatRupiah(input.nominal)} sudah dicatat. ` +
+              `Tagihan lunas. Kelebihan ${formatRupiah(kelebihan)} disimpan sebagai saldo.`,
+            data: pembayaran,
+          };
+        } catch {
+          return {
+            ok: false,
+            pesan: 'Gagal mencatat pembayaran. Coba lagi atau hubungi pengurus.',
+          };
+        }
       }
 
       const pembayaranLalu = dep.repoPembayaran.cariByTagihan(input.tagihanId);
@@ -311,7 +368,6 @@ export function buatHandlerKeuangan(dep: DepKeuangan) {
         dep.repoTagihan.tandaiLunas(input.tagihanId);
       }
 
-      const kapan = formatPeriode(tagihan.periode, tagihan.skema_periode);
       const pesanLunas = outstandingSetelah <= 0 ? ' Tagihan sudah lunas.' : '';
       const pesanSisa =
         outstandingSetelah > 0 ? ` Sisa tagihan ${formatRupiah(outstandingSetelah)}.` : '';
@@ -532,10 +588,115 @@ export function buatHandlerKeuangan(dep: DepKeuangan) {
             pesanSisa,
           data: hasil,
         };
-      } catch (error) {
+      } catch {
         return {
           ok: false,
           pesan: 'Gagal mengalokasikan PROTA. Dana PROTA mungkin sudah terpakai di proses lain.',
+        };
+      }
+    },
+
+    terapkanLebihBayar(input: TerapkanLebihBayarInput): HasilHandler<Pembayaran> {
+      if (!peranCukup(input.aktor, 'pengurus')) {
+        return {
+          ok: false,
+          pesan: 'Hanya pengurus dan admin yang boleh menerapkan saldo lebih bayar.',
+        };
+      }
+
+      const tagihan = dep.repoTagihan.ambil(input.tagihanId);
+      if (tagihan === undefined) {
+        return { ok: false, pesan: 'Tagihan tidak ditemukan.' };
+      }
+      if (tagihan.status !== 'terbit') {
+        return {
+          ok: false,
+          pesan: 'Saldo lebih bayar hanya bisa dipotong ke tagihan yang masih terbit.',
+        };
+      }
+
+      const santri = dep.repoSantri.ambil(tagihan.santri_id);
+      const namaSantri = santri?.nama_lengkap ?? 'santri';
+      const komponen = dep.repoKomponenBiaya.ambil(tagihan.komponen_biaya_id);
+      const namaKomponen = komponen?.nama ?? 'tagihan';
+
+      const saldo = dep.repoLebihBayar.hitungSaldo(tagihan.santri_id);
+      if (saldo <= 0) {
+        return {
+          ok: false,
+          pesan: `${namaSantri} tidak memiliki saldo lebih bayar.`,
+        };
+      }
+
+      const keringanan = dep.repoKeringanan.cariByTagihan(input.tagihanId);
+      const sudahBayar = dep.repoPembayaran.hitungTotalByTagihan(input.tagihanId);
+      const outstanding = hitungOutstanding({
+        nominal: tagihan.nominal,
+        keringanan,
+        sudahBayar,
+      });
+
+      if (outstanding <= 0) {
+        return {
+          ok: false,
+          pesan: `Tagihan ${namaKomponen} ${namaSantri} sudah lunas. Tidak ada yang perlu dipotong.`,
+        };
+      }
+
+      const nominal = Math.min(saldo, outstanding);
+
+      try {
+        const pembayaran = dep.transaksi.jalankanTransaksi(() => {
+          const pembayaran: Pembayaran = {
+            id: buatUlid(),
+            tagihan_id: input.tagihanId,
+            tanggal: tanggalDariWaktu(input.waktu),
+            nominal,
+            metode: 'tunai',
+            sumber: 'lainnya',
+            cicilan_ke: null,
+            dicatat_oleh: input.aktor.id,
+            waktu: input.waktu,
+          };
+          dep.repoPembayaran.sisip(pembayaran);
+
+          const pemakaian: PemakaianLebihBayar = {
+            id: buatUlid(),
+            santri_id: tagihan.santri_id,
+            tagihan_id: input.tagihanId,
+            nominal,
+            waktu: input.waktu,
+          };
+          dep.repoPemakaianLebihBayar.sisip(pemakaian);
+
+          return pembayaran;
+        });
+
+        const outstandingSetelah = hitungOutstanding({
+          nominal: tagihan.nominal,
+          keringanan,
+          sudahBayar: sudahBayar + nominal,
+        });
+        if (outstandingSetelah <= 0) {
+          dep.repoTagihan.tandaiLunas(input.tagihanId);
+        }
+
+        const kapan = formatPeriode(tagihan.periode, tagihan.skema_periode);
+        const pesanLunas = outstandingSetelah <= 0 ? ' Tagihan sudah lunas.' : '';
+        const pesanSisa =
+          outstandingSetelah > 0 ? ` Sisa tagihan ${formatRupiah(outstandingSetelah)}.` : '';
+
+        return {
+          ok: true,
+          pesan:
+            `Saldo lebih bayar ${namaSantri} sebesar ${formatRupiah(nominal)} ` +
+            `dipotong untuk ${namaKomponen} ${kapan}.${pesanLunas}${pesanSisa}`,
+          data: pembayaran,
+        };
+      } catch {
+        return {
+          ok: false,
+          pesan: 'Gagal menerapkan saldo lebih bayar. Coba lagi atau hubungi pengurus.',
         };
       }
     },

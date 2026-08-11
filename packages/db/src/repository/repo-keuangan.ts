@@ -6,6 +6,7 @@ import {
   entitasKomponenBiaya,
   entitasLebihBayar,
   entitasPembayaran,
+  entitasPemakaianLebihBayar,
   entitasProta,
   entitasTagihan,
   entitasTarifKomponen,
@@ -15,6 +16,7 @@ import {
   type KomponenBiaya,
   type LebihBayar,
   type Pembayaran,
+  type PemakaianLebihBayar,
   type Prota,
   type StatusTagihan,
   type Tagihan,
@@ -345,7 +347,10 @@ export function repoAlokasiProta(db: DatabaseSync): RepoAlokasiProta {
 
 export interface RepoLebihBayar extends RepoMasterIdTunggal<LebihBayar> {
   readonly cariBySantri: (santriId: string) => LebihBayar[];
-  /** Saldo lebih bayar satu santri; 0 bila belum ada. */
+  /**
+   * Saldo lebih bayar satu santri; 0 bila belum ada.
+   * Dihitung dari penambahan dikurangi pemakaian.
+   */
   readonly hitungSaldo: (santriId: string) => number;
   /** Sisip baris lebih bayar baru. */
   readonly tambahSaldo: (baris: LebihBayar) => void;
@@ -356,7 +361,13 @@ export function repoLebihBayar(db: DatabaseSync): RepoLebihBayar {
   const kolom = entitasLebihBayar.kolom.join(', ');
   const tabel = entitasLebihBayar.nama;
   const selectBySantri = `SELECT ${kolom} FROM ${tabel} WHERE santri_id = ? ORDER BY waktu DESC`;
-  const sumSql = `SELECT COALESCE(SUM(nominal), 0) AS total FROM ${tabel} WHERE santri_id = ?`;
+  const sumSql = `
+    SELECT COALESCE(SUM(nominal), 0) - (
+      SELECT COALESCE(SUM(nominal), 0) FROM pemakaian_lebih_bayar WHERE santri_id = ?
+    ) AS total
+    FROM ${tabel}
+    WHERE santri_id = ?
+  `;
 
   return {
     ...dasar,
@@ -365,11 +376,38 @@ export function repoLebihBayar(db: DatabaseSync): RepoLebihBayar {
       return rows.map((r) => dariSql(entitasLebihBayar, r));
     },
     hitungSaldo: (santriId) => {
-      const row = db.prepare(sumSql).get(santriId) as { total: number } | undefined;
+      const row = db.prepare(sumSql).get(santriId, santriId) as { total: number } | undefined;
       return row?.total ?? 0;
     },
     tambahSaldo: (baris) => {
       dasar.sisip(baris);
+    },
+  };
+}
+
+// ── pemakaian_lebih_bayar ──────────────────────────────────────────────────
+
+export interface RepoPemakaianLebihBayar extends RepoMasterIdTunggal<PemakaianLebihBayar> {
+  readonly cariBySantri: (santriId: string) => PemakaianLebihBayar[];
+  readonly cariByTagihan: (tagihanId: string) => PemakaianLebihBayar[];
+}
+
+export function repoPemakaianLebihBayar(db: DatabaseSync): RepoPemakaianLebihBayar {
+  const dasar = buatRepoIdTunggal(db, entitasPemakaianLebihBayar, 'id');
+  const kolom = entitasPemakaianLebihBayar.kolom.join(', ');
+  const tabel = entitasPemakaianLebihBayar.nama;
+  const selectBySantri = `SELECT ${kolom} FROM ${tabel} WHERE santri_id = ? ORDER BY waktu DESC`;
+  const selectByTagihan = `SELECT ${kolom} FROM ${tabel} WHERE tagihan_id = ? ORDER BY waktu DESC`;
+
+  return {
+    ...dasar,
+    cariBySantri: (santriId) => {
+      const rows = db.prepare(selectBySantri).all(santriId) as Record<string, unknown>[];
+      return rows.map((r) => dariSql(entitasPemakaianLebihBayar, r));
+    },
+    cariByTagihan: (tagihanId) => {
+      const rows = db.prepare(selectByTagihan).all(tagihanId) as Record<string, unknown>[];
+      return rows.map((r) => dariSql(entitasPemakaianLebihBayar, r));
     },
   };
 }

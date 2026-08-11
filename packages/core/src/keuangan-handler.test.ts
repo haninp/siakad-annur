@@ -10,7 +10,9 @@ import {
   repoAlokasiProta,
   repoKeringanan,
   repoKomponenBiaya,
+  repoLebihBayar,
   repoPembayaran,
+  repoPemakaianLebihBayar,
   repoPendaftaran,
   repoProta,
   repoRombel,
@@ -173,19 +175,25 @@ function handlerDari(db: DatabaseSync) {
     repoPembayaran: repoPembayaran(db),
     repoProta: repoProta(db),
     repoAlokasiProta: repoAlokasiProta(db),
+    repoLebihBayar: repoLebihBayar(db),
+    repoPemakaianLebihBayar: repoPemakaianLebihBayar(db),
     transaksi: buatDukunganTransaksi(db),
   });
 }
 
-function buatTagihanSpp(handler: ReturnType<typeof handlerDari>, dasar: ReturnType<typeof seedDasar>) {
+function buatTagihanSpp(
+  handler: ReturnType<typeof handlerDari>,
+  dasar: ReturnType<typeof seedDasar>,
+  periode: string = '2026-08',
+) {
   const hasil = handler.terbitkanTagihan({
     aktor: { peran: 'pengurus', id: dasar.pengurusId },
     santriId: dasar.santriId,
     komponenBiayaId: dasar.komponenSppId,
     tahunAjaranId: dasar.tahunAjaranId,
-    periode: '2026-08',
+    periode,
     skemaPeriode: 'masehi',
-    waktu: '2026-08-01T08:00:00+07:00',
+    waktu: `${periode}-01T08:00:00+07:00`,
   });
   if (!hasil.ok || !hasil.data) throw new Error('gagal buat tagihan');
   return hasil.data;
@@ -450,7 +458,7 @@ describe('handler keuangan', () => {
       expect(hasil.pesan).toContain('lunas');
     });
 
-    it('menolak overpayment sebelum 1.4e', () => {
+    it('menerima overpayment dan menyimpan kelebihan sebagai lebih bayar', () => {
       const handler = handlerDari(db);
       const tagihan = buatTagihanSpp(handler, dasar);
 
@@ -465,8 +473,12 @@ describe('handler keuangan', () => {
         waktu: '2026-08-05T10:00:00+07:00',
       });
 
-      expect(hasil.ok).toBe(false);
-      expect(hasil.pesan).toContain('Sisa yang bisa dibayar Rp 450.000');
+      expect(hasil.ok).toBe(true);
+      expect(hasil.pesan).toContain('Tagihan lunas');
+      expect(hasil.pesan).toContain('Kelebihan Rp 50.000 disimpan sebagai saldo');
+      expect(repoTagihan(db).ambil(tagihan.id)?.status).toBe('lunas');
+      expect(repoLebihBayar(db).hitungSaldo(dasar.santriId)).toBe(50_000);
+      expect(repoPembayaran(db).hitungTotalByTagihan(tagihan.id)).toBe(450_000);
     });
 
     it('menolak pembayaran ke tagihan yang sudah lunas', () => {
@@ -511,6 +523,92 @@ describe('handler keuangan', () => {
         sumber: 'wali',
         sebagaiCicilan: false,
         waktu: '2026-08-05T10:00:00+07:00',
+      });
+
+      expect(hasil.ok).toBe(false);
+    });
+  });
+
+  describe('terapkanLebihBayar', () => {
+    function buatLebihBayar(
+      db: DatabaseSync,
+      dasar: ReturnType<typeof seedDasar>,
+      nominal: number,
+    ) {
+      const tagihan = buatTagihanSpp(handlerDari(db), dasar);
+      handlerDari(db).catatPembayaran({
+        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        tagihanId: tagihan.id,
+        tanggal: '2026-08-05',
+        nominal: tagihan.nominal + nominal,
+        metode: 'transfer',
+        sumber: 'wali',
+        sebagaiCicilan: false,
+        waktu: '2026-08-05T10:00:00+07:00',
+      });
+      return tagihan.id;
+    }
+
+    it('memotong saldo lebih bayar ke tagihan lain dan menandai lunas', () => {
+      const handler = handlerDari(db);
+      buatLebihBayar(db, dasar, 450_000);
+      expect(repoLebihBayar(db).hitungSaldo(dasar.santriId)).toBe(450_000);
+
+      const tagihanKedua = buatTagihanSpp(handler, dasar, '2026-09');
+      const hasil = handler.terapkanLebihBayar({
+        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        tagihanId: tagihanKedua.id,
+        waktu: '2026-09-11T10:00:00+07:00',
+      });
+
+      expect(hasil.ok).toBe(true);
+      expect(hasil.pesan).toContain('Rp 450.000');
+      expect(hasil.pesan).toContain('lunas');
+      expect(repoTagihan(db).ambil(tagihanKedua.id)?.status).toBe('lunas');
+      expect(repoLebihBayar(db).hitungSaldo(dasar.santriId)).toBe(0);
+      expect(repoPemakaianLebihBayar(db).cariByTagihan(tagihanKedua.id)).toHaveLength(1);
+    });
+
+    it('hanya memotong sejumlah outstanding bila saldo lebih besar', () => {
+      const handler = handlerDari(db);
+      buatLebihBayar(db, dasar, 500_000);
+      expect(repoLebihBayar(db).hitungSaldo(dasar.santriId)).toBe(500_000);
+
+      const tagihanKedua = buatTagihanSpp(handler, dasar, '2026-09');
+      const hasil = handler.terapkanLebihBayar({
+        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        tagihanId: tagihanKedua.id,
+        waktu: '2026-09-11T10:00:00+07:00',
+      });
+
+      expect(hasil.ok).toBe(true);
+      expect(hasil.pesan).toContain('Rp 450.000');
+      expect(repoTagihan(db).ambil(tagihanKedua.id)?.status).toBe('lunas');
+      expect(repoLebihBayar(db).hitungSaldo(dasar.santriId)).toBe(50_000);
+    });
+
+    it('menolak bila tidak ada saldo lebih bayar', () => {
+      const handler = handlerDari(db);
+      const tagihan = buatTagihanSpp(handler, dasar);
+
+      const hasil = handler.terapkanLebihBayar({
+        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        tagihanId: tagihan.id,
+        waktu: '2026-08-11T10:00:00+07:00',
+      });
+
+      expect(hasil.ok).toBe(false);
+      expect(hasil.pesan).toContain('tidak memiliki saldo lebih bayar');
+    });
+
+    it('menolak peran pengajar', () => {
+      const handler = handlerDari(db);
+      const tagihan = buatTagihanSpp(handler, dasar);
+
+      const hasil = handler.terapkanLebihBayar({
+        aktor: { peran: 'pengajar', id: buatUlid() },
+        tagihanId: tagihan.id,
+        waktu: '2026-08-11T10:00:00+07:00',
       });
 
       expect(hasil.ok).toBe(false);

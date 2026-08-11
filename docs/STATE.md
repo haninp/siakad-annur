@@ -9,11 +9,14 @@
 
 ## Yang baru selesai
 
+**1.4b — `packages/core`: `catatPembayaran` + cicilan.** `keuangan.ts` ditambah
+`hitungKeringananEffektif`, `hitungOutstanding`, dan `cicilanBerikutnya`.
+`keuangan-handler.ts` menambah `catatPembayaran`: memperhitungkan keringanan,
+menolak overpayment (menyusul 1.4e), otomatis menandai lunas saat outstanding
+terpenuhi, dan membatasi cicilan maksimal 6 kali. Test: 244 test hijau.
+
 **1.4a — `packages/core`: `terbitkanTagihan` + aturan murni keuangan.** Refaktor
-`format.ts` (bagi tanggal, rupiah, periode antara izin dan keuangan), `aktor.ts`
-untuk model aktor/izin peran, `keuangan.ts` (lookuptarif spesifik→umum, periode
-SPP bulan penuh, jatuh tempo default), dan `keuangan-handler.ts` dengan
-`terbitkanTagihan`. Test: 232 test hijau.
+`format.ts`, `aktor.ts`, `keuangan.ts`, dan `keuangan-handler.ts`.
 
 **1.3 — `packages/db`: repository untuk 9 tabel keuangan.** `repo-keuangan.ts`
 mencakup `akun_keuangan` (PK INTEGER khusus), `komponen_biaya`, `tarif_komponen`,
@@ -107,9 +110,10 @@ Tidak ada. Sesi berhenti di batas tugas yang bersih.
 
 ## Langkah berikutnya
 
-**1.4b `packages/core`: `catatPembayaran` + cicilan** — pencatatan pembayaran wali
-maupun sumber lain, maksimal 6 cicilan per tagihan, otomatis menandai lunas saat
-outstanding terpenuhi. Dilanjutkan 1.4c (keringanan), 1.4d (PROTA + transaksi),
+**1.4c `packages/core`: `tetapkanKeringanan`** — pengurus/admin menetapkan
+keringanan nominal atau persentase untuk tagihan `terbit`, dengan batas tidak
+melebihi nominal tagihan. Keringanan otomatis memperbarui outstanding dan bisa
+menandai tagihan lunas bila menutup penuh. Dilanjutkan 1.4d (PROTA + transaksi)
 dan 1.4e (lebih bayar + migration v4 `pemakaian_lebih_bayar`).
 
 Semua itu jalan **tanpa menunggu keputusan siapa pun**.

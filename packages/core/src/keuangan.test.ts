@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   apakahPeriodeBerlaku,
   cariTarifBerlaku,
+  cicilanBerikutnya,
   hitungJatuhTempoDefault,
+  hitungKeringananEffektif,
+  hitungOutstanding,
   type LookupTarif,
 } from './keuangan.js';
 import { formatPeriode, formatRupiah, tanggalTerbaca } from './format.js';
-import type { TarifKomponen } from '@siakad/contracts';
+import type { Keringanan, TarifKomponen } from '@siakad/contracts';
 
 const tarif = (nominal: number): TarifKomponen => ({
   id: '01HXXXXXXXAMPLETARIFFFFF',
@@ -148,5 +151,64 @@ describe('format', () => {
 
   it('tanggalTerbaca tetap jalan dari format', () => {
     expect(tanggalTerbaca('2026-08-10')).toBe('10 Agustus 2026');
+  });
+});
+
+describe('hitungKeringananEffektif', () => {
+  it('menjumlahkan nominal dan persentase', () => {
+    const k: Keringanan[] = [
+      {
+        id: 'A',
+        tagihan_id: 'T',
+        nominal: 50_000,
+        persentase: null,
+        alasan: 'a',
+        disetujui_oleh: 'P',
+        waktu: '2026-08-10T10:00:00+07:00',
+      },
+      {
+        id: 'B',
+        tagihan_id: 'T',
+        nominal: null,
+        persentase: 10,
+        alasan: 'b',
+        disetujui_oleh: 'P',
+        waktu: '2026-08-10T10:00:00+07:00',
+      },
+    ];
+    // 50.000 + 10% dari 500.000 = 100.000
+    expect(hitungKeringananEffektif(k, 500_000)).toBe(100_000);
+  });
+});
+
+describe('hitungOutstanding', () => {
+  it('nominal dikurangi keringanan dan sudah bayar', () => {
+    const k: Keringanan[] = [
+      {
+        id: 'A',
+        tagihan_id: 'T',
+        nominal: 50_000,
+        persentase: null,
+        alasan: 'a',
+        disetujui_oleh: 'P',
+        waktu: '2026-08-10T10:00:00+07:00',
+      },
+    ];
+    expect(hitungOutstanding({ nominal: 500_000, keringanan: k, sudahBayar: 150_000 })).toBe(300_000);
+  });
+
+  it('tidak negatif bila sudah overbayar', () => {
+    expect(hitungOutstanding({ nominal: 500_000, keringanan: [], sudahBayar: 600_000 })).toBe(0);
+  });
+});
+
+describe('cicilanBerikutnya', () => {
+  it('nomor berikutnya dari maks cicilan yang ada', () => {
+    const pembayaran = [{ cicilan_ke: 1 }, { cicilan_ke: 3 }, { cicilan_ke: null }];
+    expect(cicilanBerikutnya(pembayaran)).toBe(4);
+  });
+
+  it('1 bila belum ada cicilan', () => {
+    expect(cicilanBerikutnya([{ cicilan_ke: null }])).toBe(1);
   });
 });

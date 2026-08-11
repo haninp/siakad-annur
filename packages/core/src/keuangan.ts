@@ -1,4 +1,4 @@
-import type { TarifKomponen } from '@siakad/contracts';
+import type { Keringanan, TarifKomponen } from '@siakad/contracts';
 
 /**
  * Aturan bisnis keuangan murni — tanpa repositori, tanpa side-effect.
@@ -10,6 +10,9 @@ import type { TarifKomponen } from '@siakad/contracts';
  * Prinsip pokok (AGENTS.md, ADR 0012): angka turunan tidak disimpan. Yang ada
  * di sini menghitung dari input, bukan membaca kolom turunan.
  */
+
+/** Maksimal cicilan per tagihan — sesuai sistem lama (Cicilan ke- (Max 6)). */
+export const MAKS_CICILAN = 6;
 
 /** Cara mencari tarif. Diimplementasikan oleh `repoTarifKomponen` di handler. */
 export interface LookupTarif {
@@ -103,4 +106,44 @@ export function hitungJatuhTempoDefault(periode: string): string {
   const tahunBerikut = bulan === 12 ? tahun + 1 : tahun;
   const bulanBerikutStr = bulanBerikut.toString().padStart(2, '0');
   return `${tahunBerikut}-${bulanBerikutStr}-10`;
+}
+
+/**
+ * Jumlah keringanan dalam rupiah. Nominal langsung; persentase diubah menjadi
+ * rupiah dari nominal tagihan. Hasil dibulatkan ke integer.
+ */
+export function hitungKeringananEffektif(
+  keringanan: readonly Keringanan[],
+  nominalTagihan: number,
+): number {
+  return keringanan.reduce((total, k) => {
+    if (k.nominal !== null) return total + k.nominal;
+    if (k.persentase !== null) return total + Math.round((nominalTagihan * k.persentase) / 100);
+    return total;
+  }, 0);
+}
+
+/**
+ * Sisa tagihan yang harus dibayar: nominal dikurangi keringanan efektif dan
+ * total pembayaran yang sudah masuk.
+ */
+export function hitungOutstanding(params: {
+  readonly nominal: number;
+  readonly keringanan: readonly Keringanan[];
+  readonly sudahBayar: number;
+}): number {
+  const potongan = hitungKeringananEffektif(params.keringanan, params.nominal);
+  return Math.max(0, params.nominal - potongan - params.sudahBayar);
+}
+
+/**
+ * Nomor cicilan berikutnya. Pembayaran non-cicilan (`cicilan_ke=null`) ikut
+ * dihitung sebagai bagian dari pembayaran tagihan, tapi tidak menambah nomor
+ * cicilan. Jadi hanya hitung yang `cicilan_ke !== null`.
+ */
+export function cicilanBerikutnya(pembayaranLalu: readonly { cicilan_ke: number | null }[]): number {
+  const maks = pembayaranLalu.reduce((acc, p) => {
+    return p.cicilan_ke !== null && p.cicilan_ke > acc ? p.cicilan_ke : acc;
+  }, 0);
+  return maks + 1;
 }

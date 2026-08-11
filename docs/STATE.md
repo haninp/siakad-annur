@@ -9,11 +9,18 @@
 
 ## Yang baru selesai
 
+**1.3 — `packages/db`: repository untuk 9 tabel keuangan.** `repo-keuangan.ts`
+mencakup `akun_keuangan` (PK INTEGER khusus), `komponen_biaya`, `tarif_komponen`,
+`tagihan`, `keringanan`, `pembayaran`, `prota`, `alokasi_prota`, dan `lebih_bayar`.
+Method khusus: `cariByKode`, `cariAktif`/`cariUmum` tanpa fallback, transisi terminal
+`tagihan` (`tandaiLunas`/`batalkan` dari `terbit` saja), `kurangiSisa` PROTA, serta
+penghitungan total pembayaran dan saldo lebih bayar. Test: 207 test hijau.
+
 **1.2 — `packages/contracts`: skema keuangan.** Sembilan tabel: `akun_keuangan`,
 `komponen_biaya`, `tarif_komponen`, `tagihan`, `keringanan`, `pembayaran`, `prota`,
 `alokasi_prota`, `lebih_bayar`. DDL SQLite STRICT dengan CHECK constraints, klasifikasi
 data pribadi lengkap, dan test zod + DDL. Migrasi versi 3. Actor `disetujui_oleh` dan
-`dicatat_oleh` sengaja tanpa FK karena `pengguna_telegram` menyusul. Test: 185 test hijau.
+`dicatat_oleh` sengaja tanpa FK karena `pengguna_telegram` menyusul.
 
 **1.1 — `packages/core`: handler `ajukanIzin` / `batalkanIzin`.** Penegakan izin peran di
 satu tempat: wali hanya bisa mengajukan/membatalkan untuk santri yang tertaut padanya,
@@ -94,15 +101,15 @@ Tidak ada. Sesi berhenti di batas tugas yang bersih.
 
 ## Langkah berikutnya
 
-**1.3 `packages/db`: migrasi + repository untuk tabel keuangan** — di atas skema yang
-sudah ada, buat repository untuk `tagihan`, `pembayaran`, `prota`, `keringanan`, dan
-`lebih_bayar`.
+**1.4 `packages/core`: aturan bisnis keuangan** — pembuatan tagihan, prorata, cicilan,
+keringanan, alokasi PROTA, dan lebih bayar. Repo keuangan sudah tersedia; logika bisnis
+sekarang dibangun di atasnya. Handler untuk `bot-internal` menyusul setelah aturan bisnis
+teruji.
 
 Semua itu jalan **tanpa menunggu keputusan siapa pun**.
 
-Bagian keuangan `contracts` (`akun_keuangan`, `komponen_biaya`) sudah tidak lagi diblokir
-penuh oleh P3; bisa mulai dirancang. Dua hal keuangan masih ditunda: makna kolom
-`Khusus PROTA` dan nasib sheet arsip Juli–Agustus 2023.
+Dua hal keuangan masih ditunda: makna kolom `Khusus PROTA` dan nasib sheet arsip
+Juli–Agustus 2023.
 
 Rujukan statis `quran_surah` dan `quran_juz_batas` tetap bisa di-seed kapan saja — data publik,
 tidak menunggu apa pun.

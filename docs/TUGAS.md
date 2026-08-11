@@ -51,7 +51,7 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
       migrasi yang sudah ada `[ringan]`
 - [x] **1.1** `packages/core`: penegakan izin peran + handler `ajukanIzin` / `batalkanIzin`
       yang boleh di-import `apps/bot-wali` `[berat]`
-- [ ] **1.2** `packages/contracts`: skema keuangan — `akun_keuangan`, `komponen_biaya`,
+- [x] **1.2** `packages/contracts`: skema keuangan — `akun_keuangan`, `komponen_biaya`,
       `tagihan`, `pembayaran`, `prota`, `keringanan`, `lebih_bayar` — berdasarkan ADR 0012
       dan `docs/06-migrasi-legacy.md` `[berat]`
 - [ ] **1.3** `packages/db`: migrasi + repository untuk tabel keuangan `[berat]`

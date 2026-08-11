@@ -4,6 +4,7 @@ import { entitasSantri, type Santri } from './identitas.js';
 import { saring, saringUmum, untukPrompt } from './klasifikasi.js';
 import { DDL_MASTER_DATA, TABEL_MASTER_DATA } from './ddl.js';
 import { DDL_IZIN, TABEL_IZIN } from './izin.js';
+import { DDL_KEUANGAN, TABEL_KEUANGAN } from './keuangan.js';
 
 /**
  * Inti dari uji ini: **kolom baru yang lupa diklasifikasikan harus menggagalkan
@@ -26,12 +27,14 @@ describe('kelengkapan klasifikasi data pribadi', () => {
 
   it('setiap entitas terdaftar di DDL, dan sebaliknya', () => {
     const namaEntitas = SEMUA_ENTITAS.map((e) => e.nama).sort();
-    expect(namaEntitas).toEqual([...TABEL_MASTER_DATA, ...TABEL_IZIN].sort());
+    expect(namaEntitas).toEqual(
+      [...TABEL_MASTER_DATA, ...TABEL_IZIN, ...TABEL_KEUANGAN].sort(),
+    );
   });
 
   it('setiap tabel yang terdaftar benar-benar dibuat DDL', () => {
-    const ddl = DDL_MASTER_DATA + DDL_IZIN;
-    for (const tabel of [...TABEL_MASTER_DATA, ...TABEL_IZIN]) {
+    const ddl = DDL_MASTER_DATA + DDL_IZIN + DDL_KEUANGAN;
+    for (const tabel of [...TABEL_MASTER_DATA, ...TABEL_IZIN, ...TABEL_KEUANGAN]) {
       expect(ddl).toContain(`CREATE TABLE ${tabel} (`);
     }
   });

@@ -54,7 +54,9 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
 - [x] **1.2** `packages/contracts`: skema keuangan — `akun_keuangan`, `komponen_biaya`,
       `tagihan`, `pembayaran`, `prota`, `keringanan`, `lebih_bayar` — berdasarkan ADR 0012
       dan `docs/06-migrasi-legacy.md` `[berat]`
-- [ ] **1.3** `packages/db`: migrasi + repository untuk tabel keuangan `[berat]`
+- [x] **1.3** `packages/db`: repository untuk 9 tabel keuangan (`akun_keuangan`,
+      `komponen_biaya`, `tarif_komponen`, `tagihan`, `keringanan`, `pembayaran`,
+      `prota`, `alokasi_prota`, `lebih_bayar`) di atas migrasi versi 3 `[berat]`
 - [ ] **1.4** `packages/core`: aturan bisnis keuangan — tagihan, prorata, cicilan,
       keringanan, PROTA, lebih bayar `[berat]`
 - [ ] Seed `kalender_hijriah` dari PDF Kemenag (butuh prasyarat P4)

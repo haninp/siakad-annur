@@ -1,5 +1,6 @@
 import {
   DDL_IZIN,
+  DDL_KALENDER_HIJRIAH,
   DDL_KEUANGAN,
   DDL_MASTER_DATA,
   DDL_PEMAKAIAN_LEBIH_BAYAR,
@@ -37,5 +38,10 @@ export const DAFTAR_MIGRASI: readonly Migrasi[] = [
     versi: 4,
     nama: 'pemakaian_lebih_bayar',
     sql: DDL_PEMAKAIAN_LEBIH_BAYAR,
+  },
+  {
+    versi: 5,
+    nama: 'kalender_hijriah',
+    sql: DDL_KALENDER_HIJRIAH,
   },
 ];

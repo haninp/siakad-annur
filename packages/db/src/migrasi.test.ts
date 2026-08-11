@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import {
   TABEL_IZIN,
+  TABEL_KALENDER_HIJRIAH,
   TABEL_KEUANGAN,
   TABEL_MASTER_DATA,
   TABEL_PEMAKAIAN_LEBIH_BAYAR,
@@ -32,8 +33,8 @@ describe('runner migrasi', () => {
 
   it('menerapkan seluruh migrasi pada basis data kosong', () => {
     const hasil = jalankanMigrasi(db, DAFTAR_MIGRASI);
-    expect(hasil.diterapkan).toEqual([1, 2, 3, 4]);
-    expect(versiTerpasang(db)).toBe(4);
+    expect(hasil.diterapkan).toEqual([1, 2, 3, 4, 5]);
+    expect(versiTerpasang(db)).toBe(5);
   });
 
   it('membuat setiap tabel yang dijanjikan contracts', () => {
@@ -44,6 +45,7 @@ describe('runner migrasi', () => {
       ...TABEL_IZIN,
       ...TABEL_KEUANGAN,
       ...TABEL_PEMAKAIAN_LEBIH_BAYAR,
+      ...TABEL_KALENDER_HIJRIAH,
     ]) {
       expect(ada).toContain(tabel);
     }
@@ -53,7 +55,7 @@ describe('runner migrasi', () => {
     jalankanMigrasi(db, DAFTAR_MIGRASI);
     const kedua = jalankanMigrasi(db, DAFTAR_MIGRASI);
     expect(kedua.diterapkan).toEqual([]);
-    expect(kedua.sudahAda).toEqual([1, 2, 3, 4]);
+    expect(kedua.sudahAda).toEqual([1, 2, 3, 4, 5]);
   });
 
   /**

@@ -187,3 +187,4 @@ export const TABEL_MASTER_DATA: readonly string[] = [
 
 // Skema keuangan didefinisikan di keuangan.ts agar file ini tidak terlalu besar.
 export { DDL_KEUANGAN, TABEL_KEUANGAN } from './keuangan.js';
+export { DDL_KALENDER_HIJRIAH, TABEL_KALENDER_HIJRIAH } from './kalender.js';

@@ -62,7 +62,15 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
 - [x] **1.4c** `packages/core`: `tetapkanKeringanan` (nominal/persentase) `[berat]`
 - [x] **1.4d** `packages/core`: `alokasiProta` + dukungan transaksi `[berat]`
 - [x] **1.4e** `packages/core`: lebih bayar + migration v4 `pemakaian_lebih_bayar` `[berat]`
-- [ ] Seed `kalender_hijriah` dari PDF Kemenag (butuh prasyarat P4)
+- [x] **1.5** Seed `kalender_hijriah` dari myQuran API (`method=islamic-umalqura`) +
+      handler `setujuiBulanHijriah` + script `hijriah:isi`/`hijriah:periksa`.\n      Semua baris API ditandai `provisional=1` sampai disetujui pengurus.\n      Bot reminder otomatis menunggu **P1** (token Telegram). `[berat]`
+
+## Fase 2 — akademik
+
+Dimulai setelah kebutuhan lapangan di `docs/08-akademik-kebutuhan.md` dikonfirmasi ulang.
+Tugas pertama yang sudah tercatat:
+
+- [ ] Rancang skema akademik: capaian hafalan, nilai, poin, PR, laporan absen `[berat]`
 
 ---
 

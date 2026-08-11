@@ -60,7 +60,8 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
 - [x] **1.4a** `packages/core`: `terbitkanTagihan` — lookuptarif + prorata bulan penuh `[berat]`
 - [x] **1.4b** `packages/core`: `catatPembayaran` + cicilan (maks 6 kali) `[berat]`
 - [x] **1.4c** `packages/core`: `tetapkanKeringanan` (nominal/persentase) `[berat]`
-- [ ] **1.4d** `packages/core`: `alokasiProta` + dukungan transaksi `[berat]`
+- [x] **1.4d** `packages/core`: `alokasiProta` + dukungan transaksi `[berat]`
+- [ ] **1.4e** `packages/core`: lebih bayar + migration v4 `pemakaian_lebih_bayar` `[berat]`
 - [ ] **1.4c** `packages/core`: `tetapkanKeringanan` (nominal/persentase) `[berat]`
 - [ ] **1.4d** `packages/core`: `alokasiProta` + dukungan transaksi `[berat]`
 - [ ] **1.4e** `packages/core`: lebih bayar + migration v4 `pemakaian_lebih_bayar` `[berat]`

@@ -3,13 +3,16 @@ import { buatUlid } from '@siakad/contracts';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   bukaBasisData,
+  buatDukunganTransaksi,
   DAFTAR_MIGRASI,
   jalankanMigrasi,
   repoAkunKeuangan,
+  repoAlokasiProta,
   repoKeringanan,
   repoKomponenBiaya,
   repoPembayaran,
   repoPendaftaran,
+  repoProta,
   repoRombel,
   repoSantri,
   repoTagihan,
@@ -168,6 +171,9 @@ function handlerDari(db: DatabaseSync) {
     repoTahunAjaran: repoTahunAjaran(db),
     repoKeringanan: repoKeringanan(db),
     repoPembayaran: repoPembayaran(db),
+    repoProta: repoProta(db),
+    repoAlokasiProta: repoAlokasiProta(db),
+    transaksi: buatDukunganTransaksi(db),
   });
 }
 
@@ -629,6 +635,98 @@ describe('handler keuangan', () => {
         persentase: null,
         alasan: 'Bantuan',
         waktu: '2026-08-04T10:00:00+07:00',
+      });
+
+      expect(hasil.ok).toBe(false);
+    });
+  });
+
+  describe('alokasiProta', () => {
+    function buatProta(db: DatabaseSync, dasar: ReturnType<typeof seedDasar>, nominal: number) {
+      const protaId = buatUlid(1_000_000_000_020);
+      repoProta(db).sisip({
+        id: protaId,
+        donatur_wali_id: null,
+        nama_donatur: 'Donatur Anonim',
+        santri_id: dasar.santriId,
+        tahun_ajaran_id: dasar.tahunAjaranId,
+        periode: '2026-08',
+        nominal,
+        sisa: nominal,
+      });
+      return protaId;
+    }
+
+    it('mengalokasikan PROTA ke tagihan dan menandai lunas', () => {
+      const handler = handlerDari(db);
+      const tagihan = buatTagihanSpp(handler, dasar);
+      const protaId = buatProta(db, dasar, 450_000);
+
+      const hasil = handler.alokasiProta({
+        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        protaId,
+        tagihanId: tagihan.id,
+        nominal: 450_000,
+        waktu: '2026-08-10T10:00:00+07:00',
+      });
+
+      expect(hasil.ok).toBe(true);
+      expect(hasil.pesan).toContain('Rp 450.000');
+      expect(hasil.pesan).toContain('lunas');
+      expect(repoProta(db).ambil(protaId)?.sisa).toBe(0);
+      expect(repoPembayaran(db).hitungTotalByTagihan(tagihan.id)).toBe(450_000);
+      expect(repoAlokasiProta(db).cariByProta(protaId)).toHaveLength(1);
+      expect(repoTagihan(db).ambil(tagihan.id)?.status).toBe('lunas');
+    });
+
+    it('menolak bila sisa PROTA tidak cukup', () => {
+      const handler = handlerDari(db);
+      const tagihan = buatTagihanSpp(handler, dasar);
+      const protaId = buatProta(db, dasar, 100_000);
+
+      const hasil = handler.alokasiProta({
+        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        protaId,
+        tagihanId: tagihan.id,
+        nominal: 450_000,
+        waktu: '2026-08-10T10:00:00+07:00',
+      });
+
+      expect(hasil.ok).toBe(false);
+      expect(hasil.pesan).toContain('Sisa dana PROTA');
+      // tidak ada baris tertulis karena transaksi rollback
+      expect(repoPembayaran(db).hitungTotalByTagihan(tagihan.id)).toBe(0);
+      expect(repoAlokasiProta(db).cariByProta(protaId)).toHaveLength(0);
+    });
+
+    it('menolak bila nominal melebihi outstanding', () => {
+      const handler = handlerDari(db);
+      const tagihan = buatTagihanSpp(handler, dasar);
+      const protaId = buatProta(db, dasar, 500_000);
+
+      const hasil = handler.alokasiProta({
+        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        protaId,
+        tagihanId: tagihan.id,
+        nominal: 500_000,
+        waktu: '2026-08-10T10:00:00+07:00',
+      });
+
+      expect(hasil.ok).toBe(false);
+      expect(hasil.pesan).toContain('Sisa tagihan');
+    });
+
+    it('menolak peran wali', () => {
+      const handler = handlerDari(db);
+      const tagihan = buatTagihanSpp(handler, dasar);
+      const protaId = buatProta(db, dasar, 450_000);
+
+      const hasil = handler.alokasiProta({
+        aktor: { peran: 'wali', id: buatUlid() },
+        protaId,
+        tagihanId: tagihan.id,
+        nominal: 450_000,
+        waktu: '2026-08-10T10:00:00+07:00',
       });
 
       expect(hasil.ok).toBe(false);

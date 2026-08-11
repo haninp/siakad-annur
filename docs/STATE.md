@@ -9,11 +9,19 @@
 
 ## Yang baru selesai
 
+**1.4e — `packages/core`: lebih bayar + migration v4.** Ditambahkan entitas dan
+DDL `pemakaian_lebih_bayar` sebagai migrasi v4 (bukan menyunting v3), repository
+`repoPemakaianLebihBayar`, dan handler `terapkanLebihBayar`. `catatPembayaran`
+sekarang menerima overpayment: melunasi outstanding, menyimpan kelebihan sebagai
+`lebih_bayar`, dan menandai tagihan lunas. `repoLebihBayar.hitungSaldo` mengurangi
+total pemakaian dari total lebih bayar. Semua perubahan finansial tetap dalam
+satu transaksi. Test: 261 test hijau.
+
 **1.4d — `packages/core`: `alokasiProta` + transaksi.** `DukunganTransaksi`
 didefinisikan di `contracts`, diimplementasikan `buatDukunganTransaksi` di `db`.
 `keuangan-handler.ts` menambah `alokasiProta`: mengurangi `prota.sisa`, mencatat
 `pembayaran` sumber PROTA, menyimpan `alokasi_prota`, dan menandai lunas bila
-outstanding habis — semua dalam satu transaksi. Test: 254 test hijau.
+outstanding habis — semua dalam satu transaksi.
 
 **1.4c — `packages/core`: `tetapkanKeringanan`.**
 
@@ -113,13 +121,13 @@ Tidak ada. Sesi berhenti di batas tugas yang bersih.
 
 ## Langkah berikutnya
 
-**1.4e `packages/core`: lebih bayar + migration v4 `pemakaian_lebih_bayar`** —
-menambah tabel `pemakaian_lebih_bayar` agar saldo lebih bayar bisa berkurang saat
-dipotong ke tagihan berikutnya. `catatPembayaran` di-extend untuk menerima
-overpayment (membuat baris `lebih_bayar`), dan handler baru `terapkanLebihBayar`
-mengalokasikan saldo ke tagihan `terbit`.
+**Fase 1 OLTP keuangan selesai.** Seluruh sub-tugas 1.0–1.4 sudah di-commit.
 
-Semua itu jalan **tanpa menunggu keputusan siapa pun**.
+Tugas berikutnya yang sudah tercatat:
+
+- Seed `kalender_hijriah` dari PDF Kemenag (prasyarat P4).
+- Mulai merancang Fase 2 (akademik) setelah kebutuhan lapangan di
+  `docs/08-akademik-kebutuhan.md` dikonfirmasi ulang.
 
 Dua hal keuangan masih ditunda: makna kolom `Khusus PROTA` dan nasib sheet arsip
 Juli–Agustus 2023.

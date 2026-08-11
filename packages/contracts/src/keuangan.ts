@@ -353,6 +353,36 @@ export const entitasLebihBayar: Entitas<LebihBayar> = {
   klasifikasi: klasifikasiLebihBayar,
 };
 
+// ── pemakaian_lebih_bayar ──────────────────────────────────────────────────
+
+/**
+ * Pengurangan saldo lebih bayar saat dipotong ke tagihan berikutnya.
+ * Tanpa tabel ini, saldo lebih bayar hanya bisa tumbuh (SUM nominal positif).
+ */
+export const PemakaianLebihBayar = z.object({
+  id: Ulid,
+  santri_id: Ulid,
+  tagihan_id: Ulid,
+  nominal: Uang,
+  waktu: WaktuIso,
+});
+export type PemakaianLebihBayar = z.infer<typeof PemakaianLebihBayar>;
+
+const klasifikasiPemakaianLebihBayar: PetaKlasifikasi<PemakaianLebihBayar> = {
+  id: 'internal',
+  santri_id: 'internal',
+  tagihan_id: 'internal',
+  nominal: 'internal',
+  waktu: 'internal',
+};
+
+export const entitasPemakaianLebihBayar: Entitas<PemakaianLebihBayar> = {
+  nama: 'pemakaian_lebih_bayar',
+  skema: PemakaianLebihBayar,
+  kolom: ['id', 'santri_id', 'tagihan_id', 'nominal', 'waktu'],
+  klasifikasi: klasifikasiPemakaianLebihBayar,
+};
+
 // ── DDL ────────────────────────────────────────────────────────────────────
 
 export const DDL_KEUANGAN = `
@@ -450,6 +480,17 @@ CREATE TABLE lebih_bayar (
 ) STRICT;
 `;
 
+/** DDL tabel pemakaian_lebih_bayar — migrasi v4. */
+export const DDL_PEMAKAIAN_LEBIH_BAYAR = `
+CREATE TABLE pemakaian_lebih_bayar (
+  id          TEXT PRIMARY KEY,
+  santri_id   TEXT NOT NULL REFERENCES santri(id),
+  tagihan_id  TEXT NOT NULL REFERENCES tagihan(id),
+  nominal     INTEGER NOT NULL CHECK (nominal >= 0),
+  waktu       TEXT NOT NULL
+) STRICT;
+`;
+
 /** Daftar tabel yang dibuat DDL di atas. */
 export const TABEL_KEUANGAN: readonly string[] = [
   'akun_keuangan',
@@ -462,3 +503,6 @@ export const TABEL_KEUANGAN: readonly string[] = [
   'alokasi_prota',
   'lebih_bayar',
 ];
+
+/** Tabel yang dibuat oleh DDL_PEMAKAIAN_LEBIH_BAYAR. */
+export const TABEL_PEMAKAIAN_LEBIH_BAYAR: readonly string[] = ['pemakaian_lebih_bayar'];

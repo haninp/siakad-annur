@@ -5,4 +5,5 @@
 export * from './koneksi.js';
 export * from './migrasi.js';
 export * from './daftar-migrasi.js';
+export * from './transaksi.js';
 export * from './repository/index.js';

@@ -12,6 +12,7 @@ export * from './identitas.js';
 export * from './akademik.js';
 export * from './keuangan.js';
 export * from './turunan.js';
+export * from './transaksi.js';
 export * from './izin.js';
 export * from './ddl.js';
 

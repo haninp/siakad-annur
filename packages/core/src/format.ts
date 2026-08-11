@@ -53,3 +53,8 @@ export function formatRupiah(nominal: number): string {
   const denganTitik = bulat.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   return `Rp ${denganTitik}`;
 }
+
+/** `2026-08-10T10:00:00+07:00` → `2026-08-10`. */
+export function tanggalDariWaktu(waktu: string): string {
+  return waktu.slice(0, 10);
+}

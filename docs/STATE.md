@@ -9,10 +9,13 @@
 
 ## Yang baru selesai
 
-**1.4c — `packages/core`: `tetapkanKeringanan`.** Pengurus/admin dapat menetapkan
-keringanan nominal atau persentase pada tagihan `terbit`. Total keringanan tidak
-boleh melebihi nominal tagihan. Setelah ditetapkan, outstanding dihitung ulang
-dan tagihan otomatis lunas bila keringanan menutup seluruhnya. Test: 250 test hijau.
+**1.4d — `packages/core`: `alokasiProta` + transaksi.** `DukunganTransaksi`
+didefinisikan di `contracts`, diimplementasikan `buatDukunganTransaksi` di `db`.
+`keuangan-handler.ts` menambah `alokasiProta`: mengurangi `prota.sisa`, mencatat
+`pembayaran` sumber PROTA, menyimpan `alokasi_prota`, dan menandai lunas bila
+outstanding habis — semua dalam satu transaksi. Test: 254 test hijau.
+
+**1.4c — `packages/core`: `tetapkanKeringanan`.**
 
 **1.4b — `packages/core`: `catatPembayaran` + cicilan.**
 
@@ -110,11 +113,11 @@ Tidak ada. Sesi berhenti di batas tugas yang bersih.
 
 ## Langkah berikutnya
 
-**1.4d `packages/core`: `alokasiProta` + dukungan transaksi** — mengalokasikan
-dana PROTA ke tagihan SPP: kurangi `prota.sisa`, catat `pembayaran` sumber PROTA,
-sisip `alokasi_prota`, dan tandai lunas bila outstanding habis. Semua operasi
-tulis ini harus atomik, jadi 1.4d juga menambahkan `DukunganTransaksi`.
-Dilanjutkan 1.4e (lebih bayar + migration v4 `pemakaian_lebih_bayar`).
+**1.4e `packages/core`: lebih bayar + migration v4 `pemakaian_lebih_bayar`** —
+menambah tabel `pemakaian_lebih_bayar` agar saldo lebih bayar bisa berkurang saat
+dipotong ke tagihan berikutnya. `catatPembayaran` di-extend untuk menerima
+overpayment (membuat baris `lebih_bayar`), dan handler baru `terapkanLebihBayar`
+mengalokasikan saldo ke tagihan `terbit`.
 
 Semua itu jalan **tanpa menunggu keputusan siapa pun**.
 

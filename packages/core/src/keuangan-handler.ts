@@ -6,6 +6,8 @@ import type {
   RepoTarifKomponen,
   RepoKeringanan,
   RepoPembayaran,
+  RepoProta,
+  RepoAlokasiProta,
 } from '@siakad/db';
 import type {
   Santri,
@@ -15,11 +17,14 @@ import type {
   Rombel,
   Pembayaran,
   Keringanan,
+  Prota,
+  AlokasiProta,
   MetodePembayaran,
   SumberPembayaran,
 } from '@siakad/contracts';
 import type { Aktor, HasilHandler } from './aktor.js';
 import { peranCukup } from './aktor.js';
+import type { DukunganTransaksi } from '@siakad/contracts';
 import {
   apakahPeriodeBerlaku,
   cariTarifBerlaku,
@@ -31,7 +36,7 @@ import {
   MAKS_CICILAN,
   type LookupTarif,
 } from './keuangan.js';
-import { formatPeriode, formatRupiah } from './format.js';
+import { formatPeriode, formatRupiah, tanggalDariWaktu } from './format.js';
 
 /**
  * Handler keuangan untuk `apps/bot-internal`.
@@ -53,6 +58,9 @@ export interface DepKeuangan {
   readonly repoTahunAjaran: RepoMasterIdTunggal<TahunAjaran>;
   readonly repoKeringanan: RepoKeringanan;
   readonly repoPembayaran: RepoPembayaran;
+  readonly repoProta: RepoProta;
+  readonly repoAlokasiProta: RepoAlokasiProta;
+  readonly transaksi: DukunganTransaksi;
 }
 
 export interface TerbitkanTagihanInput {
@@ -84,6 +92,14 @@ export interface TetapkanKeringananInput {
   readonly nominal: number | null;
   readonly persentase: number | null;
   readonly alasan: string;
+  readonly waktu: string;
+}
+
+export interface AlokasiProtaInput {
+  readonly aktor: Aktor;
+  readonly protaId: string;
+  readonly tagihanId: string;
+  readonly nominal: number;
   readonly waktu: string;
 }
 
@@ -402,6 +418,126 @@ export function buatHandlerKeuangan(dep: DepKeuangan) {
           pesanSisa,
         data: keringanan,
       };
+    },
+
+    alokasiProta(input: AlokasiProtaInput): HasilHandler<{ pembayaran: Pembayaran; alokasi: AlokasiProta }> {
+      if (!peranCukup(input.aktor, 'pengurus')) {
+        return {
+          ok: false,
+          pesan: 'Hanya pengurus dan admin yang boleh mengalokasikan PROTA.',
+        };
+      }
+
+      if (input.nominal <= 0) {
+        return { ok: false, pesan: 'Nominal alokasi PROTA harus lebih dari nol.' };
+      }
+
+      const tagihan = dep.repoTagihan.ambil(input.tagihanId);
+      if (tagihan === undefined) {
+        return { ok: false, pesan: 'Tagihan tidak ditemukan.' };
+      }
+      if (tagihan.status !== 'terbit') {
+        return {
+          ok: false,
+          pesan: 'PROTA hanya bisa dialokasikan ke tagihan yang masih terbit.',
+        };
+      }
+
+      const prota = dep.repoProta.ambil(input.protaId);
+      if (prota === undefined) {
+        return { ok: false, pesan: 'Dana PROTA tidak ditemukan.' };
+      }
+
+      const santri = dep.repoSantri.ambil(tagihan.santri_id);
+      const namaSantri = santri?.nama_lengkap ?? 'santri';
+      const komponen = dep.repoKomponenBiaya.ambil(tagihan.komponen_biaya_id);
+      const namaKomponen = komponen?.nama ?? 'tagihan';
+
+      const keringanan = dep.repoKeringanan.cariByTagihan(input.tagihanId);
+      const sudahBayar = dep.repoPembayaran.hitungTotalByTagihan(input.tagihanId);
+      const outstanding = hitungOutstanding({
+        nominal: tagihan.nominal,
+        keringanan,
+        sudahBayar,
+      });
+
+      if (input.nominal > outstanding) {
+        const kapan = formatPeriode(tagihan.periode, tagihan.skema_periode);
+        return {
+          ok: false,
+          pesan:
+            `Nominal alokasi PROTA melebihi sisa tagihan ${namaKomponen} ${namaSantri} ` +
+            `untuk ${kapan}. Sisa tagihan ${formatRupiah(outstanding)}.`,
+        };
+      }
+
+      if (input.nominal > prota.sisa) {
+        return {
+          ok: false,
+          pesan:
+            `Sisa dana PROTA untuk ${namaSantri} tidak mencukupi. ` +
+            `Tersisa ${formatRupiah(prota.sisa)}, diminta ${formatRupiah(input.nominal)}.`,
+        };
+      }
+
+      try {
+        const hasil = dep.transaksi.jalankanTransaksi(() => {
+          const pembayaran: Pembayaran = {
+            id: buatUlid(),
+            tagihan_id: input.tagihanId,
+            tanggal: tanggalDariWaktu(input.waktu),
+            nominal: input.nominal,
+            metode: 'tunai',
+            sumber: 'prota',
+            cicilan_ke: null,
+            dicatat_oleh: input.aktor.id,
+            waktu: input.waktu,
+          };
+          dep.repoPembayaran.sisip(pembayaran);
+
+          const alokasi: AlokasiProta = {
+            id: buatUlid(),
+            prota_id: input.protaId,
+            tagihan_id: input.tagihanId,
+            nominal: input.nominal,
+            waktu: input.waktu,
+          };
+          dep.repoAlokasiProta.sisip(alokasi);
+
+          dep.repoProta.kurangiSisa(input.protaId, input.nominal);
+
+          return { pembayaran, alokasi };
+        });
+
+        const outstandingSetelah = hitungOutstanding({
+          nominal: tagihan.nominal,
+          keringanan,
+          sudahBayar: sudahBayar + input.nominal,
+        });
+        if (outstandingSetelah <= 0) {
+          dep.repoTagihan.tandaiLunas(input.tagihanId);
+        }
+
+        const kapan = formatPeriode(tagihan.periode, tagihan.skema_periode);
+        const pesanLunas = outstandingSetelah <= 0 ? ' Tagihan sudah lunas.' : '';
+        const pesanSisa =
+          outstandingSetelah > 0 ? ` Sisa tagihan ${formatRupiah(outstandingSetelah)}.` : '';
+
+        return {
+          ok: true,
+          pesan:
+            `PROTA untuk ${namaKomponen} ${namaSantri} periode ${kapan} ` +
+            `sebesar ${formatRupiah(input.nominal)} sudah dialokasikan.` +
+            pesanLunas +
+            pesanSisa,
+          data: hasil,
+        };
+      } catch (error) {
+        return {
+          ok: false,
+          pesan: 'Gagal mengalokasikan PROTA. Dana PROTA mungkin sudah terpakai di proses lain.',
+        };
+      }
     },
   };
 }

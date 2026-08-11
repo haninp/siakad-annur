@@ -1,4 +1,6 @@
 import type { StatusUsulan } from '@siakad/contracts';
+import { tanggalTerbaca } from './format.js';
+export { tanggalTerbaca };
 
 /**
  * Aturan pengajuan dan pembatalan izin absen.
@@ -27,29 +29,6 @@ export interface RiwayatUsulan {
 }
 
 export type Keputusan = { readonly boleh: true } | { readonly boleh: false; readonly pesan: string };
-
-const BULAN = [
-  'Januari',
-  'Februari',
-  'Maret',
-  'April',
-  'Mei',
-  'Juni',
-  'Juli',
-  'Agustus',
-  'September',
-  'Oktober',
-  'November',
-  'Desember',
-] as const;
-
-/** `2026-08-10` → `10 Agustus 2026`. Wali tidak membaca tanggal ber-format ISO. */
-export function tanggalTerbaca(iso: string): string {
-  const [tahun, bulan, hari] = iso.split('-');
-  const namaBulan = BULAN[Number(bulan) - 1];
-  if (tahun === undefined || hari === undefined || namaBulan === undefined) return iso;
-  return `${Number(hari)} ${namaBulan} ${tahun}`;
-}
 
 /**
  * Apakah wali boleh mengajukan izin untuk seorang anak pada satu tanggal.

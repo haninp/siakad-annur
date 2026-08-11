@@ -10,6 +10,7 @@ export * from './ulid.js';
 export * from './klasifikasi.js';
 export * from './identitas.js';
 export * from './akademik.js';
+export * from './kalender.js';
 export * from './keuangan.js';
 export * from './turunan.js';
 export * from './transaksi.js';
@@ -36,6 +37,7 @@ import {
   entitasSkalaNilaiButir,
   entitasTahunAjaran,
 } from './akademik.js';
+import { entitasKalenderHijriah } from './kalender.js';
 import {
   entitasAkunKeuangan,
   entitasAlokasiProta,
@@ -69,6 +71,7 @@ export const ENTITAS_MASTER_DATA: readonly EntitasUmum[] = [
   sebagaiEntitasUmum(entitasSkalaNilaiButir),
   sebagaiEntitasUmum(entitasMapel),
   sebagaiEntitasUmum(entitasKurikulum),
+  sebagaiEntitasUmum(entitasKalenderHijriah),
 ];
 
 /**

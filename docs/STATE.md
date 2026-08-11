@@ -3,19 +3,24 @@
 > Diperbarui di akhir setiap sesi. Berkas ini yang dibaca lebih dulu oleh agent berikutnya,
 > apa pun mereknya. STATE yang basi lebih berbahaya daripada tidak ada, karena ia dipercaya.
 
-**Terakhir diperbarui:** 11 Agustus 2026
+**Terakhir diperbarui:** 11 Agustus 2026, sesi sore
 
 ---
 
 ## Yang baru selesai
 
-**1.4e — `packages/core`: lebih bayar + migration v4.** Ditambahkan entitas dan
-DDL `pemakaian_lebih_bayar` sebagai migrasi v4 (bukan menyunting v3), repository
-`repoPemakaianLebihBayar`, dan handler `terapkanLebihBayar`. `catatPembayaran`
-sekarang menerima overpayment: melunasi outstanding, menyimpan kelebihan sebagai
-`lebih_bayar`, dan menandai tagihan lunas. `repoLebihBayar.hitungSaldo` mengurangi
-total pemakaian dari total lebih bayar. Semua perubahan finansial tetap dalam
-satu transaksi. Test: 261 test hijau.
+**1.5 — `kalender_hijriah` + seed dari myQuran + verifikasi manual.** Ditambahkan
+entitas, DDL, migrasi v5, repository `repoKalenderHijriah`, pure rule
+`cariBulanHijriahPadaTanggal`, dan handler `setujuiBulanHijriah`. Script
+`npm run hijriah:isi` mengisi tabel dari myQuran (`method=islamic-umalqura`)
+dengan retry pada rate limit; `npm run hijriah:periksa` mencetak bulan yang
+masih `provisional=1`. ADR 0013 mencatat pengecualian sementara terhadap
+ADR 0004 (sumber PDF Kemenag) dan memilih `islamic-umalqura` setelah menemukan
+anomali pada method `standar`. Bot reminder otomatis ditunda karena P1 belum
+terpenuhi — catatan ada di `docs/handoff/0013-bot-reminder-kalender-hijriah.md`.
+Test: 280 test hijau.
+
+**1.4e — `packages/core`: lebih bayar + migration v4.**
 
 **1.4d — `packages/core`: `alokasiProta` + transaksi.** `DukunganTransaksi`
 didefinisikan di `contracts`, diimplementasikan `buatDukunganTransaksi` di `db`.
@@ -121,13 +126,18 @@ Tidak ada. Sesi berhenti di batas tugas yang bersih.
 
 ## Langkah berikutnya
 
-**Fase 1 OLTP keuangan selesai.** Seluruh sub-tugas 1.0–1.4 sudah di-commit.
+**Fase 1 OLTP keuangan selesai.** Seluruh sub-tugas 1.0–1.5 sudah di-commit.
 
 Tugas berikutnya yang sudah tercatat:
 
-- Seed `kalender_hijriah` dari PDF Kemenag (prasyarat P4).
-- Mulai merancang Fase 2 (akademik) setelah kebutuhan lapangan di
-  `docs/08-akademik-kebutuhan.md` dikonfirmasi ulang.
+- **Fase 2 — akademik**: rancang skema capaian hafalan, nilai, poin, PR, dan
+  laporan absen setelah kebutuhan lapangan di `docs/08-akademik-kebutuhan.md`
+  dikonfirmasi ulang.
+- **Bot reminder kalender_hijriah**: otomatis mengingatkan pengurus tiap awal
+  bulan Hijriah. Menunggu **P1** (token bot Telegram). Detail di
+  `docs/handoff/0013-bot-reminder-kalender-hijriah.md`.
+- **Re-seed dari PDF Kemenag** begitu **P4** tersedia; baris `sumber='kemenag'`
+  otomatis `provisional=0`.
 
 Dua hal keuangan masih ditunda: makna kolom `Khusus PROTA` dan nasib sheet arsip
 Juli–Agustus 2023.

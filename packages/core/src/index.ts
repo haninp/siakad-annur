@@ -9,5 +9,7 @@ export * from './izin.js';
 export * from './izin-handler.js';
 export * from './format.js';
 export * from './aktor.js';
+export * from './kalender.js';
+export * from './kalender-handler.js';
 export * from './keuangan.js';
 export * from './keuangan-handler.js';

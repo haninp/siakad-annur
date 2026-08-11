@@ -171,6 +171,20 @@ function handlerDari(db: DatabaseSync) {
   });
 }
 
+function buatTagihanSpp(handler: ReturnType<typeof handlerDari>, dasar: ReturnType<typeof seedDasar>) {
+  const hasil = handler.terbitkanTagihan({
+    aktor: { peran: 'pengurus', id: dasar.pengurusId },
+    santriId: dasar.santriId,
+    komponenBiayaId: dasar.komponenSppId,
+    tahunAjaranId: dasar.tahunAjaranId,
+    periode: '2026-08',
+    skemaPeriode: 'masehi',
+    waktu: '2026-08-01T08:00:00+07:00',
+  });
+  if (!hasil.ok || !hasil.data) throw new Error('gagal buat tagihan');
+  return hasil.data;
+}
+
 describe('handler keuangan', () => {
   let db: DatabaseSync;
   let dasar: ReturnType<typeof seedDasar>;
@@ -325,23 +339,9 @@ describe('handler keuangan', () => {
   });
 
   describe('catatPembayaran', () => {
-    function tagihanSpp(handler: ReturnType<typeof handlerDari>) {
-      const hasil = handler.terbitkanTagihan({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
-        santriId: dasar.santriId,
-        komponenBiayaId: dasar.komponenSppId,
-        tahunAjaranId: dasar.tahunAjaranId,
-        periode: '2026-08',
-        skemaPeriode: 'masehi',
-        waktu: '2026-08-01T08:00:00+07:00',
-      });
-      if (!hasil.ok || !hasil.data) throw new Error('gagal buat tagihan');
-      return hasil.data;
-    }
-
     it('mencatat pembayaran penuh dan menandai lunas', () => {
       const handler = handlerDari(db);
-      const tagihan = tagihanSpp(handler);
+      const tagihan = buatTagihanSpp(handler, dasar);
 
       const hasil = handler.catatPembayaran({
         aktor: { peran: 'pengurus', id: dasar.pengurusId },
@@ -362,7 +362,7 @@ describe('handler keuangan', () => {
 
     it('mencatat pembayaran parsial dan menyisakan tagihan', () => {
       const handler = handlerDari(db);
-      const tagihan = tagihanSpp(handler);
+      const tagihan = buatTagihanSpp(handler, dasar);
 
       const hasil = handler.catatPembayaran({
         aktor: { peran: 'pengurus', id: dasar.pengurusId },
@@ -382,7 +382,7 @@ describe('handler keuangan', () => {
 
     it('mencatat pembayaran cicilan dan menolak lebih dari 6 kali', () => {
       const handler = handlerDari(db);
-      const tagihan = tagihanSpp(handler);
+      const tagihan = buatTagihanSpp(handler, dasar);
 
       for (let i = 1; i <= 6; i++) {
         const hasil = handler.catatPembayaran({
@@ -417,7 +417,7 @@ describe('handler keuangan', () => {
 
     it('memperhitungkan keringanan saat menghitung sisa', () => {
       const handler = handlerDari(db);
-      const tagihan = tagihanSpp(handler);
+      const tagihan = buatTagihanSpp(handler, dasar);
 
       repoKeringanan(db).sisip({
         id: buatUlid(1_000_000_000_010),
@@ -446,7 +446,7 @@ describe('handler keuangan', () => {
 
     it('menolak overpayment sebelum 1.4e', () => {
       const handler = handlerDari(db);
-      const tagihan = tagihanSpp(handler);
+      const tagihan = buatTagihanSpp(handler, dasar);
 
       const hasil = handler.catatPembayaran({
         aktor: { peran: 'pengurus', id: dasar.pengurusId },
@@ -465,7 +465,7 @@ describe('handler keuangan', () => {
 
     it('menolak pembayaran ke tagihan yang sudah lunas', () => {
       const handler = handlerDari(db);
-      const tagihan = tagihanSpp(handler);
+      const tagihan = buatTagihanSpp(handler, dasar);
       handler.catatPembayaran({
         aktor: { peran: 'pengurus', id: dasar.pengurusId },
         tagihanId: tagihan.id,
@@ -494,7 +494,7 @@ describe('handler keuangan', () => {
 
     it('menolak peran wali', () => {
       const handler = handlerDari(db);
-      const tagihan = tagihanSpp(handler);
+      const tagihan = buatTagihanSpp(handler, dasar);
 
       const hasil = handler.catatPembayaran({
         aktor: { peran: 'wali', id: buatUlid() },
@@ -505,6 +505,130 @@ describe('handler keuangan', () => {
         sumber: 'wali',
         sebagaiCicilan: false,
         waktu: '2026-08-05T10:00:00+07:00',
+      });
+
+      expect(hasil.ok).toBe(false);
+    });
+  });
+
+  describe('tetapkanKeringanan', () => {
+    it('menetapkan keringanan nominal dan menyisakan tagihan', () => {
+      const handler = handlerDari(db);
+      const tagihan = buatTagihanSpp(handler, dasar);
+
+      const hasil = handler.tetapkanKeringanan({
+        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        tagihanId: tagihan.id,
+        nominal: 150_000,
+        persentase: null,
+        alasan: 'Bantuan yatim',
+        waktu: '2026-08-04T10:00:00+07:00',
+      });
+
+      expect(hasil.ok).toBe(true);
+      expect(hasil.pesan).toContain('Rp 150.000');
+      expect(hasil.pesan).toContain('Sisa tagihan Rp 300.000');
+      expect(repoTagihan(db).ambil(tagihan.id)?.status).toBe('terbit');
+    });
+
+    it('menetapkan keringanan persentase dan menandai lunas bila 100%', () => {
+      const handler = handlerDari(db);
+      const tagihan = buatTagihanSpp(handler, dasar);
+
+      const hasil = handler.tetapkanKeringanan({
+        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        tagihanId: tagihan.id,
+        nominal: null,
+        persentase: 100,
+        alasan: 'Beasiswa penuh',
+        waktu: '2026-08-04T10:00:00+07:00',
+      });
+
+      expect(hasil.ok).toBe(true);
+      expect(hasil.pesan).toContain('lunas');
+      expect(repoTagihan(db).ambil(tagihan.id)?.status).toBe('lunas');
+    });
+
+    it('menolak bila total keringanan melebihi nominal tagihan', () => {
+      const handler = handlerDari(db);
+      const tagihan = buatTagihanSpp(handler, dasar);
+
+      handler.tetapkanKeringanan({
+        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        tagihanId: tagihan.id,
+        nominal: 300_000,
+        persentase: null,
+        alasan: 'Bantuan pertama',
+        waktu: '2026-08-04T10:00:00+07:00',
+      });
+
+      const hasil = handler.tetapkanKeringanan({
+        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        tagihanId: tagihan.id,
+        nominal: 200_000,
+        persentase: null,
+        alasan: 'Bantuan kedua',
+        waktu: '2026-08-04T10:00:00+07:00',
+      });
+
+      expect(hasil.ok).toBe(false);
+      expect(hasil.pesan).toContain('tidak boleh melebihi');
+    });
+
+    it('menolak keringanan pada tagihan yang sudah lunas', () => {
+      const handler = handlerDari(db);
+      const tagihan = buatTagihanSpp(handler, dasar);
+      handler.catatPembayaran({
+        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        tagihanId: tagihan.id,
+        tanggal: '2026-08-05',
+        nominal: 450_000,
+        metode: 'transfer',
+        sumber: 'wali',
+        sebagaiCicilan: false,
+        waktu: '2026-08-05T10:00:00+07:00',
+      });
+
+      const hasil = handler.tetapkanKeringanan({
+        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        tagihanId: tagihan.id,
+        nominal: 10_000,
+        persentase: null,
+        alasan: 'Salah',
+        waktu: '2026-08-06T10:00:00+07:00',
+      });
+
+      expect(hasil.ok).toBe(false);
+      expect(hasil.pesan).toContain('masih terbit');
+    });
+
+    it('menolak bila nominal dan persentase keduanya kosong', () => {
+      const handler = handlerDari(db);
+      const tagihan = buatTagihanSpp(handler, dasar);
+
+      const hasil = handler.tetapkanKeringanan({
+        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        tagihanId: tagihan.id,
+        nominal: null,
+        persentase: null,
+        alasan: 'Lupa',
+        waktu: '2026-08-04T10:00:00+07:00',
+      });
+
+      expect(hasil.ok).toBe(false);
+    });
+
+    it('menolak peran pengajar', () => {
+      const handler = handlerDari(db);
+      const tagihan = buatTagihanSpp(handler, dasar);
+
+      const hasil = handler.tetapkanKeringanan({
+        aktor: { peran: 'pengajar', id: buatUlid() },
+        tagihanId: tagihan.id,
+        nominal: 50_000,
+        persentase: null,
+        alasan: 'Bantuan',
+        waktu: '2026-08-04T10:00:00+07:00',
       });
 
       expect(hasil.ok).toBe(false);

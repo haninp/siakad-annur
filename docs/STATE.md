@@ -9,14 +9,14 @@
 
 ## Yang baru selesai
 
-**1.4b — `packages/core`: `catatPembayaran` + cicilan.** `keuangan.ts` ditambah
-`hitungKeringananEffektif`, `hitungOutstanding`, dan `cicilanBerikutnya`.
-`keuangan-handler.ts` menambah `catatPembayaran`: memperhitungkan keringanan,
-menolak overpayment (menyusul 1.4e), otomatis menandai lunas saat outstanding
-terpenuhi, dan membatasi cicilan maksimal 6 kali. Test: 244 test hijau.
+**1.4c — `packages/core`: `tetapkanKeringanan`.** Pengurus/admin dapat menetapkan
+keringanan nominal atau persentase pada tagihan `terbit`. Total keringanan tidak
+boleh melebihi nominal tagihan. Setelah ditetapkan, outstanding dihitung ulang
+dan tagihan otomatis lunas bila keringanan menutup seluruhnya. Test: 250 test hijau.
 
-**1.4a — `packages/core`: `terbitkanTagihan` + aturan murni keuangan.** Refaktor
-`format.ts`, `aktor.ts`, `keuangan.ts`, dan `keuangan-handler.ts`.
+**1.4b — `packages/core`: `catatPembayaran` + cicilan.**
+
+**1.4a — `packages/core`: `terbitkanTagihan` + aturan murni keuangan.**
 
 **1.3 — `packages/db`: repository untuk 9 tabel keuangan.** `repo-keuangan.ts`
 mencakup `akun_keuangan` (PK INTEGER khusus), `komponen_biaya`, `tarif_komponen`,
@@ -110,11 +110,11 @@ Tidak ada. Sesi berhenti di batas tugas yang bersih.
 
 ## Langkah berikutnya
 
-**1.4c `packages/core`: `tetapkanKeringanan`** — pengurus/admin menetapkan
-keringanan nominal atau persentase untuk tagihan `terbit`, dengan batas tidak
-melebihi nominal tagihan. Keringanan otomatis memperbarui outstanding dan bisa
-menandai tagihan lunas bila menutup penuh. Dilanjutkan 1.4d (PROTA + transaksi)
-dan 1.4e (lebih bayar + migration v4 `pemakaian_lebih_bayar`).
+**1.4d `packages/core`: `alokasiProta` + dukungan transaksi** — mengalokasikan
+dana PROTA ke tagihan SPP: kurangi `prota.sisa`, catat `pembayaran` sumber PROTA,
+sisip `alokasi_prota`, dan tandai lunas bila outstanding habis. Semua operasi
+tulis ini harus atomik, jadi 1.4d juga menambahkan `DukunganTransaksi`.
+Dilanjutkan 1.4e (lebih bayar + migration v4 `pemakaian_lebih_bayar`).
 
 Semua itu jalan **tanpa menunggu keputusan siapa pun**.
 

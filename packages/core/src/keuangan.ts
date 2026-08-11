@@ -109,6 +109,20 @@ export function hitungJatuhTempoDefault(periode: string): string {
 }
 
 /**
+ * Nilai efektif satu keringanan dalam rupiah. Nominal langsung; persentase
+ * diubah menjadi rupiah dari nominal tagihan. Hasil dibulatkan ke integer.
+ */
+export function keringananEfektif(
+  nominal: number | null,
+  persentase: number | null,
+  nominalTagihan: number,
+): number {
+  if (nominal !== null) return nominal;
+  if (persentase !== null) return Math.round((nominalTagihan * persentase) / 100);
+  return 0;
+}
+
+/**
  * Jumlah keringanan dalam rupiah. Nominal langsung; persentase diubah menjadi
  * rupiah dari nominal tagihan. Hasil dibulatkan ke integer.
  */
@@ -117,9 +131,7 @@ export function hitungKeringananEffektif(
   nominalTagihan: number,
 ): number {
   return keringanan.reduce((total, k) => {
-    if (k.nominal !== null) return total + k.nominal;
-    if (k.persentase !== null) return total + Math.round((nominalTagihan * k.persentase) / 100);
-    return total;
+    return total + keringananEfektif(k.nominal, k.persentase, nominalTagihan);
   }, 0);
 }
 

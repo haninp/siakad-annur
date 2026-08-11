@@ -14,6 +14,7 @@ import type {
   Pendaftaran,
   Rombel,
   Pembayaran,
+  Keringanan,
   MetodePembayaran,
   SumberPembayaran,
 } from '@siakad/contracts';
@@ -24,7 +25,9 @@ import {
   cariTarifBerlaku,
   cicilanBerikutnya,
   hitungJatuhTempoDefault,
+  hitungKeringananEffektif,
   hitungOutstanding,
+  keringananEfektif,
   MAKS_CICILAN,
   type LookupTarif,
 } from './keuangan.js';
@@ -72,6 +75,15 @@ export interface CatatPembayaranInput {
   readonly sumber: SumberPembayaran;
   /** true bila pembayaran ini adalah bagian dari cicilan (akan diisi cicilan_ke). */
   readonly sebagaiCicilan: boolean;
+  readonly waktu: string;
+}
+
+export interface TetapkanKeringananInput {
+  readonly aktor: Aktor;
+  readonly tagihanId: string;
+  readonly nominal: number | null;
+  readonly persentase: number | null;
+  readonly alasan: string;
   readonly waktu: string;
 }
 
@@ -296,6 +308,99 @@ export function buatHandlerKeuangan(dep: DepKeuangan) {
           pesanLunas +
           pesanSisa,
         data: pembayaran,
+      };
+    },
+
+    tetapkanKeringanan(input: TetapkanKeringananInput): HasilHandler<Keringanan> {
+      if (!peranCukup(input.aktor, 'pengurus')) {
+        return {
+          ok: false,
+          pesan: 'Hanya pengurus dan admin yang boleh menetapkan keringanan.',
+        };
+      }
+
+      if (input.nominal === null && input.persentase === null) {
+        return {
+          ok: false,
+          pesan: 'Isi nominal atau persentase keringanan.',
+        };
+      }
+
+      if (input.nominal !== null && input.nominal <= 0) {
+        return { ok: false, pesan: 'Nominal keringanan harus lebih dari nol.' };
+      }
+      if (input.persentase !== null && (input.persentase <= 0 || input.persentase > 100)) {
+        return { ok: false, pesan: 'Persentase keringanan harus antara 1 sampai 100.' };
+      }
+
+      const tagihan = dep.repoTagihan.ambil(input.tagihanId);
+      if (tagihan === undefined) {
+        return { ok: false, pesan: 'Tagihan tidak ditemukan.' };
+      }
+
+      if (tagihan.status !== 'terbit') {
+        return {
+          ok: false,
+          pesan: `Keringanan hanya bisa ditetapkan pada tagihan yang masih terbit.`,
+        };
+      }
+
+      const santri = dep.repoSantri.ambil(tagihan.santri_id);
+      const namaSantri = santri?.nama_lengkap ?? 'santri';
+      const komponen = dep.repoKomponenBiaya.ambil(tagihan.komponen_biaya_id);
+      const namaKomponen = komponen?.nama ?? 'tagihan';
+
+      const keringananLalu = dep.repoKeringanan.cariByTagihan(input.tagihanId);
+      const efektifLalu = hitungKeringananEffektif(keringananLalu, tagihan.nominal);
+      const efektifBaru = keringananEfektif(input.nominal, input.persentase, tagihan.nominal);
+
+      if (efektifLalu + efektifBaru > tagihan.nominal) {
+        const kapan = formatPeriode(tagihan.periode, tagihan.skema_periode);
+        return {
+          ok: false,
+          pesan:
+            `Total keringanan untuk ${namaKomponen} ${namaSantri} pada ${kapan} ` +
+            `tidak boleh melebihi ${formatRupiah(tagihan.nominal)}. ` +
+            `Sisa ruang keringanan: ${formatRupiah(tagihan.nominal - efektifLalu)}.`,
+        };
+      }
+
+      const keringanan: Keringanan = {
+        id: buatUlid(),
+        tagihan_id: input.tagihanId,
+        nominal: input.nominal,
+        persentase: input.persentase,
+        alasan: input.alasan,
+        disetujui_oleh: input.aktor.id,
+        waktu: input.waktu,
+      };
+
+      dep.repoKeringanan.sisip(keringanan);
+
+      const sudahBayar = dep.repoPembayaran.hitungTotalByTagihan(input.tagihanId);
+      const outstandingSetelah = hitungOutstanding({
+        nominal: tagihan.nominal,
+        keringanan: [...keringananLalu, keringanan],
+        sudahBayar,
+      });
+
+      if (outstandingSetelah <= 0) {
+        dep.repoTagihan.tandaiLunas(input.tagihanId);
+      }
+
+      const kapan = formatPeriode(tagihan.periode, tagihan.skema_periode);
+      const pesanLunas = outstandingSetelah <= 0 ? ' Tagihan sudah lunas.' : '';
+      const pesanSisa =
+        outstandingSetelah > 0 ? ` Sisa tagihan ${formatRupiah(outstandingSetelah)}.` : '';
+
+      return {
+        ok: true,
+        pesan:
+          `Keringanan ${namaKomponen} ${namaSantri} untuk ${kapan} ` +
+          `sebesar ${formatRupiah(efektifBaru)} sudah ditetapkan.` +
+          pesanLunas +
+          pesanSisa,
+        data: keringanan,
       };
     },
   };

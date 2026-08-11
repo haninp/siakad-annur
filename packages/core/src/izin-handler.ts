@@ -1,6 +1,7 @@
 import { buatUlid, type UsulanIzin, type KanalLaporan, type JenisIzin } from '@siakad/contracts';
 import type { RepoMasterKomposit, RepoMasterIdTunggal, RepoUsulanIzin } from '@siakad/db';
 import type { Santri, SantriWali } from '@siakad/contracts';
+import type { HasilHandler } from './aktor.js';
 import { bolehAjukanIzin, bolehBatalkanIzin, tanggalTerbaca } from './izin.js';
 
 /**
@@ -17,12 +18,6 @@ export interface DepIzinHandler {
   readonly repoUsulan: RepoUsulanIzin;
   readonly repoSantri: RepoMasterIdTunggal<Santri>;
   readonly repoSantriWali: RepoMasterKomposit<SantriWali>;
-}
-
-export interface HasilHandler<T> {
-  readonly ok: boolean;
-  readonly pesan?: string;
-  readonly data?: T;
 }
 
 export interface AjukanIzinInput {

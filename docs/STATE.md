@@ -9,12 +9,18 @@
 
 ## Yang baru selesai
 
+**1.4a — `packages/core`: `terbitkanTagihan` + aturan murni keuangan.** Refaktor
+`format.ts` (bagi tanggal, rupiah, periode antara izin dan keuangan), `aktor.ts`
+untuk model aktor/izin peran, `keuangan.ts` (lookuptarif spesifik→umum, periode
+SPP bulan penuh, jatuh tempo default), dan `keuangan-handler.ts` dengan
+`terbitkanTagihan`. Test: 232 test hijau.
+
 **1.3 — `packages/db`: repository untuk 9 tabel keuangan.** `repo-keuangan.ts`
 mencakup `akun_keuangan` (PK INTEGER khusus), `komponen_biaya`, `tarif_komponen`,
 `tagihan`, `keringanan`, `pembayaran`, `prota`, `alokasi_prota`, dan `lebih_bayar`.
 Method khusus: `cariByKode`, `cariAktif`/`cariUmum` tanpa fallback, transisi terminal
 `tagihan` (`tandaiLunas`/`batalkan` dari `terbit` saja), `kurangiSisa` PROTA, serta
-penghitungan total pembayaran dan saldo lebih bayar. Test: 207 test hijau.
+penghitungan total pembayaran dan saldo lebih bayar.
 
 **1.2 — `packages/contracts`: skema keuangan.** Sembilan tabel: `akun_keuangan`,
 `komponen_biaya`, `tarif_komponen`, `tagihan`, `keringanan`, `pembayaran`, `prota`,
@@ -101,10 +107,10 @@ Tidak ada. Sesi berhenti di batas tugas yang bersih.
 
 ## Langkah berikutnya
 
-**1.4 `packages/core`: aturan bisnis keuangan** — pembuatan tagihan, prorata, cicilan,
-keringanan, alokasi PROTA, dan lebih bayar. Repo keuangan sudah tersedia; logika bisnis
-sekarang dibangun di atasnya. Handler untuk `bot-internal` menyusul setelah aturan bisnis
-teruji.
+**1.4b `packages/core`: `catatPembayaran` + cicilan** — pencatatan pembayaran wali
+maupun sumber lain, maksimal 6 cicilan per tagihan, otomatis menandai lunas saat
+outstanding terpenuhi. Dilanjutkan 1.4c (keringanan), 1.4d (PROTA + transaksi),
+dan 1.4e (lebih bayar + migration v4 `pemakaian_lebih_bayar`).
 
 Semua itu jalan **tanpa menunggu keputusan siapa pun**.
 

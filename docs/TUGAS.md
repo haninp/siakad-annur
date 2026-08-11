@@ -57,8 +57,11 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
 - [x] **1.3** `packages/db`: repository untuk 9 tabel keuangan (`akun_keuangan`,
       `komponen_biaya`, `tarif_komponen`, `tagihan`, `keringanan`, `pembayaran`,
       `prota`, `alokasi_prota`, `lebih_bayar`) di atas migrasi versi 3 `[berat]`
-- [ ] **1.4** `packages/core`: aturan bisnis keuangan — tagihan, prorata, cicilan,
-      keringanan, PROTA, lebih bayar `[berat]`
+- [x] **1.4a** `packages/core`: `terbitkanTagihan` — lookuptarif + prorata bulan penuh `[berat]`
+- [ ] **1.4b** `packages/core`: `catatPembayaran` + cicilan (maks 6 kali) `[berat]`
+- [ ] **1.4c** `packages/core`: `tetapkanKeringanan` (nominal/persentase) `[berat]`
+- [ ] **1.4d** `packages/core`: `alokasiProta` + dukungan transaksi `[berat]`
+- [ ] **1.4e** `packages/core`: lebih bayar + migration v4 `pemakaian_lebih_bayar` `[berat]`
 - [ ] Seed `kalender_hijriah` dari PDF Kemenag (butuh prasyarat P4)
 
 ---

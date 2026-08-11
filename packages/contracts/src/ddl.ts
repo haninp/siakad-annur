@@ -184,3 +184,6 @@ export const TABEL_MASTER_DATA: readonly string[] = [
   'mapel',
   'kurikulum',
 ];
+
+// Skema keuangan didefinisikan di keuangan.ts agar file ini tidak terlalu besar.
+export { DDL_KEUANGAN, TABEL_KEUANGAN } from './keuangan.js';

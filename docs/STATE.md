@@ -3,17 +3,23 @@
 > Diperbarui di akhir setiap sesi. Berkas ini yang dibaca lebih dulu oleh agent berikutnya,
 > apa pun mereknya. STATE yang basi lebih berbahaya daripada tidak ada, karena ia dipercaya.
 
-**Terakhir diperbarui:** 11 Agustus 2026 (sesi berlanjut)
+**Terakhir diperbarui:** 11 Agustus 2026
 
 ---
 
 ## Yang baru selesai
 
+**1.2 — `packages/contracts`: skema keuangan.** Sembilan tabel: `akun_keuangan`,
+`komponen_biaya`, `tarif_komponen`, `tagihan`, `keringanan`, `pembayaran`, `prota`,
+`alokasi_prota`, `lebih_bayar`. DDL SQLite STRICT dengan CHECK constraints, klasifikasi
+data pribadi lengkap, dan test zod + DDL. Migrasi versi 3. Actor `disetujui_oleh` dan
+`dicatat_oleh` sengaja tanpa FK karena `pengguna_telegram` menyusul. Test: 185 test hijau.
+
 **1.1 — `packages/core`: handler `ajukanIzin` / `batalkanIzin`.** Penegakan izin peran di
 satu tempat: wali hanya bisa mengajukan/membatalkan untuk santri yang tertaut padanya,
 ditegakkan lewat `santri_wali.aktif`. Handler menerima repository sebagai dependency,
 mengembalikan pesan substantif ke wali, dan memakai aturan `bolehAjukanIzin`/
-`bolehBatalkanIzin` yang sudah ada. Test: 143 test hijau.
+`bolehBatalkanIzin` yang sudah ada.
 
 **1.0 — repository `packages/db` untuk master data dan `usulan_izin`.** 14 repository
 master data (id tunggal & komposit) plus `RepoUsulanIzin` dengan method `ajukan`,
@@ -88,9 +94,9 @@ Tidak ada. Sesi berhenti di batas tugas yang bersih.
 
 ## Langkah berikutnya
 
-**1.2 `packages/contracts`: skema keuangan** — `akun_keuangan`, `komponen_biaya`,
-`tagihan`, `pembayaran`, `prota`, `keringanan`, `lebih_bayar` — berdasarkan ADR 0012 dan
-`docs/06-migrasi-legacy.md`.
+**1.3 `packages/db`: migrasi + repository untuk tabel keuangan** — di atas skema yang
+sudah ada, buat repository untuk `tagihan`, `pembayaran`, `prota`, `keringanan`, dan
+`lebih_bayar`.
 
 Semua itu jalan **tanpa menunggu keputusan siapa pun**.
 

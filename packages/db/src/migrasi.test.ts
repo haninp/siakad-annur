@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import { TABEL_IZIN, TABEL_MASTER_DATA } from '@siakad/contracts';
+import { TABEL_IZIN, TABEL_KEUANGAN, TABEL_MASTER_DATA } from '@siakad/contracts';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DAFTAR_MIGRASI } from './daftar-migrasi.js';
 import { jalankanMigrasi, sidikJari, versiTerpasang, type Migrasi } from './migrasi.js';
@@ -27,14 +27,14 @@ describe('runner migrasi', () => {
 
   it('menerapkan seluruh migrasi pada basis data kosong', () => {
     const hasil = jalankanMigrasi(db, DAFTAR_MIGRASI);
-    expect(hasil.diterapkan).toEqual([1, 2]);
-    expect(versiTerpasang(db)).toBe(2);
+    expect(hasil.diterapkan).toEqual([1, 2, 3]);
+    expect(versiTerpasang(db)).toBe(3);
   });
 
   it('membuat setiap tabel yang dijanjikan contracts', () => {
     jalankanMigrasi(db, DAFTAR_MIGRASI);
     const ada = daftarTabel(db);
-    for (const tabel of [...TABEL_MASTER_DATA, ...TABEL_IZIN]) {
+    for (const tabel of [...TABEL_MASTER_DATA, ...TABEL_IZIN, ...TABEL_KEUANGAN]) {
       expect(ada).toContain(tabel);
     }
   });
@@ -43,7 +43,7 @@ describe('runner migrasi', () => {
     jalankanMigrasi(db, DAFTAR_MIGRASI);
     const kedua = jalankanMigrasi(db, DAFTAR_MIGRASI);
     expect(kedua.diterapkan).toEqual([]);
-    expect(kedua.sudahAda).toEqual([1, 2]);
+    expect(kedua.sudahAda).toEqual([1, 2, 3]);
   });
 
   /**

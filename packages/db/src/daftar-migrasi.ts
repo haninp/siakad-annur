@@ -1,4 +1,4 @@
-import { DDL_IZIN, DDL_MASTER_DATA } from '@siakad/contracts';
+import { DDL_IZIN, DDL_KEUANGAN, DDL_MASTER_DATA } from '@siakad/contracts';
 import type { Migrasi } from './migrasi.js';
 
 /**
@@ -22,5 +22,10 @@ export const DAFTAR_MIGRASI: readonly Migrasi[] = [
     versi: 2,
     nama: 'usulan izin absen',
     sql: DDL_IZIN,
+  },
+  {
+    versi: 3,
+    nama: 'keuangan',
+    sql: DDL_KEUANGAN,
   },
 ];

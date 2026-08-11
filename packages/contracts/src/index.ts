@@ -1,8 +1,8 @@
 /**
  * `@siakad/contracts` — sumber kebenaran bentuk data.
  *
- * Cakupan saat ini: master data **identitas dan akademik** (tugas 0.10).
- * Bagian keuangan menunggu sesi P3 — lihat docs/06-migrasi-legacy.md.
+ * Cakupan saat ini: master data **identitas, akademik, dan keuangan**
+ * (tugas 0.10 dan 1.2).
  */
 
 export * from './enum.js';
@@ -10,6 +10,7 @@ export * from './ulid.js';
 export * from './klasifikasi.js';
 export * from './identitas.js';
 export * from './akademik.js';
+export * from './keuangan.js';
 export * from './turunan.js';
 export * from './izin.js';
 export * from './ddl.js';
@@ -34,6 +35,17 @@ import {
   entitasSkalaNilaiButir,
   entitasTahunAjaran,
 } from './akademik.js';
+import {
+  entitasAkunKeuangan,
+  entitasAlokasiProta,
+  entitasKeringanan,
+  entitasKomponenBiaya,
+  entitasLebihBayar,
+  entitasPembayaran,
+  entitasProta,
+  entitasTagihan,
+  entitasTarifKomponen,
+} from './keuangan.js';
 
 /**
  * Seluruh entitas master data. Uji kelengkapan klasifikasi berjalan di atas
@@ -63,5 +75,22 @@ export const ENTITAS_MASTER_DATA: readonly EntitasUmum[] = [
  */
 export const ENTITAS_IZIN: readonly EntitasUmum[] = [sebagaiEntitasUmum(entitasUsulanIzin)];
 
+/** Entitas keuangan — hasil sesi P3 dan ADR 0012. */
+export const ENTITAS_KEUANGAN: readonly EntitasUmum[] = [
+  sebagaiEntitasUmum(entitasAkunKeuangan),
+  sebagaiEntitasUmum(entitasKomponenBiaya),
+  sebagaiEntitasUmum(entitasTarifKomponen),
+  sebagaiEntitasUmum(entitasTagihan),
+  sebagaiEntitasUmum(entitasKeringanan),
+  sebagaiEntitasUmum(entitasPembayaran),
+  sebagaiEntitasUmum(entitasProta),
+  sebagaiEntitasUmum(entitasAlokasiProta),
+  sebagaiEntitasUmum(entitasLebihBayar),
+];
+
 /** Seluruh entitas yang diuji kelengkapan klasifikasinya. */
-export const SEMUA_ENTITAS: readonly EntitasUmum[] = [...ENTITAS_MASTER_DATA, ...ENTITAS_IZIN];
+export const SEMUA_ENTITAS: readonly EntitasUmum[] = [
+  ...ENTITAS_MASTER_DATA,
+  ...ENTITAS_IZIN,
+  ...ENTITAS_KEUANGAN,
+];

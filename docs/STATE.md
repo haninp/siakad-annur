@@ -9,6 +9,13 @@
 
 ## Yang baru selesai
 
+**1.7 — Menu tombol (button card) di bot internal (RFC-002).** `docs/rfcs/rfc-002-menu-tombol-bot-internal.md`
+disetujui & diimplementasikan: inline keyboard untuk seluruh alur — menu utama
+(`📋 Status tagihan` · `🧾 Terbitkan SPP` · `💰 Bayar`), pemilih santri, konfirmasi
+sebelum tulis, nominal cepat (150k/250k/450k). Desain stateless: state di `callback_data`,
+satu pesan diedit sepanjang alur. Perintah teks RFC-001 tetap jalan sebagai fallback
+(termasuk nominal custom). Build + lint + 280 test hijau.
+
 **1.6 — Bot internal minimal uji coba keuangan (RFC-001).** `docs/rfcs/rfc-001-bot-internal-minimal.md`
 disetujui & diimplementasikan: grammY 1.45 + `packages/bot` (`buatBot` dengan penanganan
 galat terpusat) + `apps/bot-internal` dengan empat perintah — `/mulai`, `/tagihan <nis>`,

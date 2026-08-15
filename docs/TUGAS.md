@@ -69,6 +69,11 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
       `/tagihan <nis>`, `/bayar <nis> <nominal>`, `/status <nis>`. Whitelist admin
       `ADMIN_TELEGRAM_IDS` di `.env`; izin tetap lewat `buatHandlerKeuangan` di `core`.
       Script `npm run bot:internal`. Status RFC → Implemented.
+- [x] **1.7** Menu tombol (button card) di bot internal (RFC-002) `[berat]`
+      → inline keyboard: menu utama, pemilih santri, konfirmasi terbit/bayar,
+      nominal cepat (150k/250k/450k). Stateless (state di `callback_data`),
+      satu pesan diedit sepanjang alur. Perintah teks RFC-001 tetap ada sebagai
+      fallback. Status RFC-002 → Implemented.
 
 ## Fase 2 — akademik
 

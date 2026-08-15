@@ -19,6 +19,7 @@ import { InlineKeyboard, type CallbackQueryContext, type Context } from 'grammy'
 import { buatBot } from '@siakad/bot';
 import {
   buatHandlerKeuangan,
+  buatHandlerVerifikasiPembayaran,
   formatStatusPembayaran,
   statusPembayaran,
   terbitkanTagihanBulanan,
@@ -35,12 +36,15 @@ import {
   repoPembayaran,
   repoPemakaianLebihBayar,
   repoPendaftaran,
+  repoPenggunaTelegram,
   repoProta,
   repoRombel,
   repoSantri,
+  repoSantriWali,
   repoTagihan,
   repoTarifKomponen,
   repoTahunAjaran,
+  repoUsulanPembayaran,
 } from '@siakad/db';
 
 const token = process.env.TELEGRAM_TOKEN_INTERNAL;
@@ -51,6 +55,14 @@ if (!token) {
 
 const adminIds = new Set(
   (process.env.ADMIN_TELEGRAM_IDS ?? '')
+    .split(',')
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isInteger(n)),
+);
+
+/** Bendahara (RFC-008) — verifikasi pembayaran; ID di .env (menyusul). */
+const bendaharaIds = new Set(
+  (process.env.BENDAHARA_TELEGRAM_IDS ?? '')
     .split(',')
     .map((s) => Number(s.trim()))
     .filter((n) => Number.isInteger(n)),
@@ -74,6 +86,12 @@ const dep = {
   transaksi: buatDukunganTransaksi(db),
 };
 const keuangan = buatHandlerKeuangan(dep);
+const verifikasi = buatHandlerVerifikasiPembayaran({
+  ...dep,
+  repoUsulanPembayaran: repoUsulanPembayaran(db),
+  repoSantriWali: repoSantriWali(db),
+  keuangan,
+});
 
 const bot = buatBot({ token });
 
@@ -94,7 +112,7 @@ function rupiah(n: number): string {
 }
 
 function adminAktif(id: number | undefined): boolean {
-  return id !== undefined && adminIds.has(id);
+  return id !== undefined && (adminIds.has(id) || bendaharaIds.has(id));
 }
 
 // ── akses data ────────────────────────────────────────────────────────────────
@@ -369,6 +387,8 @@ function menuKeuangan(): InlineKeyboard {
     .text('📊 Rekap bulan ini', 'keu:rekap')
     .row()
     .text('💰 Piutang', 'keu:piutang')
+    .text('💳 Usulan pembayaran', 'keu:usulan')
+    .row()
     .text('🏠 Menu utama', 'menu:utama');
 }
 
@@ -589,6 +609,202 @@ bot.command('status', async (ctx) => {
     return;
   }
   await ctx.reply(teksStatus(santri), { reply_markup: tombolMenu() });
+});
+
+// ── alur bendahara: usulan pembayaran (RFC-008) ─────────────────────────────
+
+/** State "tunggu alasan penolakan" — chatId → usulanId (in-memory). */
+const stateTolak = new Map<number, string>();
+
+const tokenWali = process.env.TELEGRAM_TOKEN_WALI;
+
+/** Notifikasi ke wali via bot wali (token lokal — pesan datang dari @rtq_annur_bot). */
+async function kirimNotifWali(waliId: string, teks: string): Promise<void> {
+  if (!tokenWali) return;
+  const terdaftar = repoPenggunaTelegram(db).cariByWaliId(waliId);
+  const telegramId =
+    terdaftar?.telegram_id ?? Number((process.env.DEV_WALI_TELEGRAM_IDS ?? '').split(',')[0]);
+  if (!telegramId) return;
+  await fetch(`https://api.telegram.org/bot${tokenWali}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: telegramId, text: teks }),
+  }).catch(() => undefined);
+}
+
+function teksUsulan(u: {
+  id: string;
+  nominal: number;
+  tanggal_bayar: string;
+  metode: string;
+  nama_penerima: string | null;
+  status: string;
+  alasan_penolakan: string | null;
+}): string {
+  const santri = db
+    .prepare(
+      `SELECT s.nama_lengkap, k.nama AS komponen FROM usulan_pembayaran up
+       JOIN santri s ON s.id = up.santri_id
+       JOIN tagihan t ON t.id = up.tagihan_id
+       JOIN komponen_biaya k ON k.id = t.komponen_biaya_id
+       WHERE up.id = ?`,
+    )
+    .get(u.id) as { nama_lengkap: string; komponen: string };
+  return (
+    `💳 ${santri.nama_lengkap} — ${santri.komponen}\n` +
+    `   • Nominal: ${rupiah(u.nominal)}\n` +
+    `   • Tanggal bayar: ${u.tanggal_bayar}\n` +
+    `   • Metode: ${u.metode}${u.nama_penerima ? `\n   • Penerima: ${u.nama_penerima}` : ''}`
+  );
+}
+
+bot.callbackQuery('keu:usulan', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const daftar = db
+    .prepare(
+      `SELECT id, nominal, tanggal_bayar, metode, nama_penerima, status, alasan_penolakan
+       FROM usulan_pembayaran WHERE status = 'diajukan' ORDER BY diajukan_pada`,
+    )
+    .all() as {
+    id: string;
+    nominal: number;
+    tanggal_bayar: string;
+    metode: string;
+    nama_penerima: string | null;
+    status: string;
+    alasan_penolakan: string | null;
+  }[];
+  if (daftar.length === 0) {
+    await ganti(ctx, 'Tidak ada usulan pembayaran yang menunggu verifikasi. 🎉', tombolMenu());
+    return;
+  }
+  const kb = new InlineKeyboard();
+  for (const u of daftar) {
+    kb.text(teksUsulan(u).split('\n')[0] ?? '', `usulan:${u.id}`).row();
+  }
+  kb.text('🏠 Menu utama', 'menu:utama');
+  await ganti(ctx, `💳 ${daftar.length} usulan menunggu verifikasi:\n\n${daftar.map(teksUsulan).join('\n\n')}`, kb);
+});
+
+bot.callbackQuery(/^usulan:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const usulanId = ctx.match[1];
+  if (!usulanId) {
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
+    return;
+  }
+  const u = db
+    .prepare(
+      `SELECT id, tagihan_id, nominal, tanggal_bayar, metode, nama_penerima, status, alasan_penolakan
+       FROM usulan_pembayaran WHERE id = ?`,
+    )
+    .get(usulanId) as
+    | {
+        id: string;
+        tagihan_id: string;
+        nominal: number;
+        tanggal_bayar: string;
+        metode: string;
+        nama_penerima: string | null;
+        status: string;
+        alasan_penolakan: string | null;
+      }
+    | undefined;
+  if (!u || u.status !== 'diajukan') {
+    await ganti(ctx, 'Usulan tidak ditemukan atau sudah diproses.', tombolMenu());
+    return;
+  }
+  const kb = new InlineKeyboard()
+    .text('👁 Lihat bukti', `usulan-bukti:${u.id}`)
+    .row()
+    .text('✅ Verifikasi', `usulan-ya:${u.id}`)
+    .text('❌ Tolak', `usulan-tolak:${u.id}`)
+    .row()
+    .text('👈 Kembali', 'keu:usulan');
+  await ganti(ctx, teksUsulan(u), kb);
+});
+
+bot.callbackQuery(/^usulan-bukti:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const usulanId = ctx.match[1];
+  if (!usulanId) return;
+  const u = db
+    .prepare(`SELECT bukti_file_id, bukti_tipe FROM usulan_pembayaran WHERE id = ?`)
+    .get(usulanId) as { bukti_file_id: string; bukti_tipe: string } | undefined;
+  if (!u) return;
+  await ctx.replyWithPhoto(u.bukti_file_id, { caption: '📎 Bukti pembayaran usulan di atas.' }).catch(() =>
+    ctx.reply('Bukti tidak bisa ditampilkan (file mungkin sudah kedaluwarsa).'),
+  );
+});
+
+bot.callbackQuery(/^usulan-ya:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const usulanId = ctx.match[1];
+  if (!usulanId) {
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
+    return;
+  }
+  const hasil = verifikasi.verifikasiUsulan({
+    aktor: { peran: 'bendahara', id: actorId(ctx) },
+    usulanId,
+    waktu: new Date().toISOString(),
+  });
+  await ganti(ctx, hasil.pesan ?? 'Selesai.', tombolMenu());
+  if (hasil.ok) {
+    const waliId = (db.prepare(`SELECT wali_id FROM usulan_pembayaran WHERE id = ?`).get(usulanId) as
+      | { wali_id: string }
+      | undefined)?.wali_id;
+    if (waliId) await kirimNotifWali(waliId, '✅ Pembayaran Anda telah DITERIMA dan dicatat. Terima kasih!');
+  }
+});
+
+bot.callbackQuery(/^usulan-tolak:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const chatId = ctx.from?.id ?? -1;
+  const usulanId = ctx.match[1];
+  if (!usulanId) {
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
+    return;
+  }
+  const u = db
+    .prepare(`SELECT id, status FROM usulan_pembayaran WHERE id = ?`)
+    .get(usulanId) as { id: string; status: string } | undefined;
+  if (!u || u.status !== 'diajukan') {
+    await ganti(ctx, 'Usulan tidak ditemukan atau sudah diproses.', tombolMenu());
+    return;
+  }
+  stateTolak.set(chatId, u.id);
+  await ganti(ctx, 'Ketik ALASAN penolakan (wajib). Alasan ini akan dikirim ke wali.', tombolBatalUsulan());
+});
+
+function tombolBatalUsulan(): InlineKeyboard {
+  return new InlineKeyboard().text('❌ Batal', 'keu:usulan');
+}
+
+// teks bebas → alasan penolakan
+bot.on('message:text', async (ctx) => {
+  const chatId = ctx.from?.id ?? -1;
+  const usulanId = stateTolak.get(chatId);
+  if (!usulanId) return;
+  const alasan = (ctx.message.text ?? '').trim();
+  if (!alasan) {
+    await ctx.reply('Alasan penolakan tidak boleh kosong.');
+    return;
+  }
+  stateTolak.delete(chatId);
+  const hasil = verifikasi.tolakUsulan({
+    aktor: { peran: 'bendahara', id: actorId(ctx) },
+    usulanId,
+    alasan,
+    waktu: new Date().toISOString(),
+  });
+  await ctx.reply(hasil.pesan ?? 'Selesai.', { reply_markup: tombolMenu() });
+  if (hasil.ok) {
+    const waliId = (db.prepare(`SELECT wali_id FROM usulan_pembayaran WHERE id = ?`).get(usulanId) as
+      | { wali_id: string }
+      | undefined)?.wali_id;
+    if (waliId) await kirimNotifWali(waliId, `❌ Pembayaran Anda DITOLAK.\nAlasan: ${alasan}\nStatus tagihan tetap BELUM BAYAR.`);
+  }
 });
 
 // callback tak dikenal / kedaluwarsa

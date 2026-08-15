@@ -1,18 +1,16 @@
 /**
- * Bot wali — status tagihan baca-saja (RFC-004, kosakata tegas RFC-005).
+ * Bot wali — status tagihan + pengajuan pembayaran (RFC-004/005/006/008).
  *
- * Alur (RFC-006, keputusan UX Hani): /start langsung menampilkan RINGKASAN
- * AGREGAT semua anak (status bulan berjalan per anak/komponen), lalu satu
- * tombol "📋 Detail tagihan" → pilih anak → rincian lengkap. Dua menu lama
- * ("Tagihan anak" & "Status bulan ini") yang overlap digabung menjadi satu.
+ * Alur (RFC-006): /start langsung menampilkan RINGKASAN AGREGAT semua anak,
+ * tombol "📋 Detail tagihan" → detail per anak.
  *
- * Baca-saja PENUH: tidak meng-import satu pun handler tulis dari core
- * (lebih ketat dari minimum ADR 0009/0010). Label status memakai kosakata
- * domain `statusPembayaran`/`formatStatusPembayaran` di core (RFC-005).
+ * Alur bayar (RFC-008): "💳 Bayar tagihan" → pilih anak → pilih tagihan →
+ * pilih metode → (tunai: WAJIB ketik nama penerima) → upload foto bukti →
+ * konfirmasi → `ajukanUsulan` (core) → menunggu verifikasi bendahara.
+ * Bukti TIDAK disimpan di disk — cukup `file_id` Telegram (keputusan Hani).
  *
- * Binding sementara (dev bootstrap): DEV_WALI_TELEGRAM_IDS di .env memetakan
- * ID Telegram ke wali dengan tautan aktif terbanyak. Penggantinya: tabel
- * pengguna_telegram + deep link undangan (docs/04).
+ * Hak tulis bertambah (RFC-008, amandemen ADR 0009): hanya `ajukanUsulan`
+ * dari `pembayaran-verifikasi` — selain itu tetap baca-saja penuh.
  *
  * Menjalankan:  npm run bot:wali
  */
@@ -21,6 +19,26 @@ import { buatBot } from '@siakad/bot';
 import { formatStatusPembayaran, statusPembayaran } from '@siakad/core';
 import { bukaBasisData } from '@siakad/db';
 import type { Keringanan } from '@siakad/contracts';
+import { buatHandlerVerifikasiPembayaran } from '@siakad/core';
+import {
+  buatDukunganTransaksi,
+  repoAlokasiProta,
+  repoKeringanan,
+  repoKomponenBiaya,
+  repoLebihBayar,
+  repoPembayaran,
+  repoPemakaianLebihBayar,
+  repoPendaftaran,
+  repoProta,
+  repoRombel,
+  repoSantri,
+  repoSantriWali,
+  repoTagihan,
+  repoTarifKomponen,
+  repoTahunAjaran,
+  repoUsulanPembayaran,
+} from '@siakad/db';
+import { buatHandlerKeuangan } from '@siakad/core';
 
 const token = process.env.TELEGRAM_TOKEN_WALI;
 if (!token) {
@@ -37,6 +55,30 @@ const devWaliIds = new Set(
     .filter((n) => Number.isInteger(n)),
 );
 
+const depKeuangan = {
+  repoTagihan: repoTagihan(db),
+  repoTarifKomponen: repoTarifKomponen(db),
+  repoKomponenBiaya: repoKomponenBiaya(db),
+  repoSantri: repoSantri(db),
+  repoPendaftaran: repoPendaftaran(db),
+  repoRombel: repoRombel(db),
+  repoTahunAjaran: repoTahunAjaran(db),
+  repoKeringanan: repoKeringanan(db),
+  repoPembayaran: repoPembayaran(db),
+  repoProta: repoProta(db),
+  repoAlokasiProta: repoAlokasiProta(db),
+  repoLebihBayar: repoLebihBayar(db),
+  repoPemakaianLebihBayar: repoPemakaianLebihBayar(db),
+  transaksi: buatDukunganTransaksi(db),
+};
+const keuangan = buatHandlerKeuangan(depKeuangan);
+const verifikasi = buatHandlerVerifikasiPembayaran({
+  ...depKeuangan,
+  repoUsulanPembayaran: repoUsulanPembayaran(db),
+  repoSantriWali: repoSantriWali(db),
+  keuangan,
+});
+
 const bot = buatBot({ token });
 
 const ZONA = 'Asia/Jakarta';
@@ -48,11 +90,34 @@ const periodeSekarang = (): string =>
     month: '2-digit',
   }).format(new Date());
 
+const tanggalSekarang = (): string =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONA,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+
 function rupiah(n: number): string {
   return `Rp ${n.toLocaleString('id-ID')}`;
 }
 
-// ── akses data (hanya baca) ───────────────────────────────────────────────────
+// ── state pengajuan bayar (in-memory, sesi singkat — hilang saat restart) ────
+
+interface StateBayar {
+  waliId: string;
+  santriId: string;
+  tagihanId: string;
+  nominal: number;
+  metode: 'tunai' | 'transfer' | 'qris';
+  namaPenerima: string | null;
+  buktiFileId: string | null;
+  buktiTipe: string | null;
+  step: 'tunggu-nama' | 'tunggu-bukti' | 'konfirmasi';
+}
+const stateBayar = new Map<number, StateBayar>();
+
+// ── akses data (baca) ────────────────────────────────────────────────────────
 
 interface SantriWali {
   id: string;
@@ -60,11 +125,6 @@ interface SantriWali {
   nama_lengkap: string;
 }
 
-/**
- * DEV bootstrap: ID Telegram di DEV_WALI_TELEGRAM_IDS dipetakan ke wali dengan
- * tautan aktif terbanyak. Ini SATU-SATUNYA bagian yang menebak — digantikan
- * pengguna_telegram + undangan (docs/04) saat tabelnya ada.
- */
 function waliUntuk(telegramId: number | undefined) {
   if (telegramId === undefined || !devWaliIds.has(telegramId)) return undefined;
   return db
@@ -87,7 +147,7 @@ function santriWali(waliId: string): SantriWali[] {
     .all(waliId) as unknown as SantriWali[];
 }
 
-// ── tampilan (baca-saja; kosakata tegas RFC-005) ──────────────────────────────
+// ── tampilan (kosakata tegas RFC-005) ────────────────────────────────────────
 
 interface BarisTagihan {
   id: string;
@@ -122,6 +182,15 @@ function pembayaranTagihan(tagihanId: string) {
     .all(tagihanId) as { nominal: number; tanggal: string }[];
 }
 
+function statusTagihan(t: BarisTagihan) {
+  return statusPembayaran({
+    statusTagihan: t.status as 'terbit' | 'lunas' | 'dibatalkan',
+    nominal: t.nominal,
+    keringanan: keringananTagihan(t.id),
+    pembayaran: pembayaranTagihan(t.id),
+  });
+}
+
 function formatTagihan(t: BarisTagihan): string {
   const pembayaran = pembayaranTagihan(t.id);
   const st = statusPembayaran({
@@ -138,14 +207,9 @@ function formatTagihan(t: BarisTagihan): string {
   });
 }
 
-/** Baris ringkas untuk tampilan agregat — tanpa jatuh tempo (ada di detail). */
+/** Baris ringkas untuk tampilan agregat. */
 function ringkasanStatus(t: BarisTagihan): string {
-  const st = statusPembayaran({
-    statusTagihan: t.status as 'terbit' | 'lunas' | 'dibatalkan',
-    nominal: t.nominal,
-    keringanan: keringananTagihan(t.id),
-    pembayaran: pembayaranTagihan(t.id),
-  });
+  const st = statusTagihan(t);
   switch (st.status) {
     case 'belum_bayar':
       return `${t.komponen_nama}: BELUM BAYAR (${rupiah(st.nominal)})`;
@@ -158,7 +222,15 @@ function ringkasanStatus(t: BarisTagihan): string {
   }
 }
 
-/** Tampilan utama: ringkasan agregat SEMUA anak di bawah wali (RFC-006). */
+/** Ada usulan diajukan untuk tagihan ini? → tampil "⏳ MENUNGGU VERIFIKASI". */
+function usulanDiajukan(tagihanId: string): boolean {
+  return (
+    db
+      .prepare(`SELECT 1 FROM usulan_pembayaran WHERE tagihan_id = ? AND status = 'diajukan'`)
+      .get(tagihanId) !== undefined
+  );
+}
+
 function teksRingkasan(wali: { id: string; nama_lengkap: string }): string {
   const periode = periodeSekarang();
   const daftar = santriWali(wali.id);
@@ -172,7 +244,11 @@ function teksRingkasan(wali: { id: string; nama_lengkap: string }): string {
       baris.push(`👤 ${s.nama_lengkap}\n   • belum ada tagihan ${periode}`);
       continue;
     }
-    baris.push(`👤 ${s.nama_lengkap}\n   • ${tagihan.map(ringkasanStatus).join('\n   • ')}`);
+    const rincian = tagihan.map((t) => {
+      const dasar = `• ${ringkasanStatus(t)}`;
+      return usulanDiajukan(t.id) ? `${dasar}\n   ⏳ MENUNGGU VERIFIKASI` : dasar;
+    });
+    baris.push(`👤 ${s.nama_lengkap}\n   ${rincian.join('\n   ')}`);
   }
   return `📊 Status ${periode}:\n\n${baris.join('\n')}`;
 }
@@ -199,13 +275,15 @@ function teksTagihan(santri: SantriWali): string {
 function menuUtama(): InlineKeyboard {
   return new InlineKeyboard()
     .text('📋 Detail tagihan', 'menu:detail')
+    .text('💳 Bayar tagihan', 'menu:bayar')
+    .row()
     .text('🔄 Perbarui', 'menu:utama');
 }
 
-function pemilihSantri(daftar: SantriWali[]): InlineKeyboard {
+function pemilihSantri(aksi: 'detail' | 'bayar', daftar: SantriWali[]): InlineKeyboard {
   const kb = new InlineKeyboard();
   for (const s of daftar) {
-    kb.text(s.nama_lengkap, `detail:${s.id}`).row();
+    kb.text(s.nama_lengkap, `${aksi}:${s.id}`).row();
   }
   kb.text('🏠 Menu utama', 'menu:utama');
   return kb;
@@ -239,10 +317,9 @@ bot.use(async (ctx, next) => {
 bot.command('start', async (ctx) => {
   const wali = waliUntuk(ctx.from?.id);
   if (!wali) return;
-  await ctx.reply(
-    `Assalamualaikum, Bapak/Ibu ${wali.nama_lengkap}.\n\n${teksRingkasan(wali)}`,
-    { reply_markup: menuUtama() },
-  );
+  await ctx.reply(`Assalamualaikum, Bapak/Ibu ${wali.nama_lengkap}.\n\n${teksRingkasan(wali)}`, {
+    reply_markup: menuUtama(),
+  });
 });
 
 bot.callbackQuery('menu:utama', async (ctx) => {
@@ -261,7 +338,7 @@ bot.callbackQuery('menu:detail', async (ctx) => {
     await ganti(ctx, 'Tidak ada santri yang tertaut pada akun Anda.');
     return;
   }
-  await ganti(ctx, 'Detail tagihan siapa?', pemilihSantri(daftar));
+  await ganti(ctx, 'Detail tagihan siapa?', pemilihSantri('detail', daftar));
 });
 
 bot.callbackQuery(/^detail:(.+)$/, async (ctx) => {
@@ -274,6 +351,210 @@ bot.callbackQuery(/^detail:(.+)$/, async (ctx) => {
     return;
   }
   await ganti(ctx, teksTagihan(santri), tombolKembali());
+});
+
+// ── alur bayar (RFC-008) ──────────────────────────────────────────────────────
+
+bot.callbackQuery('menu:bayar', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const wali = waliUntuk(ctx.from?.id);
+  if (!wali) return;
+  const daftar = santriWali(wali.id);
+  if (daftar.length === 0) {
+    await ganti(ctx, 'Tidak ada santri yang tertaut pada akun Anda.');
+    return;
+  }
+  await ganti(ctx, 'Bayar tagihan untuk siapa?', pemilihSantri('bayar', daftar));
+});
+
+bot.callbackQuery(/^bayar:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const wali = waliUntuk(ctx.from?.id);
+  if (!wali) return;
+  const santriId = ctx.match[1];
+  if (!santriId) {
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
+    return;
+  }
+  const santri = santriWali(wali.id).find((s) => s.id === santriId);
+  if (!santri) {
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
+    return;
+  }
+  // tagihan yang masih bisa dibayar: terbit + belum ada usulan diajukan
+  const tagihan = tagihanSantri(santri.id).filter((t) => {
+    if (t.status !== 'terbit') return false;
+    const st = statusTagihan(t);
+    if (st.status === 'sudah_bayar') return false;
+    return !usulanDiajukan(t.id);
+  });
+  if (tagihan.length === 0) {
+    await ganti(ctx, `${santri.nama_lengkap} tidak punya tagihan yang perlu dibayar.`);
+    return;
+  }
+  const kb = new InlineKeyboard();
+  for (const t of tagihan) {
+    const st = statusTagihan(t);
+    const sisa = st.status === 'belum_bayar' || st.status === 'bayar_sebagian' ? st.sisa : t.nominal;
+    kb.text(`${t.komponen_nama} ${t.periode} — ${rupiah(sisa)}`, `bayar-tagihan:${t.id}:${sisa}`).row();
+  }
+  kb.text('🏠 Menu utama', 'menu:utama');
+  await ganti(ctx, `Pilih tagihan ${santri.nama_lengkap} yang ingin dibayar:`, kb);
+});
+
+bot.callbackQuery(/^bayar-tagihan:(.+):(\d+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const wali = waliUntuk(ctx.from?.id);
+  if (!wali) return;
+  const tagihanId = ctx.match[1];
+  if (!tagihanId) {
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
+    return;
+  }
+  const nominal = Number(ctx.match[2]);
+  const santriId = (db.prepare(`SELECT santri_id FROM tagihan WHERE id = ?`).get(tagihanId) as
+    | { santri_id: string }
+    | undefined)?.santri_id;
+  if (!santriId || !santriWali(wali.id).some((s) => s.id === santriId)) {
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
+    return;
+  }
+  const kb = new InlineKeyboard()
+    .text('💵 Tunai', `bayar-metode:${tagihanId}:${nominal}:tunai`)
+    .text('🏦 Transfer', `bayar-metode:${tagihanId}:${nominal}:transfer`)
+    .text('📱 QRIS', `bayar-metode:${tagihanId}:${nominal}:qris`)
+    .row()
+    .text('🏠 Menu utama', 'menu:utama');
+  await ganti(ctx, `Pilih metode pembayaran ${rupiah(nominal)}:`, kb);
+});
+
+bot.callbackQuery(/^bayar-metode:(.+):(\d+):(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const wali = waliUntuk(ctx.from?.id);
+  if (!wali) return;
+  const metode = ctx.match[3] as 'tunai' | 'transfer' | 'qris';
+  const tagihanId = ctx.match[1];
+  if (!metode || !tagihanId) {
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
+    return;
+  }
+  const nominal = Number(ctx.match[2]);
+  const santriId = (db.prepare(`SELECT santri_id FROM tagihan WHERE id = ?`).get(tagihanId) as
+    | { santri_id: string }
+    | undefined)?.santri_id;
+  if (!santriId || !santriWali(wali.id).some((s) => s.id === santriId)) {
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
+    return;
+  }
+
+  if (metode === 'tunai') {
+    stateBayar.set(ctx.from!.id, {
+      waliId: wali.id,
+      santriId,
+      tagihanId,
+      nominal,
+      metode,
+      namaPenerima: null,
+      buktiFileId: null,
+      buktiTipe: null,
+      step: 'tunggu-nama',
+    });
+    await ganti(
+      ctx,
+      `Pembayaran tunai ${rupiah(nominal)}.\n\n` +
+        `Ketik nama penerima uang (siapa yang menerima pembayaran), lalu kirim.`,
+      tombolBatal(),
+    );
+    return;
+  }
+
+  stateBayar.set(ctx.from!.id, {
+    waliId: wali.id,
+    santriId,
+    tagihanId,
+    nominal,
+    metode,
+    namaPenerima: null,
+    buktiFileId: null,
+    buktiTipe: null,
+    step: 'tunggu-bukti',
+  });
+  await ganti(
+    ctx,
+    `Metode ${metode.toUpperCase()} ${rupiah(nominal)}.\n\nKirim FOTO bukti pembayaran (struk transfer / screenshot QRIS).`,
+    tombolBatal(),
+  );
+});
+
+function tombolBatal(): InlineKeyboard {
+  return new InlineKeyboard().text('❌ Batal', 'menu:utama');
+}
+
+// teks bebas → nama penerima (cash)
+bot.on('message:text', async (ctx) => {
+  const st = stateBayar.get(ctx.from?.id ?? -1);
+  if (!st || st.step !== 'tunggu-nama') return;
+  const nama = (ctx.message.text ?? '').trim();
+  if (!nama) {
+    await ctx.reply('Nama penerima tidak boleh kosong. Ketik nama penerima uang.');
+    return;
+  }
+  st.namaPenerima = nama;
+  st.step = 'tunggu-bukti';
+  stateBayar.set(ctx.from!.id, st);
+  await ctx.reply(`Nama penerima: ${nama}.\n\nSekarang kirim FOTO bukti pembayaran tunai.`, {
+    reply_markup: tombolBatal(),
+  });
+});
+
+// foto bukti
+bot.on('message:photo', async (ctx) => {
+  const st = stateBayar.get(ctx.from?.id ?? -1);
+  if (!st || st.step !== 'tunggu-bukti') return;
+  const foto = ctx.message.photo?.at(-1);
+  if (!foto) return;
+  st.buktiFileId = foto.file_id;
+  st.buktiTipe = 'image/jpeg';
+  st.step = 'konfirmasi';
+  stateBayar.set(ctx.from!.id, st);
+
+  const metodeLabel = st.metode === 'tunai' ? 'Tunai' : st.metode.toUpperCase();
+  const kb = new InlineKeyboard()
+    .text('✅ Kirim pengajuan', 'bayar-kirim')
+    .text('❌ Batal', 'menu:utama');
+  await ctx.reply(
+    `Ringkasan pengajuan:\n\n` +
+      `• Tagihan: ${rupiah(st.nominal)}\n` +
+      `• Metode: ${metodeLabel}${st.namaPenerima ? `\n• Penerima: ${st.namaPenerima}` : ''}\n` +
+      `• Bukti: foto terlampir ✅\n\n` +
+      `Kirim pengajuan ke bendahara?`,
+    { reply_markup: kb },
+  );
+});
+
+bot.callbackQuery('bayar-kirim', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const chatId = ctx.from?.id ?? -1;
+  const st = stateBayar.get(chatId);
+  if (!st || st.step !== 'konfirmasi' || !st.buktiFileId) {
+    await ganti(ctx, 'Sesi pengajuan tidak ditemukan atau sudah kedaluwarsa. Mulai dari /start.');
+    return;
+  }
+  const hasil = verifikasi.ajukanUsulan({
+    aktor: { peran: 'wali', id: st.waliId },
+    tagihanId: st.tagihanId,
+    santriId: st.santriId,
+    nominal: st.nominal,
+    tanggalBayar: tanggalSekarang(),
+    metode: st.metode,
+    namaPenerima: st.namaPenerima,
+    buktiFileId: st.buktiFileId,
+    buktiTipe: st.buktiTipe ?? 'image/jpeg',
+    catatan: null,
+    waktu: new Date().toISOString(),
+  });
+  stateBayar.delete(chatId);
+  await ganti(ctx, hasil.pesan ?? 'Selesai.', tombolKembali());
 });
 
 // callback tak dikenal / kedaluwarsa

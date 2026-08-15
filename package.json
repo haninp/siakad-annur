@@ -31,6 +31,7 @@
     "docker:db": "docker compose -f infra/compose.yaml run --rm --build migrasi",
     "docker:db:isi": "docker compose -f infra/compose.yaml run --rm --build migrasi node scripts/basis-data.ts --isi",
     "docker:jelajah": "docker compose -f infra/compose.yaml run --rm sqlite",
+    "bot:internal": "npm run build && node --env-file=.env apps/bot-internal/dist/index.js",
     "selesai": "npm run build && npm run lint && npm test && node scripts/selesai.ts"
   },
   "devDependencies": {

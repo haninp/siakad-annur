@@ -9,6 +9,14 @@
 
 ## Yang baru selesai
 
+**1.6 — Bot internal minimal uji coba keuangan (RFC-001).** `docs/rfcs/rfc-001-bot-internal-minimal.md`
+disetujui & diimplementasikan: grammY 1.45 + `packages/bot` (`buatBot` dengan penanganan
+galat terpusat) + `apps/bot-internal` dengan empat perintah — `/mulai`, `/tagihan <nis>`,
+`/bayar <nis> <nominal>`, `/status <nis>`. Whitelist admin via `ADMIN_TELEGRAM_IDS` di
+`.env` (ID Hani 144666620); izin tetap lewat `buatHandlerKeuangan` di `core`. Token P1
+terisi di `.env` (gitignored). `npm run bot:internal` untuk menjalankan. Build + lint +
+280 test hijau. Bot berjalan long-polling di mesin pengembangan.
+
 **1.5 — `kalender_hijriah` + seed dari myQuran + verifikasi manual.** Ditambahkan
 entitas, DDL, migrasi v5, repository `repoKalenderHijriah`, pure rule
 `cariBulanHijriahPadaTanggal`, dan handler `setujuiBulanHijriah`. Script

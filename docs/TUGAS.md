@@ -63,7 +63,12 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
 - [x] **1.4d** `packages/core`: `alokasiProta` + dukungan transaksi `[berat]`
 - [x] **1.4e** `packages/core`: lebih bayar + migration v4 `pemakaian_lebih_bayar` `[berat]`
 - [x] **1.5** Seed `kalender_hijriah` dari myQuran API (`method=islamic-umalqura`) +
-      handler `setujuiBulanHijriah` + script `hijriah:isi`/`hijriah:periksa`.\n      Semua baris API ditandai `provisional=1` sampai disetujui pengurus.\n      Bot reminder otomatis menunggu **P1** (token Telegram). `[berat]`
+      handler `setujuiBulanHijriah` + script `hijriah:isi`/`hijriah:periksa`. Semua baris API ditandai `provisional=1` sampai disetujui pengurus. Bot reminder otomatis menunggu **P1** (token Telegram). `[berat]`
+- [x] **1.6** Bot internal minimal uji coba keuangan (RFC-001) `[berat]`
+      → grammY 1.45 + `packages/bot` (`buatBot`) + `apps/bot-internal`: `/mulai`,
+      `/tagihan <nis>`, `/bayar <nis> <nominal>`, `/status <nis>`. Whitelist admin
+      `ADMIN_TELEGRAM_IDS` di `.env`; izin tetap lewat `buatHandlerKeuangan` di `core`.
+      Script `npm run bot:internal`. Status RFC → Implemented.
 
 ## Fase 2 — akademik
 

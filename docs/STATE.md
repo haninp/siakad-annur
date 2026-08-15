@@ -9,6 +9,11 @@
 
 ## Yang baru selesai
 
+**1.11 — Bot wali ringkasan agregat (RFC-006).** `/start` menampilkan status
+bulan berjalan untuk SEMUA anak sekaligus (per komponen, kosakata tegas),
+tombol `📋 Detail tagihan` → pilih anak → rincian lengkap. Dua menu lama yang
+overlap (`Tagihan anak` & `Status bulan ini`) digabung menjadi satu alur.
+
 **1.10 — Kosakata status tegas + hirarki menu (RFC-005).** `statusPembayaran` +
 `formatStatusPembayaran` di `packages/core` (6 test). Bot wali menampilkan
 SUDAH BAYAR / BAYAR SEBAGIAN / BELUM BAYAR / DIBATALKAN + detail (nominal, total &

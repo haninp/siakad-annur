@@ -89,6 +89,10 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
       dengan detail (nominal, tanggal bayar, jatuh tempo). Bot internal: hirarki
       `Keuangan → Santri → komponen (SPP/Uang Modul/Uang Gedung)` — komponen dinamis
       dari `komponen_biaya`; rekap & piutang per komponen.
+- [x] **1.11** Bot wali — ringkasan agregat semua anak (RFC-006) `[berat]`
+      → `/start` langsung menampilkan status bulan berjalan SEMUA anak di bawah
+      wali (per komponen, kosakata tegas); satu tombol `📋 Detail tagihan` →
+      pilih anak → rincian lengkap. Dua menu lama yang overlap digabung.
 
 ## Fase 2 — akademik
 

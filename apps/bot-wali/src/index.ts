@@ -1,6 +1,11 @@
 /**
  * Bot wali — status tagihan baca-saja (RFC-004, kosakata tegas RFC-005).
  *
+ * Alur (RFC-006, keputusan UX Hani): /start langsung menampilkan RINGKASAN
+ * AGREGAT semua anak (status bulan berjalan per anak/komponen), lalu satu
+ * tombol "📋 Detail tagihan" → pilih anak → rincian lengkap. Dua menu lama
+ * ("Tagihan anak" & "Status bulan ini") yang overlap digabung menjadi satu.
+ *
  * Baca-saja PENUH: tidak meng-import satu pun handler tulis dari core
  * (lebih ketat dari minimum ADR 0009/0010). Label status memakai kosakata
  * domain `statusPembayaran`/`formatStatusPembayaran` di core (RFC-005).
@@ -90,14 +95,17 @@ interface BarisTagihan {
   nominal: number;
   status: string;
   jatuh_tempo: string | null;
+  komponen_nama: string;
 }
 
 function tagihanSantri(santriId: string, periode?: string): BarisTagihan[] {
   const sql = periode
-    ? `SELECT id, periode, nominal, status, jatuh_tempo FROM tagihan
-       WHERE santri_id = ? AND periode = ? ORDER BY status, periode DESC`
-    : `SELECT id, periode, nominal, status, jatuh_tempo FROM tagihan
-       WHERE santri_id = ? ORDER BY periode DESC LIMIT 6`;
+    ? `SELECT t.id, t.periode, t.nominal, t.status, t.jatuh_tempo, k.nama AS komponen_nama
+       FROM tagihan t JOIN komponen_biaya k ON k.id = t.komponen_biaya_id
+       WHERE t.santri_id = ? AND t.periode = ? ORDER BY t.status, t.periode DESC`
+    : `SELECT t.id, t.periode, t.nominal, t.status, t.jatuh_tempo, k.nama AS komponen_nama
+       FROM tagihan t JOIN komponen_biaya k ON k.id = t.komponen_biaya_id
+       WHERE t.santri_id = ? ORDER BY t.periode DESC LIMIT 6`;
   const args = periode ? [santriId, periode] : [santriId];
   return db.prepare(sql).all(...args) as unknown as BarisTagihan[];
 }
@@ -124,6 +132,45 @@ function formatTagihan(t: BarisTagihan): string {
   return formatStatusPembayaran(st, { periode: t.periode, jatuhTempo: t.jatuh_tempo });
 }
 
+/** Baris ringkas untuk tampilan agregat — tanpa jatuh tempo (ada di detail). */
+function ringkasanStatus(t: BarisTagihan): string {
+  const st = statusPembayaran({
+    statusTagihan: t.status as 'terbit' | 'lunas' | 'dibatalkan',
+    nominal: t.nominal,
+    keringanan: keringananTagihan(t.id),
+    pembayaran: pembayaranTagihan(t.id),
+  });
+  switch (st.status) {
+    case 'belum_bayar':
+      return `${t.komponen_nama}: BELUM BAYAR (${rupiah(st.nominal)})`;
+    case 'bayar_sebagian':
+      return `${t.komponen_nama}: BAYAR SEBAGIAN (sisa ${rupiah(st.sisa)})`;
+    case 'sudah_bayar':
+      return `${t.komponen_nama}: SUDAH BAYAR`;
+    case 'dibatalkan':
+      return `${t.komponen_nama}: DIBATALKAN`;
+  }
+}
+
+/** Tampilan utama: ringkasan agregat SEMUA anak di bawah wali (RFC-006). */
+function teksRingkasan(wali: { id: string; nama_lengkap: string }): string {
+  const periode = periodeSekarang();
+  const daftar = santriWali(wali.id);
+  if (daftar.length === 0) {
+    return 'Tidak ada santri yang tertaut pada akun Anda.';
+  }
+  const baris: string[] = [];
+  for (const s of daftar) {
+    const tagihan = tagihanSantri(s.id, periode);
+    if (tagihan.length === 0) {
+      baris.push(`👤 ${s.nama_lengkap}\n   • belum ada tagihan ${periode}`);
+      continue;
+    }
+    baris.push(`👤 ${s.nama_lengkap}\n   • ${tagihan.map(ringkasanStatus).join('\n   • ')}`);
+  }
+  return `📊 Status ${periode}:\n\n${baris.join('\n')}`;
+}
+
 function teksTagihan(santri: SantriWali): string {
   const tagihan = tagihanSantri(santri.id);
   if (tagihan.length === 0) {
@@ -135,44 +182,31 @@ function teksTagihan(santri: SantriWali): string {
       .get(santri.id) as { n: number }
   ).n;
   return (
-    `Tagihan ${santri.nama_lengkap}:\n\n` +
+    `📋 Tagihan ${santri.nama_lengkap}:\n\n` +
     tagihan.map((t) => `• ${formatTagihan(t)}`).join('\n\n') +
     `\n\nSaldo lebih bayar: ${rupiah(lebihBayar)}`
   );
 }
 
-function teksBulan(santri: SantriWali): string {
-  const periode = periodeSekarang();
-  const tagihan = tagihanSantri(santri.id, periode);
-  if (tagihan.length === 0) {
-    return `${santri.nama_lengkap} belum punya tagihan pada ${periode}.`;
-  }
-  return `Status ${santri.nama_lengkap} — ${periode}:\n\n` + tagihan.map((t) => `• ${formatTagihan(t)}`).join('\n\n');
-}
-
 // ── menu & tombol ─────────────────────────────────────────────────────────────
-
-const TEKS_MENU =
-  '🏡 SIAKAD An-Nuur — Bot Wali\n\n' +
-  'Lihat status tagihan putra/putri Anda.';
 
 function menuUtama(): InlineKeyboard {
   return new InlineKeyboard()
-    .text('📋 Tagihan anak', 'menu:tagihan')
-    .text('📊 Status bulan ini', 'menu:bulan');
+    .text('📋 Detail tagihan', 'menu:detail')
+    .text('🔄 Perbarui', 'menu:utama');
 }
 
-function pemilihSantri(aksi: 'tagihan' | 'bulan', daftar: SantriWali[]): InlineKeyboard {
+function pemilihSantri(daftar: SantriWali[]): InlineKeyboard {
   const kb = new InlineKeyboard();
   for (const s of daftar) {
-    kb.text(s.nama_lengkap, `${aksi}:${s.id}`).row();
+    kb.text(s.nama_lengkap, `detail:${s.id}`).row();
   }
   kb.text('🏠 Menu utama', 'menu:utama');
   return kb;
 }
 
-function tombolMenu(): InlineKeyboard {
-  return new InlineKeyboard().text('🏠 Menu utama', 'menu:utama');
+function tombolKembali(): InlineKeyboard {
+  return new InlineKeyboard().text('👈 Kembali ke ringkasan', 'menu:utama');
 }
 
 async function ganti(ctx: CallbackQueryContext<Context>, teks: string, kb?: InlineKeyboard): Promise<void> {
@@ -199,17 +233,20 @@ bot.use(async (ctx, next) => {
 bot.command('start', async (ctx) => {
   const wali = waliUntuk(ctx.from?.id);
   if (!wali) return;
-  await ctx.reply(`Assalamualaikum, Bapak/Ibu ${wali.nama_lengkap}.\n\n${TEKS_MENU}`, {
-    reply_markup: menuUtama(),
-  });
+  await ctx.reply(
+    `Assalamualaikum, Bapak/Ibu ${wali.nama_lengkap}.\n\n${teksRingkasan(wali)}`,
+    { reply_markup: menuUtama() },
+  );
 });
 
 bot.callbackQuery('menu:utama', async (ctx) => {
   await ctx.answerCallbackQuery();
-  await ganti(ctx, TEKS_MENU, menuUtama());
+  const wali = waliUntuk(ctx.from?.id);
+  if (!wali) return;
+  await ganti(ctx, teksRingkasan(wali), menuUtama());
 });
 
-bot.callbackQuery('menu:tagihan', async (ctx) => {
+bot.callbackQuery('menu:detail', async (ctx) => {
   await ctx.answerCallbackQuery();
   const wali = waliUntuk(ctx.from?.id);
   if (!wali) return;
@@ -218,22 +255,10 @@ bot.callbackQuery('menu:tagihan', async (ctx) => {
     await ganti(ctx, 'Tidak ada santri yang tertaut pada akun Anda.');
     return;
   }
-  await ganti(ctx, 'Tagihan siapa yang ingin dilihat?', pemilihSantri('tagihan', daftar));
+  await ganti(ctx, 'Detail tagihan siapa?', pemilihSantri(daftar));
 });
 
-bot.callbackQuery('menu:bulan', async (ctx) => {
-  await ctx.answerCallbackQuery();
-  const wali = waliUntuk(ctx.from?.id);
-  if (!wali) return;
-  const daftar = santriWali(wali.id);
-  if (daftar.length === 0) {
-    await ganti(ctx, 'Tidak ada santri yang tertaut pada akun Anda.');
-    return;
-  }
-  await ganti(ctx, 'Status bulan ini untuk siapa?', pemilihSantri('bulan', daftar));
-});
-
-bot.callbackQuery(/^tagihan:(.+)$/, async (ctx) => {
+bot.callbackQuery(/^detail:(.+)$/, async (ctx) => {
   await ctx.answerCallbackQuery();
   const wali = waliUntuk(ctx.from?.id);
   if (!wali) return;
@@ -242,19 +267,7 @@ bot.callbackQuery(/^tagihan:(.+)$/, async (ctx) => {
     await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
     return;
   }
-  await ganti(ctx, teksTagihan(santri), tombolMenu());
-});
-
-bot.callbackQuery(/^bulan:(.+)$/, async (ctx) => {
-  await ctx.answerCallbackQuery();
-  const wali = waliUntuk(ctx.from?.id);
-  if (!wali) return;
-  const santri = santriWali(wali.id).find((s) => s.id === ctx.match[1]);
-  if (!santri) {
-    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
-    return;
-  }
-  await ganti(ctx, teksBulan(santri), tombolMenu());
+  await ganti(ctx, teksTagihan(santri), tombolKembali());
 });
 
 // callback tak dikenal / kedaluwarsa

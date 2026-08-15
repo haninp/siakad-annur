@@ -22,7 +22,9 @@ wali kelas dan pengajar mapel.
 | ------------------------------------------------ | :---: | :------: | :------------------: | :-----------: |
 | Kelola pengguna & pemetaan `telegram_id`         |  ✅   |    —     |          —           |       —       |
 | Kelola data master (santri, kelas, mapel, tarif) |  ✅   |    ✅    |          —           |       —       |
-| Terbitkan tagihan, catat pembayaran              |  ✅   |    ✅    |          —           |       —       |
+| Terbitkan tagihan (invoice) — back office                |  ✅   |    —     |          —           |       —       |
+| Catat pembayaran                                         |  ✅   |    —     |          —           |       —       |
+| Pantau status pembayaran & piutang (individu & kolektif) |  ✅   |    ✅    |          —           |       —       |
 | Tetapkan keringanan & alokasi PROTA              |  ✅   |    ✅    |          —           |       —       |
 | Verifikasi mutasi bank (pemeriksa kedua)         |  ✅   |    ✅    |          —           |       —       |
 | Buat & cabut undangan wali                       |  ✅   |    ✅    |          —           |       —       |

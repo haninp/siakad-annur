@@ -9,6 +9,19 @@
 
 ## Yang baru selesai
 
+**1.9 — Bot wali baca-saja (RFC-004).** `apps/bot-wali` jalan: `/mulai`, menu
+`📋 Tagihan anak` & `📊 Status bulan ini`, pemilih santri, rincian tagihan + saldo
+lebih bayar. **Nol handler tulis di-import** (lebih ketat dari minimum ADR 0009/0010).
+Binding dev via `DEV_WALI_TELEGRAM_IDS` → wali dengan tautan aktif terbanyak
+(pengganti: `pengguna_telegram` + deep link undangan). `npm run bot:wali`.
+
+**1.8 — Pengurus = monitoring; tagihan = back office (RFC-003).** `terbitkanTagihanBulanan`
+di `packages/core` (batch idempoten, 3 test) + `npm run tagihan:terbitkan` (jalur
+back office, nanti cron di worker). Menu bot internal berubah: `📋 Status santri` ·
+`📊 Rekap bulan ini` · `💰 Piutang`; `/tagihan` dihapus, `/terbitkan` admin-only.
+`docs/02-roles-matrix.md` diperbarui. Token P1 bot wali valid; tagihan 2026-08
+sudah diterbitkan via back office (2 santri, Rp 900.000).
+
 **1.7 — Menu tombol (button card) di bot internal (RFC-002).** `docs/rfcs/rfc-002-menu-tombol-bot-internal.md`
 disetujui & diimplementasikan: inline keyboard untuk seluruh alur — menu utama
 (`📋 Status tagihan` · `🧾 Terbitkan SPP` · `💰 Bayar`), pemilih santri, konfirmasi

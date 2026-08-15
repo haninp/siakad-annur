@@ -74,6 +74,15 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
       nominal cepat (150k/250k/450k). Stateless (state di `callback_data`),
       satu pesan diedit sepanjang alur. Perintah teks RFC-001 tetap ada sebagai
       fallback. Status RFC-002 → Implemented.
+- [x] **1.8** Peran pengurus = monitoring; penerbitan tagihan = back office (RFC-003) `[berat]`
+      → `terbitkanTagihanBulanan` di core + 3 test; `npm run tagihan:terbitkan`;
+      menu pengurus: Status santri / Rekap bulan ini / Piutang; `/terbitkan`
+      admin-only; `docs/02-roles-matrix.md` diperbarui (pengurus tidak trigger invoice).
+- [x] **1.9** Bot wali — status tagihan baca-saja (RFC-004) `[berat]`
+      → `apps/bot-wali`: `/mulai`, menu `📋 Tagihan anak` & `📊 Status bulan ini`,
+      pemilih santri, rincian per anak + saldo lebih bayar. Baca-saja penuh (nol
+      handler tulis di-import — lebih ketat dari ADR 0009). Binding dev via
+      `DEV_WALI_TELEGRAM_IDS`. Script `npm run bot:wali`.
 
 ## Fase 2 — akademik
 

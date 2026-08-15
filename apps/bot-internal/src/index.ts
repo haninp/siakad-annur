@@ -15,7 +15,7 @@
  */
 import { InlineKeyboard, type CallbackQueryContext, type Context } from 'grammy';
 import { buatBot } from '@siakad/bot';
-import { buatHandlerKeuangan, hitungKeringananEffektif } from '@siakad/core';
+import { buatHandlerKeuangan, hitungKeringananEffektif, terbitkanTagihanBulanan } from '@siakad/core';
 import type { Keringanan } from '@siakad/contracts';
 import {
   bukaBasisData,
@@ -49,7 +49,7 @@ const adminIds = new Set(
 );
 
 const db = bukaBasisData({ lokasi: process.env.SIAKAD_DB ?? 'data/sqlite/siakad.db' });
-const keuangan = buatHandlerKeuangan({
+const dep = {
   repoTagihan: repoTagihan(db),
   repoTarifKomponen: repoTarifKomponen(db),
   repoKomponenBiaya: repoKomponenBiaya(db),
@@ -64,7 +64,8 @@ const keuangan = buatHandlerKeuangan({
   repoLebihBayar: repoLebihBayar(db),
   repoPemakaianLebihBayar: repoPemakaianLebihBayar(db),
   transaksi: buatDukunganTransaksi(db),
-});
+};
+const keuangan = buatHandlerKeuangan(dep);
 
 const bot = buatBot({ token });
 
@@ -119,22 +120,6 @@ function tahunAjaranAktif() {
 }
 
 // ── logika aksi (dipakai perintah teks & tombol) ─────────────────────────────
-
-function terbitkanTagihan(santri: BarisSantri, actorId: string) {
-  const komponen = komponenSpp();
-  if (!komponen) return { ok: false as const, pesan: 'Komponen biaya SPP belum diatur. Hubungi pengurus.' };
-  const tahunAjaran = tahunAjaranAktif();
-  if (!tahunAjaran) return { ok: false as const, pesan: 'Belum ada tahun ajaran yang aktif.' };
-  return keuangan.terbitkanTagihan({
-    aktor: { peran: 'pengurus', id: actorId },
-    santriId: santri.id,
-    komponenBiayaId: komponen.id,
-    tahunAjaranId: tahunAjaran.id,
-    periode: periodeSekarang(),
-    skemaPeriode: 'masehi',
-    waktu: new Date().toISOString(),
-  });
-}
 
 function catatPembayaran(santri: BarisSantri, nominal: number, actorId: string) {
   const tagihan = db
@@ -200,19 +185,154 @@ function teksStatus(santri: BarisSantri): string {
   );
 }
 
-// ── menu & tombol (RFC-002) ──────────────────────────────────────────────────
+// ── rekap & piutang (RFC-003 — monitoring kolektif) ─────────────────────────
+
+function teksRekap(): string {
+  const periode = periodeSekarang();
+  const komponen = komponenSpp();
+  const daftar = santriAktif();
+  const baris: string[] = [];
+  let lunas = 0;
+  let belum = 0;
+  let tanpa = 0;
+  let sisaTotal = 0;
+
+  for (const s of daftar) {
+    const tagihan = komponen
+      ? (db
+          .prepare(
+            `SELECT id, nominal, status FROM tagihan
+             WHERE santri_id = ? AND periode = ? AND komponen_biaya_id = ?`,
+          )
+          .get(s.id, periode, komponen.id) as
+          | { id: string; nominal: number; status: string }
+          | undefined)
+      : undefined;
+    if (!tagihan) {
+      tanpa += 1;
+      baris.push(`• ${s.nama_lengkap} — belum ada tagihan`);
+      continue;
+    }
+    const keringanan = db
+      .prepare(`SELECT nominal, persentase FROM keringanan WHERE tagihan_id = ?`)
+      .all(tagihan.id) as Keringanan[];
+    const potongan = hitungKeringananEffektif(keringanan, tagihan.nominal);
+    const sudahBayar = (
+      db
+        .prepare(`SELECT COALESCE(SUM(nominal), 0) AS n FROM pembayaran WHERE tagihan_id = ?`)
+        .get(tagihan.id) as { n: number }
+    ).n;
+    const sisa = tagihan.nominal - potongan - sudahBayar;
+    if (tagihan.status === 'lunas' || sisa <= 0) {
+      lunas += 1;
+      baris.push(`• ${s.nama_lengkap} — ✅ lunas`);
+    } else if (sudahBayar > 0) {
+      belum += 1;
+      sisaTotal += sisa;
+      baris.push(`• ${s.nama_lengkap} — ⏳ sisa ${rupiah(sisa)}`);
+    } else {
+      belum += 1;
+      sisaTotal += sisa;
+      baris.push(`• ${s.nama_lengkap} — ⛔ belum bayar ${rupiah(sisa)}`);
+    }
+  }
+
+  return (
+    `📊 Rekap SPP ${periode}\n\n` +
+    baris.join('\n') +
+    `\n\n✅ Lunas: ${lunas} · ⛔ Belum lunas: ${belum} · Sisa total: ${rupiah(sisaTotal)}` +
+    (tanpa > 0 ? `\nℹ️ Belum ada tagihan: ${tanpa}` : '')
+  );
+}
+
+function teksPiutang(): string {
+  const periode = periodeSekarang();
+  const baris: string[] = [];
+  let piutangBulan = 0;
+  let piutangTotal = 0;
+
+  for (const s of santriAktif()) {
+    const tagihan = db
+      .prepare(
+        `SELECT id, nominal, periode FROM tagihan
+         WHERE santri_id = ? AND status = 'terbit'`,
+      )
+      .all(s.id) as unknown as { id: string; nominal: number; periode: string }[];
+    let total = 0;
+    for (const t of tagihan) {
+      const keringanan = db
+        .prepare(`SELECT nominal, persentase FROM keringanan WHERE tagihan_id = ?`)
+        .all(t.id) as Keringanan[];
+      const potongan = hitungKeringananEffektif(keringanan, t.nominal);
+      const sudahBayar = (
+        db
+          .prepare(`SELECT COALESCE(SUM(nominal), 0) AS n FROM pembayaran WHERE tagihan_id = ?`)
+          .get(t.id) as { n: number }
+      ).n;
+      const sisa = t.nominal - potongan - sudahBayar;
+      if (sisa > 0) {
+        total += sisa;
+        if (t.periode === periode) piutangBulan += sisa;
+      }
+    }
+    if (total > 0) {
+      piutangTotal += total;
+      baris.push(`• ${s.nama_lengkap} — ${rupiah(total)}`);
+    }
+  }
+
+  if (baris.length === 0) {
+    return `💰 Piutang ${periode}: tidak ada. 🎉`;
+  }
+  return (
+    `💰 Piutang pembayaran\n\n` +
+    baris.join('\n') +
+    `\n\nPiutang ${periode}: ${rupiah(piutangBulan)} · Total: ${rupiah(piutangTotal)}`
+  );
+}
+
+/** Back office via bot — hanya admin (RFC-003). */
+function terbitkanBulanan(): string {
+  const komponen = komponenSpp();
+  const tahunAjaran = tahunAjaranAktif();
+  if (!komponen || !tahunAjaran) {
+    return 'Komponen biaya SPP atau tahun ajaran aktif belum diatur. Hubungi pengurus.';
+  }
+  const santri = santriAktif();
+  const hasil = terbitkanTagihanBulanan(dep, {
+    santri,
+    komponenBiayaId: komponen.id,
+    tahunAjaranId: tahunAjaran.id,
+    periode: periodeSekarang(),
+    actorId: 'back-office-bot',
+    sudahAda: (santriId) =>
+      db
+        .prepare(
+          `SELECT 1 FROM tagihan WHERE santri_id = ? AND periode = ? AND komponen_biaya_id = ?`,
+        )
+        .get(santriId, periodeSekarang(), komponen.id) !== undefined,
+  });
+  return (
+    `🧾 Penerbitan tagihan SPP ${hasil.periode} (back office)\n` +
+    hasil.rincian.map((r) => `• ${r}`).join('\n') +
+    `\n\nDiterbitkan: ${hasil.diterbitkan} · Sudah ada: ${hasil.sudahAda}` +
+    (hasil.gagal > 0 ? ` · Gagal: ${hasil.gagal}` : '')
+  );
+}
+
+// ── menu & tombol (RFC-002, RFC-003) ─────────────────────────────────────────
 
 const TEKS_MENU =
-  '🏫 SIAKAD An-Nuur — Menu Uji Coba\n\n' +
-  'Pilih menu di bawah, atau ketik perintah langsung:\n' +
-  '/tagihan <nis> · /bayar <nis> <nominal> · /status <nis>';
+  '🏫 SIAKAD An-Nuur — Menu Pengurus\n\n' +
+  'Pantau pembayaran santri — individual maupun kolektif.\n' +
+  'Perintah: /status <nis> · (admin) /terbitkan · /bayar <nis> <nominal>';
 
 function menuUtama(): InlineKeyboard {
   return new InlineKeyboard()
-    .text('📋 Status tagihan', 'menu:status')
-    .text('🧾 Terbitkan SPP', 'menu:terbit')
+    .text('📋 Status santri', 'menu:status')
+    .text('📊 Rekap bulan ini', 'menu:rekap')
     .row()
-    .text('💰 Bayar', 'menu:bayar');
+    .text('💰 Piutang', 'menu:piutang');
 }
 
 function pemilihSantri(aksi: 'status' | 'terbit' | 'bayar'): InlineKeyboard {
@@ -283,9 +403,14 @@ bot.callbackQuery('menu:status', async (ctx) => {
   await ganti(ctx, 'Pilih santri:', pemilihSantri('status'));
 });
 
-bot.callbackQuery('menu:terbit', async (ctx) => {
+bot.callbackQuery('menu:rekap', async (ctx) => {
   await ctx.answerCallbackQuery();
-  await ganti(ctx, 'Terbitkan SPP untuk siapa?', pemilihSantri('terbit'));
+  await ganti(ctx, teksRekap(), tombolMenu());
+});
+
+bot.callbackQuery('menu:piutang', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  await ganti(ctx, teksPiutang(), tombolMenu());
 });
 
 bot.callbackQuery('menu:bayar', async (ctx) => {
@@ -303,32 +428,6 @@ bot.callbackQuery(/^status:(.+)$/, async (ctx) => {
     return;
   }
   await ganti(ctx, teksStatus(santri), tombolMenu());
-});
-
-// ── terbitkan tagihan ─────────────────────────────────────────────────────────
-
-bot.callbackQuery(/^terbit:(.+)$/, async (ctx) => {
-  await ctx.answerCallbackQuery();
-  const santri = santriAktif().find((s) => s.id === ctx.match[1]);
-  if (!santri) {
-    await ganti(ctx, 'Data santri tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /mulai.');
-    return;
-  }
-  await ganti(ctx, `Terbitkan tagihan SPP bulan ini untuk ${santri.nama_lengkap}?`, 
-    new InlineKeyboard()
-      .text('✅ Ya, terbitkan', `terbit-ya:${santri.id}`)
-      .text('❌ Batal', 'menu:utama'));
-});
-
-bot.callbackQuery(/^terbit-ya:(.+)$/, async (ctx) => {
-  await ctx.answerCallbackQuery();
-  const santri = santriAktif().find((s) => s.id === ctx.match[1]);
-  if (!santri) {
-    await ganti(ctx, 'Data santri tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /mulai.');
-    return;
-  }
-  const hasil = terbitkanTagihan(santri, actorId(ctx));
-  await ganti(ctx, hasil.pesan ?? 'Selesai.', tombolMenu());
 });
 
 // ── bayar ─────────────────────────────────────────────────────────────────────
@@ -379,19 +478,8 @@ bot.callbackQuery(/^bayar-ya:(.+):(\d+)$/, async (ctx) => {
 
 // ── perintah teks (fallback RFC-001) ─────────────────────────────────────────
 
-bot.command('tagihan', async (ctx) => {
-  const nis = ctx.match.trim();
-  if (!nis) {
-    await ctx.reply('Gunakan: /tagihan <nis>. Contoh: /tagihan 2627001', { reply_markup: tombolMenu() });
-    return;
-  }
-  const santri = cariSantri(nis);
-  if (!santri) {
-    await ctx.reply(`Tidak ada santri dengan NIS ${nis}.`, { reply_markup: tombolMenu() });
-    return;
-  }
-  const hasil = terbitkanTagihan(santri, actorId(ctx));
-  await ctx.reply(hasil.pesan ?? 'Selesai.', { reply_markup: tombolMenu() });
+bot.command('terbitkan', async (ctx) => {
+  await ctx.reply(terbitkanBulanan(), { reply_markup: tombolMenu() });
 });
 
 bot.command('bayar', async (ctx) => {

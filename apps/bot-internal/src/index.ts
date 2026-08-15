@@ -383,11 +383,11 @@ async function ganti(ctx: CallbackQueryContext<Context>, teks: string, kb?: Inli
   }
 }
 
-// Whitelist (RFC-001): hanya /mulai yang bebas; sisanya butuh admin terdaftar.
+// Whitelist (RFC-001): hanya /start yang bebas; sisanya butuh admin terdaftar.
 bot.use(async (ctx, next) => {
   if (adminAktif(ctx.from?.id)) return next();
   const teks = ctx.message?.text ?? '';
-  if (teks.startsWith('/mulai')) return next();
+  if (teks.startsWith('/start')) return next();
   if (ctx.callbackQuery) {
     await ctx
       .answerCallbackQuery({ text: 'Maaf, bot ini masih dalam uji coba terbatas.' })
@@ -397,7 +397,7 @@ bot.use(async (ctx, next) => {
   await ctx.reply('Maaf, bot ini masih dalam uji coba terbatas.').catch(() => undefined);
 });
 
-bot.command('mulai', async (ctx) => {
+bot.command('start', async (ctx) => {
   const id = ctx.from?.id;
   await ctx.reply(
     `Assalamualaikum, selamat datang di bot internal SIAKAD An-Nuur.\n` +
@@ -456,12 +456,12 @@ bot.callbackQuery(/^ks:(.+)$/, async (ctx) => {
   await ctx.answerCallbackQuery();
   const id = ctx.match[1];
   if (!id) {
-    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /mulai.');
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
     return;
   }
   const komponen = komponenById(id);
   if (!komponen) {
-    await ganti(ctx, 'Komponen tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /mulai.');
+    await ganti(ctx, 'Komponen tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
     return;
   }
   await ganti(ctx, `${komponen.nama} — untuk santri siapa?`, pemilihSantri(komponen.id));
@@ -472,13 +472,13 @@ bot.callbackQuery(/^kss:(.+):(.+)$/, async (ctx) => {
   const komponenId = ctx.match[1];
   const santriId = ctx.match[2];
   if (!komponenId || !santriId) {
-    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /mulai.');
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
     return;
   }
   const komponen = komponenById(komponenId);
   const santri = santriAktif().find((s) => s.id === santriId);
   if (!komponen || !santri) {
-    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /mulai.');
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
     return;
   }
   await ganti(ctx, teksStatus(santri, komponen.id), tombolMenu());
@@ -490,7 +490,7 @@ bot.callbackQuery(/^kr:(.+)$/, async (ctx) => {
   await ctx.answerCallbackQuery();
   const id = ctx.match[1];
   if (!id) {
-    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /mulai.');
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
     return;
   }
   await ganti(ctx, teksRekap(id), tombolMenu());
@@ -500,7 +500,7 @@ bot.callbackQuery(/^kp:(.+)$/, async (ctx) => {
   await ctx.answerCallbackQuery();
   const id = ctx.match[1];
   if (!id) {
-    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /mulai.');
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
     return;
   }
   await ganti(ctx, teksPiutang(id), tombolMenu());
@@ -568,7 +568,7 @@ bot.command('status', async (ctx) => {
 
 // callback tak dikenal / kedaluwarsa
 bot.on('callback_query:data', async (ctx) => {
-  await ctx.answerCallbackQuery({ text: 'Menu ini sudah kedaluwarsa. Kirim /mulai untuk menu baru.' });
+  await ctx.answerCallbackQuery({ text: 'Menu ini sudah kedaluwarsa. Kirim /start untuk menu baru.' });
 });
 
 bot.start();

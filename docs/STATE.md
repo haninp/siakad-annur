@@ -16,7 +16,7 @@ tanggal bayar, jatuh tempo). Bot internal: hirarki `Keuangan → Santri → komp
 (SPP/Uang Modul/Uang Gedung)` — daftar komponen dinamis dari `komponen_biaya`;
 rekap & piutang per komponen; `/rekap` & `/piutang` perintah teks baru.
 
-**1.9 — Bot wali baca-saja (RFC-004).** `apps/bot-wali` jalan: `/mulai`, menu
+**1.9 — Bot wali baca-saja (RFC-004).** `apps/bot-wali` jalan: `/start`, menu
 `📋 Tagihan anak` & `📊 Status bulan ini`, pemilih santri, rincian tagihan + saldo
 lebih bayar. **Nol handler tulis di-import** (lebih ketat dari minimum ADR 0009/0010).
 Binding dev via `DEV_WALI_TELEGRAM_IDS` → wali dengan tautan aktif terbanyak
@@ -38,7 +38,7 @@ satu pesan diedit sepanjang alur. Perintah teks RFC-001 tetap jalan sebagai fall
 
 **1.6 — Bot internal minimal uji coba keuangan (RFC-001).** `docs/rfcs/rfc-001-bot-internal-minimal.md`
 disetujui & diimplementasikan: grammY 1.45 + `packages/bot` (`buatBot` dengan penanganan
-galat terpusat) + `apps/bot-internal` dengan empat perintah — `/mulai`, `/tagihan <nis>`,
+galat terpusat) + `apps/bot-internal` dengan empat perintah — `/start`, `/tagihan <nis>`,
 `/bayar <nis> <nominal>`, `/status <nis>`. Whitelist admin via `ADMIN_TELEGRAM_IDS` di
 `.env` (ID Hani 144666620); izin tetap lewat `buatHandlerKeuangan` di `core`. Token P1
 terisi di `.env` (gitignored). `npm run bot:internal` untuk menjalankan. Build + lint +

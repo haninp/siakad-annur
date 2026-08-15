@@ -21,7 +21,7 @@ sama sekali → bot-wali meng-import **nol handler tulis** (lebih ketat dari min
 
 1. **Baca-saja penuh.** Tidak ada satu pun handler tulis `core` yang di-import. Yang
    dipakai hanya: query baca + aturan murni `hitungKeringananEffektif`.
-2. **Menu tombol** (pola RFC-002): `/mulai` → `📋 Tagihan anak` · `📊 Status bulan ini`
+2. **Menu tombol** (pola RFC-002): `/start` → `📋 Tagihan anak` · `📊 Status bulan ini`
    → pemilih santri → rincian.
 3. **Binding sementara (dev bootstrap):** `DEV_WALI_TELEGRAM_IDS` di `.env` memetakan ID
    Telegram ke wali **dengan tautan aktif terbanyak** di `wali_santri`. Penggantinya:
@@ -36,7 +36,7 @@ sama sekali → bot-wali meng-import **nol handler tulis** (lebih ketat dari min
 ## Scope
 
 ### In scope
-- `apps/bot-wali/src/index.ts`: `/mulai`, menu `📋 Tagihan anak` & `📊 Status bulan ini`,
+- `apps/bot-wali/src/index.ts`: `/start`, menu `📋 Tagihan anak` & `📊 Status bulan ini`,
   pemilih santri, rincian per anak (daftar tagihan + sisa + saldo lebih bayar)
 - `npm run bot:wali` + `DEV_WALI_TELEGRAM_IDS` di `.env`
 
@@ -50,7 +50,7 @@ sama sekali → bot-wali meng-import **nol handler tulis** (lebih ketat dari min
 ## Verifikasi
 
 - `npm run build && npm run lint && npm test` hijau
-- Uji live dari HP: buka `@rtq_annur_bot` → `/mulai` → menu → `📋 Tagihan anak` → pilih
+- Uji live dari HP: buka `@rtq_annur_bot` → `/start` → menu → `📋 Tagihan anak` → pilih
   anak → daftar tagihan + sisa; `📊 Status bulan ini` → status anak bulan berjalan
 - Bot menolak ID Telegram di luar `DEV_WALI_TELEGRAM_IDS`
 

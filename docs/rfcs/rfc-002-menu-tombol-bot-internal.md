@@ -31,7 +31,7 @@ perintah teks RFC-001 tetap ada sebagai fallback.
 5. **Nominal cepat**: 150.000 / 250.000 / 450.000. Nominal lain → ketik `/bayar <nis> <nominal>`
    (fallback RFC-001). Tombol "ketik nominal" ditunda: butuh session state.
 6. **Callback kedaluwarsa** (tombol lama setelah restart): ditolak dengan pesan
-   "menu sudah kedaluwarsa, kirim /mulai".
+   "menu sudah kedaluwarsa, kirim /start".
 
 ## Scope
 
@@ -51,7 +51,7 @@ perintah teks RFC-001 tetap ada sebagai fallback.
 ## Verifikasi
 
 - `npm run build && npm run lint && npm test` hijau
-- Uji live dari HP: `/mulai` → menu → tap `Terbitkan SPP` → pilih santri → ✅ → hasil; tap `Bayar` → nominal → ✅; `Status tagihan` → rincian
+- Uji live dari HP: `/start` → menu → tap `Terbitkan SPP` → pilih santri → ✅ → hasil; tap `Bayar` → nominal → ✅; `Status tagihan` → rincian
 - Tombol lama (sebelum restart) ditolak dengan pesan kedaluwarsa, bukan galat
 
 ---

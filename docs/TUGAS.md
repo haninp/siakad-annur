@@ -65,7 +65,7 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
 - [x] **1.5** Seed `kalender_hijriah` dari myQuran API (`method=islamic-umalqura`) +
       handler `setujuiBulanHijriah` + script `hijriah:isi`/`hijriah:periksa`. Semua baris API ditandai `provisional=1` sampai disetujui pengurus. Bot reminder otomatis menunggu **P1** (token Telegram). `[berat]`
 - [x] **1.6** Bot internal minimal uji coba keuangan (RFC-001) `[berat]`
-      → grammY 1.45 + `packages/bot` (`buatBot`) + `apps/bot-internal`: `/mulai`,
+      → grammY 1.45 + `packages/bot` (`buatBot`) + `apps/bot-internal`: `/start`,
       `/tagihan <nis>`, `/bayar <nis> <nominal>`, `/status <nis>`. Whitelist admin
       `ADMIN_TELEGRAM_IDS` di `.env`; izin tetap lewat `buatHandlerKeuangan` di `core`.
       Script `npm run bot:internal`. Status RFC → Implemented.
@@ -79,7 +79,7 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
       menu pengurus: Status santri / Rekap bulan ini / Piutang; `/terbitkan`
       admin-only; `docs/02-roles-matrix.md` diperbarui (pengurus tidak trigger invoice).
 - [x] **1.9** Bot wali — status tagihan baca-saja (RFC-004) `[berat]`
-      → `apps/bot-wali`: `/mulai`, menu `📋 Tagihan anak` & `📊 Status bulan ini`,
+      → `apps/bot-wali`: `/start`, menu `📋 Tagihan anak` & `📊 Status bulan ini`,
       pemilih santri, rincian per anak + saldo lebih bayar. Baca-saja penuh (nol
       handler tulis di-import — lebih ketat dari ADR 0009). Binding dev via
       `DEV_WALI_TELEGRAM_IDS`. Script `npm run bot:wali`.

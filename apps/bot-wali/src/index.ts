@@ -196,7 +196,7 @@ bot.use(async (ctx, next) => {
   await ctx.reply('Maaf, akun Anda belum terdaftar sebagai wali.').catch(() => undefined);
 });
 
-bot.command('mulai', async (ctx) => {
+bot.command('start', async (ctx) => {
   const wali = waliUntuk(ctx.from?.id);
   if (!wali) return;
   await ctx.reply(`Assalamualaikum, Bapak/Ibu ${wali.nama_lengkap}.\n\n${TEKS_MENU}`, {
@@ -239,7 +239,7 @@ bot.callbackQuery(/^tagihan:(.+)$/, async (ctx) => {
   if (!wali) return;
   const santri = santriWali(wali.id).find((s) => s.id === ctx.match[1]);
   if (!santri) {
-    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /mulai.');
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
     return;
   }
   await ganti(ctx, teksTagihan(santri), tombolMenu());
@@ -251,7 +251,7 @@ bot.callbackQuery(/^bulan:(.+)$/, async (ctx) => {
   if (!wali) return;
   const santri = santriWali(wali.id).find((s) => s.id === ctx.match[1]);
   if (!santri) {
-    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /mulai.');
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
     return;
   }
   await ganti(ctx, teksBulan(santri), tombolMenu());
@@ -259,7 +259,7 @@ bot.callbackQuery(/^bulan:(.+)$/, async (ctx) => {
 
 // callback tak dikenal / kedaluwarsa
 bot.on('callback_query:data', async (ctx) => {
-  await ctx.answerCallbackQuery({ text: 'Menu ini sudah kedaluwarsa. Kirim /mulai untuk menu baru.' });
+  await ctx.answerCallbackQuery({ text: 'Menu ini sudah kedaluwarsa. Kirim /start untuk menu baru.' });
 });
 
 bot.start();

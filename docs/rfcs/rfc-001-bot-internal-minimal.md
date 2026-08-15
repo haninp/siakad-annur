@@ -35,12 +35,12 @@ harus ditambah/dikurangi.
 ### In scope
 - Pasang grammY; isi `packages/bot` dengan kerangka minimal (`buatBot` + muat env)
 - `apps/bot-internal/src/index.ts` — long-polling, 4 perintah:
-  - `/mulai` — sapa + cek whitelist
+  - `/start` — sapa + cek whitelist
   - `/tagihan <nis|nama> <periode>` — terbitkan tagihan SPP (panggil `terbitkanTagihan`)
   - `/bayar <id-tagihan> <nominal>` — catat pembayaran (panggil `catatPembayaran`)
   - `/status [nis|nama]` — tagihan aktif + saldo lebih bayar (baca repo)
 - **Whitelist admin**: `ADMIN_TELEGRAM_IDS` (comma-separated) di `.env` — semua perintah
-  selain `/mulai` ditolak di luar whitelist
+  selain `/start` ditolak di luar whitelist
 - Aktor peran `pengurus` (tabel `pengguna_telegram` belum ada — menyusul di RFC lain)
 - Pesan substantif sesuai AGENTS.md (nama entitas, bukan ID; tanpa stack trace)
 
@@ -61,7 +61,7 @@ pesantren. Mitigasi: whitelist ketat sejak hari pertama, perintah tulis hanya 2
 ## Verifikasi
 
 - `npm run build && npm run lint && npm test` hijau
-- Bot jalan (long-polling) di mesin ini; `/mulai` dari ID whitelist diterima, dari luar ditolak
+- Bot jalan (long-polling) di mesin ini; `/start` dari ID whitelist diterima, dari luar ditolak
 - Satu siklus nyata dari HP: `/tagihan` → `/bayar` → `/status` menunjukkan sisa yang benar
 
 ## Deadline

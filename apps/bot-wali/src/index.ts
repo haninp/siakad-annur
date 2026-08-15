@@ -48,12 +48,19 @@ if (!token) {
 
 const db = bukaBasisData({ lokasi: process.env.SIAKAD_DB ?? 'data/sqlite/siakad.db' });
 
-const devWaliIds = new Set(
-  (process.env.DEV_WALI_TELEGRAM_IDS ?? '')
-    .split(',')
-    .map((s) => Number(s.trim()))
-    .filter((n) => Number.isInteger(n)),
-);
+/**
+ * DEV bootstrap: pemetaan telegram_id → wali SPESIFIK via `DEV_WALI_BINDING`
+ * (format: `id1=Nama Wali,id2=Nama Wali`). Tiap ID mewakili satu wali yang
+ * jelas — simulasi realistis. Penggantinya: pengguna_telegram + undangan.
+ */
+const devWaliBinding = new Map<number, string>();
+for (const pasangan of (process.env.DEV_WALI_BINDING ?? '').split(',')) {
+  const [idTeks, nama] = pasangan.split('=');
+  const id = Number(idTeks?.trim());
+  if (Number.isInteger(id) && nama?.trim()) {
+    devWaliBinding.set(id, nama.trim());
+  }
+}
 
 const depKeuangan = {
   repoTagihan: repoTagihan(db),
@@ -126,14 +133,12 @@ interface SantriWali {
 }
 
 function waliUntuk(telegramId: number | undefined) {
-  if (telegramId === undefined || !devWaliIds.has(telegramId)) return undefined;
+  if (telegramId === undefined) return undefined;
+  const nama = devWaliBinding.get(telegramId);
+  if (!nama) return undefined;
   return db
-    .prepare(
-      `SELECT w.id, w.nama_lengkap FROM wali w
-       JOIN santri_wali ws ON ws.wali_id = w.id AND ws.aktif = 1
-       GROUP BY w.id ORDER BY COUNT(*) DESC LIMIT 1`,
-    )
-    .get() as { id: string; nama_lengkap: string } | undefined;
+    .prepare(`SELECT id, nama_lengkap FROM wali WHERE nama_lengkap = ?`)
+    .get(nama) as { id: string; nama_lengkap: string } | undefined;
 }
 
 function santriWali(waliId: string): SantriWali[] {
@@ -335,7 +340,7 @@ bot.callbackQuery('menu:detail', async (ctx) => {
   if (!wali) return;
   const daftar = santriWali(wali.id);
   if (daftar.length === 0) {
-    await ganti(ctx, 'Tidak ada santri yang tertaut pada akun Anda.');
+    await ganti(ctx, 'Tidak ada santri yang tertaut pada akun Anda.', tombolKembali());
     return;
   }
   await ganti(ctx, 'Detail tagihan siapa?', pemilihSantri('detail', daftar));
@@ -361,7 +366,7 @@ bot.callbackQuery('menu:bayar', async (ctx) => {
   if (!wali) return;
   const daftar = santriWali(wali.id);
   if (daftar.length === 0) {
-    await ganti(ctx, 'Tidak ada santri yang tertaut pada akun Anda.');
+    await ganti(ctx, 'Tidak ada santri yang tertaut pada akun Anda.', tombolKembali());
     return;
   }
   await ganti(ctx, 'Bayar tagihan untuk siapa?', pemilihSantri('bayar', daftar));
@@ -389,7 +394,13 @@ bot.callbackQuery(/^bayar:(.+)$/, async (ctx) => {
     return !usulanDiajukan(t.id);
   });
   if (tagihan.length === 0) {
-    await ganti(ctx, `${santri.nama_lengkap} tidak punya tagihan yang perlu dibayar.`);
+    await ganti(
+      ctx,
+      `${santri.nama_lengkap} tidak punya tagihan yang perlu dibayar.\n\nTagihan yang sudah lunas atau sedang menunggu verifikasi tidak bisa diajukan lagi.`,
+      new InlineKeyboard()
+        .text('👈 Pilih santri lain', 'menu:bayar')
+        .text('🏠 Menu utama', 'menu:utama'),
+    );
     return;
   }
   const kb = new InlineKeyboard();

@@ -9,6 +9,14 @@
 
 ## Yang baru selesai
 
+**1.13 — Alur verifikasi pembayaran (RFC-008).** Wali submit bukti via bot wali
+(💳 Bayar tagihan: pilih anak → tagihan → metode → cash wajib nama penerima →
+foto bukti → kirim), bendahara verifikasi/tolak via bot internal (💳 Usulan
+pembayaran: daftar → lihat bukti → ✅ verifikasi = uang masuk / ❌ tolak wajib
+alasan), wali dapat notifikasi. `usulan_pembayaran` + `pengguna_telegram`
+(migrasi 6), core handler + 12 test, 313 test total. Bukti tidak disimpan
+di disk (cukup file_id Telegram). `BENDAHARA_TELEGRAM_IDS` di `.env`.
+
 **1.12 — Klarifikasi tampilan tagihan (RFC-007).** `formatStatusPembayaran`
 menampilkan nominal jelas di kepala, SUDAH BAYAR dengan daftar "berapa & kapan"
 per pembayaran, BAYAR SEBAGIAN dengan sudah/sisa/batas, dan kelebihan bayar

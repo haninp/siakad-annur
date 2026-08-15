@@ -99,6 +99,14 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
       kelebihan bayar → `Saldo: Rp …`. DB dev di-reset & disimulasi ulang
       (`data/simulasi-ulang.ts`): 1 santri lunas penuh, 1 santri lebih bayar
       (kelebihan 50.000 → Saldo).
+- [x] **1.13** Alur verifikasi pembayaran (RFC-008) `[berat]`
+      → `usulan_pembayaran` + `pengguna_telegram` (migrasi 6); core
+      `ajukanUsulan` (cash wajib nama penerima) / `verifikasiUsulan` (bendahara →
+      uang masuk, akrual) / `tolakUsulan` (alasan wajib) + `namaFileBukti`.
+      Bot wali: 💳 Bayar tagihan (pilih anak → tagihan → metode → bukti → kirim);
+      ringkasan tampil ⏳ MENUNGGU VERIFIKASI. Bot internal: 💳 Usulan pembayaran
+      (daftar → lihat bukti → verifikasi/tolak + alasan → notifikasi wali via
+      bot wali). `BENDAHARA_TELEGRAM_IDS` di `.env`.
 
 ## Fase 2 — akademik
 

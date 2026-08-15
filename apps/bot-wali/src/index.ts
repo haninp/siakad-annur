@@ -65,7 +65,7 @@ function waliUntuk(telegramId: number | undefined) {
   return db
     .prepare(
       `SELECT w.id, w.nama_lengkap FROM wali w
-       JOIN wali_santri ws ON ws.wali_id = w.id AND ws.aktif = 1
+       JOIN santri_wali ws ON ws.wali_id = w.id AND ws.aktif = 1
        GROUP BY w.id ORDER BY COUNT(*) DESC LIMIT 1`,
     )
     .get() as { id: string; nama_lengkap: string } | undefined;
@@ -74,7 +74,7 @@ function waliUntuk(telegramId: number | undefined) {
 function santriWali(waliId: string): SantriWali[] {
   return db
     .prepare(
-      `SELECT s.id, s.nis, s.nama_lengkap FROM wali_santri ws
+      `SELECT s.id, s.nis, s.nama_lengkap FROM santri_wali ws
        JOIN santri s ON s.id = ws.santri_id
        WHERE ws.wali_id = ? AND ws.aktif = 1
        ORDER BY s.nama_lengkap`,

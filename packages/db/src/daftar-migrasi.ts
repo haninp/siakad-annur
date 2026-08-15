@@ -4,6 +4,7 @@ import {
   DDL_KEUANGAN,
   DDL_MASTER_DATA,
   DDL_PEMAKAIAN_LEBIH_BAYAR,
+  DDL_VERIFIKASI_PEMBAYARAN,
 } from '@siakad/contracts';
 import type { Migrasi } from './migrasi.js';
 
@@ -43,5 +44,10 @@ export const DAFTAR_MIGRASI: readonly Migrasi[] = [
     versi: 5,
     nama: 'kalender_hijriah',
     sql: DDL_KALENDER_HIJRIAH,
+  },
+  {
+    versi: 6,
+    nama: 'verifikasi pembayaran dan pengguna telegram',
+    sql: DDL_VERIFIKASI_PEMBAYARAN,
   },
 ];

@@ -240,10 +240,10 @@ export function buatHandlerKeuangan(dep: DepKeuangan) {
     },
 
     catatPembayaran(input: CatatPembayaranInput): HasilHandler<Pembayaran> {
-      if (!peranCukup(input.aktor, 'pengurus')) {
+      if (!peranCukup(input.aktor, 'pengurus', 'bendahara')) {
         return {
           ok: false,
-          pesan: 'Hanya pengurus dan admin yang boleh mencatat pembayaran.',
+          pesan: 'Hanya pengurus, bendahara, dan admin yang boleh mencatat pembayaran.',
         };
       }
 

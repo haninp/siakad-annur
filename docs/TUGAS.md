@@ -63,7 +63,50 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
 - [x] **1.4d** `packages/core`: `alokasiProta` + dukungan transaksi `[berat]`
 - [x] **1.4e** `packages/core`: lebih bayar + migration v4 `pemakaian_lebih_bayar` `[berat]`
 - [x] **1.5** Seed `kalender_hijriah` dari myQuran API (`method=islamic-umalqura`) +
-      handler `setujuiBulanHijriah` + script `hijriah:isi`/`hijriah:periksa`.\n      Semua baris API ditandai `provisional=1` sampai disetujui pengurus.\n      Bot reminder otomatis menunggu **P1** (token Telegram). `[berat]`
+      handler `setujuiBulanHijriah` + script `hijriah:isi`/`hijriah:periksa`. Semua baris API ditandai `provisional=1` sampai disetujui pengurus. Bot reminder otomatis menunggu **P1** (token Telegram). `[berat]`
+- [x] **1.6** Bot internal minimal uji coba keuangan (RFC-001) `[berat]`
+      → grammY 1.45 + `packages/bot` (`buatBot`) + `apps/bot-internal`: `/start`,
+      `/tagihan <nis>`, `/bayar <nis> <nominal>`, `/status <nis>`. Whitelist admin
+      `ADMIN_TELEGRAM_IDS` di `.env`; izin tetap lewat `buatHandlerKeuangan` di `core`.
+      Script `npm run bot:internal`. Status RFC → Implemented.
+- [x] **1.7** Menu tombol (button card) di bot internal (RFC-002) `[berat]`
+      → inline keyboard: menu utama, pemilih santri, konfirmasi terbit/bayar,
+      nominal cepat (150k/250k/450k). Stateless (state di `callback_data`),
+      satu pesan diedit sepanjang alur. Perintah teks RFC-001 tetap ada sebagai
+      fallback. Status RFC-002 → Implemented.
+- [x] **1.8** Peran pengurus = monitoring; penerbitan tagihan = back office (RFC-003) `[berat]`
+      → `terbitkanTagihanBulanan` di core + 3 test; `npm run tagihan:terbitkan`;
+      menu pengurus: Status santri / Rekap bulan ini / Piutang; `/terbitkan`
+      admin-only; `docs/02-roles-matrix.md` diperbarui (pengurus tidak trigger invoice).
+- [x] **1.9** Bot wali — status tagihan baca-saja (RFC-004) `[berat]`
+      → `apps/bot-wali`: `/start`, menu `📋 Tagihan anak` & `📊 Status bulan ini`,
+      pemilih santri, rincian per anak + saldo lebih bayar. Baca-saja penuh (nol
+      handler tulis di-import — lebih ketat dari ADR 0009). Binding dev via
+      `DEV_WALI_TELEGRAM_IDS`. Script `npm run bot:wali`.
+- [x] **1.10** Kosakata status tegas + hirarki menu (RFC-005) `[berat]`
+      → `packages/core`: `statusPembayaran` + `formatStatusPembayaran` (SUDAH BAYAR /
+      BAYAR SEBAGIAN / BELUM BAYAR / DIBATALKAN) + 6 test. Bot wali: label tegas
+      dengan detail (nominal, tanggal bayar, jatuh tempo). Bot internal: hirarki
+      `Keuangan → Santri → komponen (SPP/Uang Modul/Uang Gedung)` — komponen dinamis
+      dari `komponen_biaya`; rekap & piutang per komponen.
+- [x] **1.11** Bot wali — ringkasan agregat semua anak (RFC-006) `[berat]`
+      → `/start` langsung menampilkan status bulan berjalan SEMUA anak di bawah
+      wali (per komponen, kosakata tegas); satu tombol `📋 Detail tagihan` →
+      pilih anak → rincian lengkap. Dua menu lama yang overlap digabung.
+- [x] **1.12** Klarifikasi tampilan tagihan (RFC-007) `[berat]`
+      → formatter `formatStatusPembayaran`: nominal jelas di kepala, SUDAH BAYAR
+      menampilkan daftar "berapa & kapan", BAYAR SEBAGIAN tampil sudah/sisa/batas,
+      kelebihan bayar → `Saldo: Rp …`. DB dev di-reset & disimulasi ulang
+      (`data/simulasi-ulang.ts`): 1 santri lunas penuh, 1 santri lebih bayar
+      (kelebihan 50.000 → Saldo).
+- [x] **1.13** Alur verifikasi pembayaran (RFC-008) `[berat]`
+      → `usulan_pembayaran` + `pengguna_telegram` (migrasi 6); core
+      `ajukanUsulan` (cash wajib nama penerima) / `verifikasiUsulan` (bendahara →
+      uang masuk, akrual) / `tolakUsulan` (alasan wajib) + `namaFileBukti`.
+      Bot wali: 💳 Bayar tagihan (pilih anak → tagihan → metode → bukti → kirim);
+      ringkasan tampil ⏳ MENUNGGU VERIFIKASI. Bot internal: 💳 Usulan pembayaran
+      (daftar → lihat bukti → verifikasi/tolak + alasan → notifikasi wali via
+      bot wali). `BENDAHARA_TELEGRAM_IDS` di `.env`.
 
 ## Fase 2 — akademik
 

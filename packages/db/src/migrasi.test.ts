@@ -33,8 +33,8 @@ describe('runner migrasi', () => {
 
   it('menerapkan seluruh migrasi pada basis data kosong', () => {
     const hasil = jalankanMigrasi(db, DAFTAR_MIGRASI);
-    expect(hasil.diterapkan).toEqual([1, 2, 3, 4, 5]);
-    expect(versiTerpasang(db)).toBe(5);
+    expect(hasil.diterapkan).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(versiTerpasang(db)).toBe(6);
   });
 
   it('membuat setiap tabel yang dijanjikan contracts', () => {
@@ -55,7 +55,7 @@ describe('runner migrasi', () => {
     jalankanMigrasi(db, DAFTAR_MIGRASI);
     const kedua = jalankanMigrasi(db, DAFTAR_MIGRASI);
     expect(kedua.diterapkan).toEqual([]);
-    expect(kedua.sudahAda).toEqual([1, 2, 3, 4, 5]);
+    expect(kedua.sudahAda).toEqual([1, 2, 3, 4, 5, 6]);
   });
 
   /**

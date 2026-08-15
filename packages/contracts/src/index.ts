@@ -12,6 +12,7 @@ export * from './identitas.js';
 export * from './akademik.js';
 export * from './kalender.js';
 export * from './keuangan.js';
+export * from './pembayaran.js';
 export * from './turunan.js';
 export * from './transaksi.js';
 export * from './izin.js';
@@ -38,6 +39,7 @@ import {
   entitasTahunAjaran,
 } from './akademik.js';
 import { entitasKalenderHijriah } from './kalender.js';
+import { entitasPenggunaTelegram, entitasUsulanPembayaran } from './pembayaran.js';
 import {
   entitasAkunKeuangan,
   entitasAlokasiProta,
@@ -92,6 +94,12 @@ export const ENTITAS_KEUANGAN: readonly EntitasUmum[] = [
   sebagaiEntitasUmum(entitasAlokasiProta),
   sebagaiEntitasUmum(entitasLebihBayar),
   sebagaiEntitasUmum(entitasPemakaianLebihBayar),
+];
+
+/** Entitas verifikasi pembayaran & pengguna telegram (RFC-008). */
+export const ENTITAS_VERIFIKASI_PEMBAYARAN: readonly EntitasUmum[] = [
+  sebagaiEntitasUmum(entitasUsulanPembayaran),
+  sebagaiEntitasUmum(entitasPenggunaTelegram),
 ];
 
 /** Seluruh entitas yang diuji kelengkapan klasifikasinya. */

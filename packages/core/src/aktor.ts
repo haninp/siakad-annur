@@ -10,7 +10,7 @@
  * hanya ditegakkan di `packages/core`).
  */
 
-export type Peran = 'admin' | 'pengurus' | 'pengajar' | 'wali';
+export type Peran = 'admin' | 'pengurus' | 'pengajar' | 'bendahara' | 'wali';
 
 export interface Aktor {
   readonly peran: Peran;

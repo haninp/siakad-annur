@@ -143,23 +143,44 @@ interface BarisTagihan {
   nominal: number;
   status: string;
   jatuh_tempo: string | null;
+  komponen_nama: string;
+}
+
+function keringananTagihan(tagihanId: string): Keringanan[] {
+  return db
+    .prepare(`SELECT nominal, persentase FROM keringanan WHERE tagihan_id = ?`)
+    .all(tagihanId) as Keringanan[];
+}
+
+function pembayaranTagihan(tagihanId: string) {
+  return db
+    .prepare(`SELECT nominal, tanggal FROM pembayaran WHERE tagihan_id = ? ORDER BY tanggal`)
+    .all(tagihanId) as { nominal: number; tanggal: string }[];
 }
 
 function statusTagihan(t: BarisTagihan): StatusPembayaran {
   return statusPembayaran({
     statusTagihan: t.status as 'terbit' | 'lunas' | 'dibatalkan',
     nominal: t.nominal,
-    keringanan: db
-      .prepare(`SELECT nominal, persentase FROM keringanan WHERE tagihan_id = ?`)
-      .all(t.id) as Keringanan[],
-    pembayaran: db
-      .prepare(`SELECT nominal, tanggal FROM pembayaran WHERE tagihan_id = ? ORDER BY tanggal`)
-      .all(t.id) as { nominal: number; tanggal: string }[],
+    keringanan: keringananTagihan(t.id),
+    pembayaran: pembayaranTagihan(t.id),
   });
 }
 
 function formatTagihan(t: BarisTagihan): string {
-  return formatStatusPembayaran(statusTagihan(t), { periode: t.periode, jatuhTempo: t.jatuh_tempo });
+  const pembayaran = pembayaranTagihan(t.id);
+  const st = statusPembayaran({
+    statusTagihan: t.status as 'terbit' | 'lunas' | 'dibatalkan',
+    nominal: t.nominal,
+    keringanan: keringananTagihan(t.id),
+    pembayaran,
+  });
+  return formatStatusPembayaran(st, {
+    periode: t.periode,
+    jatuhTempo: t.jatuh_tempo,
+    pembayaran,
+    komponen: t.komponen_nama,
+  });
 }
 
 // ── logika aksi (dipakai perintah teks & tombol) ─────────────────────────────
@@ -190,10 +211,12 @@ function catatPembayaran(santri: BarisSantri, nominal: number, actorId: string) 
 /** Status tagihan per santri — semua komponen (tanpa komponenId) atau satu komponen. */
 function teksStatus(santri: BarisSantri, komponenId?: string): string {
   const sql = komponenId
-    ? `SELECT id, periode, nominal, status, jatuh_tempo FROM tagihan
-       WHERE santri_id = ? AND komponen_biaya_id = ? ORDER BY periode DESC LIMIT 6`
-    : `SELECT id, periode, nominal, status, jatuh_tempo FROM tagihan
-       WHERE santri_id = ? ORDER BY periode DESC LIMIT 6`;
+    ? `SELECT t.id, t.periode, t.nominal, t.status, t.jatuh_tempo, k.nama AS komponen_nama
+       FROM tagihan t JOIN komponen_biaya k ON k.id = t.komponen_biaya_id
+       WHERE t.santri_id = ? AND t.komponen_biaya_id = ? ORDER BY t.periode DESC LIMIT 6`
+    : `SELECT t.id, t.periode, t.nominal, t.status, t.jatuh_tempo, k.nama AS komponen_nama
+       FROM tagihan t JOIN komponen_biaya k ON k.id = t.komponen_biaya_id
+       WHERE t.santri_id = ? ORDER BY t.periode DESC LIMIT 6`;
   const args = komponenId ? [santri.id, komponenId] : [santri.id];
   const tagihan = db.prepare(sql).all(...args) as unknown as BarisTagihan[];
   if (tagihan.length === 0) {
@@ -207,7 +230,7 @@ function teksStatus(santri: BarisSantri, komponenId?: string): string {
   return (
     `Tagihan ${santri.nama_lengkap}${santri.nis ? ` (NIS ${santri.nis})` : ''}:\n\n` +
     tagihan.map((t) => `• ${formatTagihan(t)}`).join('\n\n') +
-    `\n\nSaldo lebih bayar: ${rupiah(lebihBayar)}`
+    `\n\nSaldo: ${rupiah(lebihBayar)}`
   );
 }
 
@@ -226,8 +249,9 @@ function teksRekap(komponenId: string): string {
   for (const s of daftar) {
     const tagihan = db
       .prepare(
-        `SELECT id, nominal, status, jatuh_tempo FROM tagihan
-         WHERE santri_id = ? AND periode = ? AND komponen_biaya_id = ?`,
+        `SELECT t.id, t.nominal, t.status, t.jatuh_tempo, k.nama AS komponen_nama
+         FROM tagihan t JOIN komponen_biaya k ON k.id = t.komponen_biaya_id
+         WHERE t.santri_id = ? AND t.periode = ? AND t.komponen_biaya_id = ?`,
       )
       .get(s.id, periode, komponenId) as BarisTagihan | undefined;
     if (!tagihan) {
@@ -270,8 +294,9 @@ function teksPiutang(komponenId: string): string {
   for (const s of santriAktif()) {
     const tagihan = db
       .prepare(
-        `SELECT id, nominal, periode, status, jatuh_tempo FROM tagihan
-         WHERE santri_id = ? AND komponen_biaya_id = ? AND status = 'terbit'`,
+        `SELECT t.id, t.nominal, t.periode, t.status, t.jatuh_tempo, k.nama AS komponen_nama
+         FROM tagihan t JOIN komponen_biaya k ON k.id = t.komponen_biaya_id
+         WHERE t.santri_id = ? AND t.komponen_biaya_id = ? AND t.status = 'terbit'`,
       )
       .all(s.id, komponenId) as unknown as BarisTagihan[];
     let total = 0;

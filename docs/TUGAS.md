@@ -93,6 +93,12 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
       → `/start` langsung menampilkan status bulan berjalan SEMUA anak di bawah
       wali (per komponen, kosakata tegas); satu tombol `📋 Detail tagihan` →
       pilih anak → rincian lengkap. Dua menu lama yang overlap digabung.
+- [x] **1.12** Klarifikasi tampilan tagihan (RFC-007) `[berat]`
+      → formatter `formatStatusPembayaran`: nominal jelas di kepala, SUDAH BAYAR
+      menampilkan daftar "berapa & kapan", BAYAR SEBAGIAN tampil sudah/sisa/batas,
+      kelebihan bayar → `Saldo: Rp …`. DB dev di-reset & disimulasi ulang
+      (`data/simulasi-ulang.ts`): 1 santri lunas penuh, 1 santri lebih bayar
+      (kelebihan 50.000 → Saldo).
 
 ## Fase 2 — akademik
 

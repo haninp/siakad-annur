@@ -9,6 +9,13 @@
 
 ## Yang baru selesai
 
+**1.12 — Klarifikasi tampilan tagihan (RFC-007).** `formatStatusPembayaran`
+menampilkan nominal jelas di kepala, SUDAH BAYAR dengan daftar "berapa & kapan"
+per pembayaran, BAYAR SEBAGIAN dengan sudah/sisa/batas, dan kelebihan bayar
+tampil sebagai `Saldo: Rp …`. DB dev di-reset & disimulasi ulang
+(`data/simulasi-ulang.ts`): santri #1 lunas penuh, santri #2 bayar lebih
+(kelebihan Rp 50.000 → Saldo).
+
 **1.11 — Bot wali ringkasan agregat (RFC-006).** `/start` menampilkan status
 bulan berjalan untuk SEMUA anak sekaligus (per komponen, kosakata tegas),
 tombol `📋 Detail tagihan` → pilih anak → rincian lengkap. Dua menu lama yang

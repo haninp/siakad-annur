@@ -79,26 +79,43 @@ export function statusPembayaran(input: InputStatusPembayaran): StatusPembayaran
 }
 
 /**
- * Format tampilan satu tagihan — kosakata tegas (RFC-005).
- * Satu sumber format untuk bot wali & pengurus.
+ * Format tampilan satu tagihan — kosakata tegas (RFC-005, disempurnakan RFC-007).
+ *
+ * Klarifikasi (RFC-007, keputusan UX Hani):
+ *  - Nominal tagihan tampil jelas di kepala (bersama komponen & periode).
+ *  - SUDAH BAYAR → tampilkan "berapa & kapan" (daftar pembayaran per tanggal).
+ *  - BAYAR SEBAGIAN → sudah dibayar berapa & kapan + sisa + batas.
+ *  - Kelebihan bayar tidak tampil di sini — menjadi "Saldo" (dihitung caller
+ *    dari tabel lebih_bayar, AGENTS.md: angka turunan tidak disimpan).
  */
-export function formatStatusPembayaran(
-  st: StatusPembayaran,
-  info: { readonly periode: string; readonly jatuhTempo: string | null },
-): string {
+export interface InfoFormatStatusPembayaran {
+  readonly periode: string;
+  readonly jatuhTempo: string | null;
+  /** Urut naik — ditampilkan sebagai "berapa (kapan)". */
+  readonly pembayaran?: readonly PembayaranRingkas[];
+  /** Nama komponen (mis. "SPP Bulanan") agar jelas saat multi-komponen. */
+  readonly komponen?: string;
+}
+
+function daftarPembayaran(p: readonly PembayaranRingkas[]): string {
+  return p.map((x) => `${formatRupiah(x.nominal)} (${x.tanggal})`).join(' + ');
+}
+
+export function formatStatusPembayaran(st: StatusPembayaran, info: InfoFormatStatusPembayaran): string {
   if (st.status === 'dibatalkan') {
     return `${info.periode} — DIBATALKAN`;
   }
-  const kepala = `${info.periode} — ${formatRupiah(st.nominal)}`;
+  const kepala = `${info.komponen ? `${info.komponen} · ` : ''}${info.periode} — ${formatRupiah(st.nominal)}`;
   switch (st.status) {
     case 'belum_bayar':
-      return `${kepala} — BELUM BAYAR\n    • Nominal ${formatRupiah(st.nominal)} · Batas ${info.jatuhTempo ?? '-'}`;
+      return `${kepala} — BELUM BAYAR\n    • Batas: ${info.jatuhTempo ?? '-'}`;
     case 'bayar_sebagian':
       return (
         `${kepala} — BAYAR SEBAGIAN\n` +
-        `    • Sudah dibayar ${formatRupiah(st.sudahBayar)} · Sisa ${formatRupiah(st.sisa)} · Batas ${info.jatuhTempo ?? '-'}`
+        `    • Sudah dibayar: ${daftarPembayaran(info.pembayaran ?? [])}\n` +
+        `    • Sisa: ${formatRupiah(st.sisa)} · Batas: ${info.jatuhTempo ?? '-'}`
       );
     case 'sudah_bayar':
-      return `${kepala} — SUDAH BAYAR\n    • Total ${formatRupiah(st.totalBayar)}${st.lunasPada ? ` · Lunas ${st.lunasPada}` : ''}`;
+      return `${kepala} — SUDAH BAYAR\n    • Dibayar: ${daftarPembayaran(info.pembayaran ?? [])}`;
   }
 }

@@ -123,13 +123,19 @@ function pembayaranTagihan(tagihanId: string) {
 }
 
 function formatTagihan(t: BarisTagihan): string {
+  const pembayaran = pembayaranTagihan(t.id);
   const st = statusPembayaran({
     statusTagihan: t.status as 'terbit' | 'lunas' | 'dibatalkan',
     nominal: t.nominal,
     keringanan: keringananTagihan(t.id),
-    pembayaran: pembayaranTagihan(t.id),
+    pembayaran,
   });
-  return formatStatusPembayaran(st, { periode: t.periode, jatuhTempo: t.jatuh_tempo });
+  return formatStatusPembayaran(st, {
+    periode: t.periode,
+    jatuhTempo: t.jatuh_tempo,
+    pembayaran,
+    komponen: t.komponen_nama,
+  });
 }
 
 /** Baris ringkas untuk tampilan agregat — tanpa jatuh tempo (ada di detail). */
@@ -184,7 +190,7 @@ function teksTagihan(santri: SantriWali): string {
   return (
     `📋 Tagihan ${santri.nama_lengkap}:\n\n` +
     tagihan.map((t) => `• ${formatTagihan(t)}`).join('\n\n') +
-    `\n\nSaldo lebih bayar: ${rupiah(lebihBayar)}`
+    `\n\nSaldo: ${rupiah(lebihBayar)}`
   );
 }
 

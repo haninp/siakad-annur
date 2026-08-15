@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { statusPembayaran } from './status-pembayaran.js';
+import { formatStatusPembayaran, statusPembayaran } from './status-pembayaran.js';
 
 const tanpaKeringanan: never[] = [];
 
@@ -85,5 +85,69 @@ describe('statusPembayaran', () => {
       pembayaran: [],
     });
     expect(st.status).toBe('dibatalkan');
+  });
+});
+
+describe('formatStatusPembayaran (RFC-007 — berapa & kapan)', () => {
+  const infoDasar = { periode: '2026-08', jatuhTempo: '2026-09-10', komponen: 'SPP Bulanan' } as const;
+
+  it('belum bayar — nominal jelas di kepala + batas', () => {
+    const st = statusPembayaran({
+      statusTagihan: 'terbit',
+      nominal: 450_000,
+      keringanan: tanpaKeringanan,
+      pembayaran: [],
+    });
+    expect(formatStatusPembayaran(st, infoDasar)).toBe(
+      'SPP Bulanan · 2026-08 — Rp 450.000 — BELUM BAYAR\n    • Batas: 2026-09-10',
+    );
+  });
+
+  it('bayar sebagian — daftar sudah dibayar + sisa + batas', () => {
+    const st = statusPembayaran({
+      statusTagihan: 'terbit',
+      nominal: 450_000,
+      keringanan: tanpaKeringanan,
+      pembayaran: [{ nominal: 150_000, tanggal: '2026-09-01' }],
+    });
+    expect(formatStatusPembayaran(st, { ...infoDasar, pembayaran: [{ nominal: 150_000, tanggal: '2026-09-01' }] })).toBe(
+      'SPP Bulanan · 2026-08 — Rp 450.000 — BAYAR SEBAGIAN\n' +
+        '    • Sudah dibayar: Rp 150.000 (2026-09-01)\n' +
+        '    • Sisa: Rp 300.000 · Batas: 2026-09-10',
+    );
+  });
+
+  it('sudah bayar — daftar berapa & kapan tiap pembayaran', () => {
+    const st = statusPembayaran({
+      statusTagihan: 'terbit',
+      nominal: 450_000,
+      keringanan: tanpaKeringanan,
+      pembayaran: [
+        { nominal: 150_000, tanggal: '2026-09-01' },
+        { nominal: 300_000, tanggal: '2026-09-05' },
+      ],
+    });
+    expect(
+      formatStatusPembayaran(st, {
+        ...infoDasar,
+        pembayaran: [
+          { nominal: 150_000, tanggal: '2026-09-01' },
+          { nominal: 300_000, tanggal: '2026-09-05' },
+        ],
+      }),
+    ).toBe(
+      'SPP Bulanan · 2026-08 — Rp 450.000 — SUDAH BAYAR\n' +
+        '    • Dibayar: Rp 150.000 (2026-09-01) + Rp 300.000 (2026-09-05)',
+    );
+  });
+
+  it('dibatalkan — tanpa nominal', () => {
+    const st = statusPembayaran({
+      statusTagihan: 'dibatalkan',
+      nominal: 450_000,
+      keringanan: tanpaKeringanan,
+      pembayaran: [],
+    });
+    expect(formatStatusPembayaran(st, infoDasar)).toBe('2026-08 — DIBATALKAN');
   });
 });

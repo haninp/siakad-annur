@@ -83,6 +83,12 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
       pemilih santri, rincian per anak + saldo lebih bayar. Baca-saja penuh (nol
       handler tulis di-import — lebih ketat dari ADR 0009). Binding dev via
       `DEV_WALI_TELEGRAM_IDS`. Script `npm run bot:wali`.
+- [x] **1.10** Kosakata status tegas + hirarki menu (RFC-005) `[berat]`
+      → `packages/core`: `statusPembayaran` + `formatStatusPembayaran` (SUDAH BAYAR /
+      BAYAR SEBAGIAN / BELUM BAYAR / DIBATALKAN) + 6 test. Bot wali: label tegas
+      dengan detail (nominal, tanggal bayar, jatuh tempo). Bot internal: hirarki
+      `Keuangan → Santri → komponen (SPP/Uang Modul/Uang Gedung)` — komponen dinamis
+      dari `komponen_biaya`; rekap & piutang per komponen.
 
 ## Fase 2 — akademik
 

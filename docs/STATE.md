@@ -9,6 +9,13 @@
 
 ## Yang baru selesai
 
+**1.10 — Kosakata status tegas + hirarki menu (RFC-005).** `statusPembayaran` +
+`formatStatusPembayaran` di `packages/core` (6 test). Bot wali menampilkan
+SUDAH BAYAR / BAYAR SEBAGIAN / BELUM BAYAR / DIBATALKAN + detail (nominal, total &
+tanggal bayar, jatuh tempo). Bot internal: hirarki `Keuangan → Santri → komponen
+(SPP/Uang Modul/Uang Gedung)` — daftar komponen dinamis dari `komponen_biaya`;
+rekap & piutang per komponen; `/rekap` & `/piutang` perintah teks baru.
+
 **1.9 — Bot wali baca-saja (RFC-004).** `apps/bot-wali` jalan: `/mulai`, menu
 `📋 Tagihan anak` & `📊 Status bulan ini`, pemilih santri, rincian tagihan + saldo
 lebih bayar. **Nol handler tulis di-import** (lebih ketat dari minimum ADR 0009/0010).

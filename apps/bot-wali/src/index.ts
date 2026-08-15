@@ -1,9 +1,9 @@
 /**
- * Bot wali — status tagihan baca-saja (RFC-004).
+ * Bot wali — status tagihan baca-saja (RFC-004, kosakata tegas RFC-005).
  *
  * Baca-saja PENUH: tidak meng-import satu pun handler tulis dari core
- * (lebih ketat dari minimum ADR 0009/0010). Yang dipakai hanya query baca
- * dan aturan murni hitungKeringananEffektif.
+ * (lebih ketat dari minimum ADR 0009/0010). Label status memakai kosakata
+ * domain `statusPembayaran`/`formatStatusPembayaran` di core (RFC-005).
  *
  * Binding sementara (dev bootstrap): DEV_WALI_TELEGRAM_IDS di .env memetakan
  * ID Telegram ke wali dengan tautan aktif terbanyak. Penggantinya: tabel
@@ -13,7 +13,7 @@
  */
 import { InlineKeyboard, type CallbackQueryContext, type Context } from 'grammy';
 import { buatBot } from '@siakad/bot';
-import { hitungKeringananEffektif } from '@siakad/core';
+import { formatStatusPembayaran, statusPembayaran } from '@siakad/core';
 import { bukaBasisData } from '@siakad/db';
 import type { Keringanan } from '@siakad/contracts';
 
@@ -82,68 +82,72 @@ function santriWali(waliId: string): SantriWali[] {
     .all(waliId) as unknown as SantriWali[];
 }
 
-// ── tampilan (baca-saja; pola sama dengan bot-internal, RFC-003) ──────────────
+// ── tampilan (baca-saja; kosakata tegas RFC-005) ──────────────────────────────
 
-function sisaTagihan(tagihanId: string, nominal: number): number {
-  const keringanan = db
+interface BarisTagihan {
+  id: string;
+  periode: string;
+  nominal: number;
+  status: string;
+  jatuh_tempo: string | null;
+}
+
+function tagihanSantri(santriId: string, periode?: string): BarisTagihan[] {
+  const sql = periode
+    ? `SELECT id, periode, nominal, status, jatuh_tempo FROM tagihan
+       WHERE santri_id = ? AND periode = ? ORDER BY status, periode DESC`
+    : `SELECT id, periode, nominal, status, jatuh_tempo FROM tagihan
+       WHERE santri_id = ? ORDER BY periode DESC LIMIT 6`;
+  const args = periode ? [santriId, periode] : [santriId];
+  return db.prepare(sql).all(...args) as unknown as BarisTagihan[];
+}
+
+function keringananTagihan(tagihanId: string): Keringanan[] {
+  return db
     .prepare(`SELECT nominal, persentase FROM keringanan WHERE tagihan_id = ?`)
     .all(tagihanId) as Keringanan[];
-  const potongan = hitungKeringananEffektif(keringanan, nominal);
-  const sudahBayar = (
-    db
-      .prepare(`SELECT COALESCE(SUM(nominal), 0) AS n FROM pembayaran WHERE tagihan_id = ?`)
-      .get(tagihanId) as { n: number }
-  ).n;
-  return nominal - potongan - sudahBayar;
+}
+
+function pembayaranTagihan(tagihanId: string) {
+  return db
+    .prepare(`SELECT nominal, tanggal FROM pembayaran WHERE tagihan_id = ? ORDER BY tanggal`)
+    .all(tagihanId) as { nominal: number; tanggal: string }[];
+}
+
+function formatTagihan(t: BarisTagihan): string {
+  const st = statusPembayaran({
+    statusTagihan: t.status as 'terbit' | 'lunas' | 'dibatalkan',
+    nominal: t.nominal,
+    keringanan: keringananTagihan(t.id),
+    pembayaran: pembayaranTagihan(t.id),
+  });
+  return formatStatusPembayaran(st, { periode: t.periode, jatuhTempo: t.jatuh_tempo });
 }
 
 function teksTagihan(santri: SantriWali): string {
-  const tagihan = db
-    .prepare(
-      `SELECT id, periode, nominal, status FROM tagihan
-       WHERE santri_id = ? ORDER BY periode DESC LIMIT 6`,
-    )
-    .all(santri.id) as unknown as { id: string; periode: string; nominal: number; status: string }[];
+  const tagihan = tagihanSantri(santri.id);
   if (tagihan.length === 0) {
     return `${santri.nama_lengkap} belum punya tagihan.`;
   }
-  const baris = tagihan.map((t) => {
-    const sisa = sisaTagihan(t.id, t.nominal);
-    let label: string;
-    if (t.status === 'terbit') {
-      label = sisa > 0 ? `sisa ${rupiah(sisa)}` : sisa === 0 ? 'lunas' : 'lunas, lebih bayar';
-    } else {
-      label = t.status;
-    }
-    return `${t.periode} — ${rupiah(t.nominal)} — ${label}`;
-  });
   const lebihBayar = (
     db
       .prepare(`SELECT COALESCE(SUM(nominal), 0) AS n FROM lebih_bayar WHERE santri_id = ?`)
       .get(santri.id) as { n: number }
   ).n;
   return (
-    `Tagihan ${santri.nama_lengkap}:\n` +
-    baris.map((b) => `• ${b}`).join('\n') +
+    `Tagihan ${santri.nama_lengkap}:\n\n` +
+    tagihan.map((t) => `• ${formatTagihan(t)}`).join('\n\n') +
     `\n\nSaldo lebih bayar: ${rupiah(lebihBayar)}`
   );
 }
 
 function teksBulan(santri: SantriWali): string {
   const periode = periodeSekarang();
-  const tagihan = db
-    .prepare(
-      `SELECT id, nominal, status FROM tagihan
-       WHERE santri_id = ? AND periode = ? ORDER BY status`,
-    )
-    .get(santri.id, periode) as { id: string; nominal: number; status: string } | undefined;
-  if (!tagihan) {
+  const tagihan = tagihanSantri(santri.id, periode);
+  if (tagihan.length === 0) {
     return `${santri.nama_lengkap} belum punya tagihan pada ${periode}.`;
   }
-  const sisa = sisaTagihan(tagihan.id, tagihan.nominal);
-  const status =
-    tagihan.status === 'lunas' || sisa <= 0 ? '✅ lunas' : sisa > 0 ? `⏳ sisa ${rupiah(sisa)}` : tagihan.status;
-  return `Status ${santri.nama_lengkap} — ${periode}:\n• ${rupiah(tagihan.nominal)} — ${status}`;
+  return `Status ${santri.nama_lengkap} — ${periode}:\n\n` + tagihan.map((t) => `• ${formatTagihan(t)}`).join('\n\n');
 }
 
 // ── menu & tombol ─────────────────────────────────────────────────────────────

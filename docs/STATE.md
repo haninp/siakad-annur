@@ -9,6 +9,16 @@
 
 ## Yang baru selesai
 
+**1.16 — Worker notifikasi tagihan terbit (RFC-011).** `apps/worker` kini
+daemon nyata: tiap 60 detik memeriksa tagihan status 'terbit' yang belum
+dinotifikasi, lalu mengirim pesan proaktif ke wali TERDAFTAR
+(`pengguna_telegram`) via bot wali — "📋 Tagihan SPP Bulanan — 2026-08 untuk
+{nama} Rp 450.000, batas bayar …". Jejak di tabel `notifikasi_terbit`
+(migrasi 8) — idempoten, anti-spam. Tagihan tanpa wali terdaftar TIDAK
+ditandai: begitu wali mendaftar (M2), tagihan terkirim pada putaran berikutnya
+(memudahkan uji). `npm run worker:notifikasi` (loop) / `--sekali` (uji).
+`docs/rfcs/rfc-011-worker-notifikasi-tagihan.md`.
+
 **1.15 — Pencarian santri di bot internal (RFC-010).** Tombol `🔍 Cari santri`
 di menu utama + perintah `/cari <nis|nama>`. Urutan hasil: NIS persis → nama
 mengandung → NIS diawali (maks 10). Satu hasil langsung menampilkan status

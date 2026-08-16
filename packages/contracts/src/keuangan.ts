@@ -383,6 +383,28 @@ export const entitasPemakaianLebihBayar: Entitas<PemakaianLebihBayar> = {
   klasifikasi: klasifikasiPemakaianLebihBayar,
 };
 
+// ── notifikasi_terbit (RFC-011) ─────────────────────────────────────────────
+
+export const NotifikasiTerbit = z.object({
+  /** Tagihan yang sudah dinotifikasi "terbit" ke wali. */
+  tagihan_id: Ulid,
+  /** Kapan notifikasi dikirim (putaran worker). */
+  dikirim_pada: WaktuIso,
+});
+export type NotifikasiTerbit = z.infer<typeof NotifikasiTerbit>;
+
+const klasifikasiNotifikasiTerbit: PetaKlasifikasi<NotifikasiTerbit> = {
+  tagihan_id: 'publik',
+  dikirim_pada: 'publik',
+};
+
+export const entitasNotifikasiTerbit: Entitas<NotifikasiTerbit> = {
+  nama: 'notifikasi_terbit',
+  skema: NotifikasiTerbit,
+  kolom: ['tagihan_id', 'dikirim_pada'],
+  klasifikasi: klasifikasiNotifikasiTerbit,
+};
+
 // ── DDL ────────────────────────────────────────────────────────────────────
 
 export const DDL_KEUANGAN = `
@@ -506,3 +528,14 @@ export const TABEL_KEUANGAN: readonly string[] = [
 
 /** Tabel yang dibuat oleh DDL_PEMAKAIAN_LEBIH_BAYAR. */
 export const TABEL_PEMAKAIAN_LEBIH_BAYAR: readonly string[] = ['pemakaian_lebih_bayar'];
+
+/** DDL tabel notifikasi_terbit — migrasi v8 (RFC-011, worker notifikasi). */
+export const DDL_NOTIFIKASI_TERBIT = `
+CREATE TABLE notifikasi_terbit (
+  tagihan_id   TEXT PRIMARY KEY REFERENCES tagihan(id),
+  dikirim_pada TEXT NOT NULL
+) STRICT;
+`;
+
+/** Tabel yang dibuat oleh DDL_NOTIFIKASI_TERBIT. */
+export const TABEL_NOTIFIKASI_TERBIT: readonly string[] = ['notifikasi_terbit'];

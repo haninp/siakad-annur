@@ -3,6 +3,7 @@ import {
   DDL_KALENDER_HIJRIAH,
   DDL_KEUANGAN,
   DDL_MASTER_DATA,
+  DDL_NOTIFIKASI_TERBIT,
   DDL_PEMAKAIAN_LEBIH_BAYAR,
   DDL_STATUS_UNDANGAN,
   DDL_VERIFIKASI_PEMBAYARAN,
@@ -55,5 +56,10 @@ export const DAFTAR_MIGRASI: readonly Migrasi[] = [
     versi: 7,
     nama: 'status undangan: dipakai_pada dan dicabut_pada',
     sql: DDL_STATUS_UNDANGAN,
+  },
+  {
+    versi: 8,
+    nama: 'notifikasi_terbit (worker RFC-011)',
+    sql: DDL_NOTIFIKASI_TERBIT,
   },
 ];

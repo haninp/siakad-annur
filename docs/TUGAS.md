@@ -125,6 +125,13 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
       mengandung → NIS diawali (maks 10); satu hasil langsung ke tampilan
       status, banyak hasil jadi tombol pilihan. View detail santri punya area
       aksi (`tombolDetailSantri`) siap diperluas dengan aksi tulis kelak.
+- [x] **1.16** Worker notifikasi tagihan terbit (RFC-011) `[ringan]`
+      → `apps/worker` daemon (interval 60 dtk, `--sekali` untuk uji): tagihan
+      status 'terbit' yang belum dinotifikasi → pesan proaktif ke wali
+      TERDAFTAR (`pengguna_telegram`) via bot wali ("📋 Tagihan SPP Bulanan —
+      2026-08 untuk … Rp 450.000, batas …"). Jejak `notifikasi_terbit`
+      (migrasi 8), idempoten; tagihan tanpa wali terdaftar TIDAK ditandai
+      (terkirim begitu wali daftar). `npm run worker:notifikasi`.
 
 ## Fase 2 — akademik
 

@@ -6,8 +6,10 @@ import { DDL_MASTER_DATA, TABEL_MASTER_DATA } from './ddl.js';
 import { DDL_IZIN, TABEL_IZIN } from './izin.js';
 import {
   DDL_KEUANGAN,
+  DDL_NOTIFIKASI_TERBIT,
   DDL_PEMAKAIAN_LEBIH_BAYAR,
   TABEL_KEUANGAN,
+  TABEL_NOTIFIKASI_TERBIT,
   TABEL_PEMAKAIAN_LEBIH_BAYAR,
 } from './keuangan.js';
 import { DDL_KALENDER_HIJRIAH, TABEL_KALENDER_HIJRIAH } from './kalender.js';
@@ -40,19 +42,21 @@ describe('kelengkapan klasifikasi data pribadi', () => {
         ...TABEL_KEUANGAN,
         ...TABEL_PEMAKAIAN_LEBIH_BAYAR,
         ...TABEL_KALENDER_HIJRIAH,
+        ...TABEL_NOTIFIKASI_TERBIT,
       ].sort(),
     );
   });
 
   it('setiap tabel yang terdaftar benar-benar dibuat DDL', () => {
     const ddl =
-      DDL_MASTER_DATA + DDL_IZIN + DDL_KEUANGAN + DDL_PEMAKAIAN_LEBIH_BAYAR + DDL_KALENDER_HIJRIAH;
+      DDL_MASTER_DATA + DDL_IZIN + DDL_KEUANGAN + DDL_PEMAKAIAN_LEBIH_BAYAR + DDL_KALENDER_HIJRIAH + DDL_NOTIFIKASI_TERBIT;
     for (const tabel of [
       ...TABEL_MASTER_DATA,
       ...TABEL_IZIN,
       ...TABEL_KEUANGAN,
       ...TABEL_PEMAKAIAN_LEBIH_BAYAR,
       ...TABEL_KALENDER_HIJRIAH,
+      ...TABEL_NOTIFIKASI_TERBIT,
     ]) {
       expect(ddl).toContain(`CREATE TABLE ${tabel} (`);
     }

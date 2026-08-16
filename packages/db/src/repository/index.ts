@@ -5,3 +5,4 @@ export * from './repo-usulan-izin.js';
 export * from './repo-keuangan.js';
 export * from './repo-usulan-pembayaran.js';
 export * from './repo-pengguna-telegram.js';
+export * from './repo-notifikasi.js';

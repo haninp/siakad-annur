@@ -102,9 +102,16 @@ export const ENTITAS_VERIFIKASI_PEMBAYARAN: readonly EntitasUmum[] = [
   sebagaiEntitasUmum(entitasPenggunaTelegram),
 ];
 
+/** Entitas notifikasi worker (RFC-011). */
+import { entitasNotifikasiTerbit } from './keuangan.js';
+export const ENTITAS_NOTIFIKASI: readonly EntitasUmum[] = [
+  sebagaiEntitasUmum(entitasNotifikasiTerbit),
+];
+
 /** Seluruh entitas yang diuji kelengkapan klasifikasinya. */
 export const SEMUA_ENTITAS: readonly EntitasUmum[] = [
   ...ENTITAS_MASTER_DATA,
   ...ENTITAS_IZIN,
   ...ENTITAS_KEUANGAN,
+  ...ENTITAS_NOTIFIKASI,
 ];

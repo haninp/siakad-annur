@@ -112,9 +112,14 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
       `undang-XXXXXX`; bot menampilkan **link deep link**
       `https://t.me/rtq_annur_bot?start=<kode>` — wali mengetuk link dari WA,
       Telegram terbuka, `/start <kode>` terkirim otomatis, terdaftar, kode
-      hangus. `hubungkan` dipaksa sekali pakai di SQL (guard `undangan_kode`).
-      `waliUntuk()` membaca `pengguna_telegram` sebagai sumber kebenaran,
-      `DEV_WALI_BINDING` tinggal fallback dev. 15 test baru (repo + core).
+      hangus. `/undang` menampilkan **daftar undangan menunggu** + tombol
+      `❌ Cabut` (revoke, link langsung hangus); kode bekas otomatis hilang
+      dari daftar. Migrasi 7 (`dipakai_pada`/`dicabut_pada`): link bekas
+      dikenali — pesan "sudah digunakan" / "sudah dibatalkan pengurus" /
+      "tidak dikenal". `hubungkan` dipaksa sekali pakai di SQL (guard
+      `undangan_kode`). `waliUntuk()` membaca `pengguna_telegram` sebagai
+      sumber kebenaran, `DEV_WALI_BINDING` tinggal fallback dev. 20+ test
+      baru (repo + core).
 - [x] **1.15** Pencarian santri di bot internal (RFC-010) `[ringan]`
       → 🔍 Cari santri di menu utama + `/cari <nis|nama>`: NIS persis → nama
       mengandung → NIS diawali (maks 10); satu hasil langsung ke tampilan

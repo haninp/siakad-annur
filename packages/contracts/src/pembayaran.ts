@@ -101,9 +101,15 @@ export const PenggunaTelegram = z.object({
   telegram_id: z.number().int().positive().nullable(),
   peran: PeranPenggunaTelegram,
   wali_id: Ulid.nullable(),
-  /** Kode undangan (mis. `undang-XXXX`) — satu kali pakai. */
+  /** Kode undangan (mis. `undang-XXXX`) — TETAP tersimpan setelah dipakai
+   *  supaya link bekas bisa dikenali ("sudah digunakan"). Guard sekali pakai
+   *  memakai `dipakai_pada`/`dicabut_pada`, bukan penghapusan kode. */
   undangan_kode: Teks.nullable(),
   aktif: z.boolean(),
+  /** Terisi saat undangan dipakai (link hangus). */
+  dipakai_pada: WaktuIso.nullable(),
+  /** Terisi saat pengurus mencabut undangan (revoke). */
+  dicabut_pada: WaktuIso.nullable(),
   dibuat_pada: WaktuIso,
 });
 export type PenggunaTelegram = z.infer<typeof PenggunaTelegram>;
@@ -115,13 +121,25 @@ const klasifikasiPenggunaTelegram: PetaKlasifikasi<PenggunaTelegram> = {
   wali_id: 'publik',
   undangan_kode: 'publik',
   aktif: 'publik',
+  dipakai_pada: 'publik',
+  dicabut_pada: 'publik',
   dibuat_pada: 'publik',
 };
 
 export const entitasPenggunaTelegram: Entitas<PenggunaTelegram> = {
   nama: 'pengguna_telegram',
   skema: PenggunaTelegram,
-  kolom: ['id', 'telegram_id', 'peran', 'wali_id', 'undangan_kode', 'aktif', 'dibuat_pada'],
+  kolom: [
+    'id',
+    'telegram_id',
+    'peran',
+    'wali_id',
+    'undangan_kode',
+    'aktif',
+    'dipakai_pada',
+    'dicabut_pada',
+    'dibuat_pada',
+  ],
   klasifikasi: klasifikasiPenggunaTelegram,
 };
 
@@ -161,3 +179,13 @@ CREATE TABLE pengguna_telegram (
 `;
 
 export const TABEL_VERIFIKASI_PEMBAYARAN: readonly string[] = ['usulan_pembayaran', 'pengguna_telegram'];
+
+/**
+ * Migrasi 7 — jejak status undangan (RFC-009 amandemen): `dipakai_pada` terisi
+ * saat link dipakai, `dicabut_pada` saat pengurus mencabut (revoke). Kode
+ * undangan TIDAK dihapus saat dipakai supaya link bekas bisa dikenali.
+ */
+export const DDL_STATUS_UNDANGAN: string = `
+ALTER TABLE pengguna_telegram ADD COLUMN dipakai_pada TEXT;
+ALTER TABLE pengguna_telegram ADD COLUMN dicabut_pada TEXT;
+`;

@@ -165,13 +165,15 @@ describe('repoPenggunaTelegram', () => {
       wali_id: waliId,
       undangan_kode: 'undang-ABC123',
       aktif: true,
+      dipakai_pada: null,
+      dicabut_pada: null,
       dibuat_pada: '2026-08-15T08:00:00+07:00',
     });
 
     expect(repo.cariByUndanganKode('undang-ABC123')?.id).toBe(id);
     expect(repo.cariByTelegramId(144666620)).toBeUndefined();
 
-    repo.hubungkan(id, 'undang-ABC123', 144666620);
+    repo.hubungkan(id, 'undang-ABC123', 144666620, '2026-08-15T09:00:00+07:00');
     expect(repo.cariByTelegramId(144666620)?.id).toBe(id);
     expect(repo.cariByUndanganKode('undang-ABC123')).toBeUndefined();
   });
@@ -191,6 +193,8 @@ describe('repoPenggunaTelegram', () => {
       wali_id: waliId,
       undangan_kode: null,
       aktif: false,
+      dipakai_pada: null,
+      dicabut_pada: null,
       dibuat_pada: '2026-08-15T08:00:00+07:00',
     });
 

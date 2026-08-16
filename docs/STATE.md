@@ -22,7 +22,12 @@ wali mendaftar sendiri di bot wali dengan `/start <kode>` — tanpa menyentuh
 konfigurasi. Bot internal menampilkan **link deep link penuh**
 (`https://t.me/rtq_annur_bot?start=<kode>`) — wali cukup mengetuk link dari
 WhatsApp/chat apa pun, Telegram terbuka dan pendaftaran selesai otomatis.
-`hubungkan` dipaksakan sekali pakai di SQL (guard `undangan_kode`
+`/undang` kini menampilkan **daftar undangan yang menunggu** + tombol `❌ Cabut`
+(revoke); kode yang sudah dipakai otomatis hilang dari daftar. Migrasi 7
+(`dipakai_pada`/`dicabut_pada`): kode bekas tetap tersimpan sehingga link yang
+sudah dipakai/dicabut memberi pesan berbeda ("sudah digunakan" / "sudah
+dibatalkan pengurus" / "tidak dikenal"). `hubungkan` dipaksakan sekali pakai di
+SQL (guard `undangan_kode`
 + `aktif` + `telegram_id IS NULL`); satu telegram_id tidak bisa dipakai akun
 lain (anti-hijack). `waliUntuk()` membaca `pengguna_telegram` sebagai sumber
 kebenaran; `DEV_WALI_BINDING` tinggal fallback pengembangan. Handler core

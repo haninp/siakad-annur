@@ -358,7 +358,7 @@ bot.command('start', async (ctx) => {
     return;
   }
 
-  const hasil = undangan.gunakanUndangan({ telegramId, kode });
+  const hasil = undangan.gunakanUndangan({ telegramId, kode, waktu: new Date().toISOString() });
   if (!hasil.ok) {
     await ctx.reply(hasil.pesan ?? 'Pendaftaran gagal. Coba lagi.');
     return;

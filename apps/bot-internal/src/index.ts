@@ -384,7 +384,10 @@ const TEKS_MENU =
   'Perintah: /cari <nis|nama> · /status <nis> · /rekap · /piutang · (admin) /terbitkan · /undang · /bayar <nis> <nominal>';
 
 function menuUtama(): InlineKeyboard {
-  return new InlineKeyboard().text('💰 Keuangan', 'menu:keuangan').text('🔍 Cari santri', 'menu:cari');
+  return new InlineKeyboard()
+    .text('💰 Keuangan', 'menu:keuangan')
+    .text('🔍 Cari santri', 'menu:cari')
+    .text('✉️ Undangan', 'undangan:list');
 }
 
 function menuKeuangan(): InlineKeyboard {
@@ -663,21 +666,71 @@ bot.command('terbitkan', async (ctx) => {
 });
 
 bot.command('undang', async (ctx) => {
-  const daftar = waliAktif();
-  if (daftar.length === 0) {
-    await ctx.reply('Belum ada wali di data master.', { reply_markup: tombolMenu() });
-    return;
-  }
-  await ctx.reply('Buat undangan untuk wali siapa?', { reply_markup: pemilihWaliUndangan() });
+  await tampilkanListUndangan(ctx, false);
 });
 
-bot.callbackQuery('menu:undang', async (ctx) => {
+/** Kirim (reply) atau edit (ganti) tampilan daftar undangan yang menunggu. */
+async function tampilkanListUndangan(ctx: CallbackQueryContext<Context> | { reply: (t: string, o?: object) => Promise<unknown> }, edit: boolean): Promise<void> {
+  const daftar = undangan.daftarUndangan({ aktor: { peran: 'admin', id: actorId(ctx as CallbackQueryContext<Context>) } });
+  const kirim = edit
+    ? (t: string, kb: InlineKeyboard) => ganti(ctx as CallbackQueryContext<Context>, t, kb)
+    : (t: string, kb: InlineKeyboard) => (ctx as { reply: (t: string, o?: object) => Promise<unknown> }).reply(t, { reply_markup: kb });
+  if (!daftar.ok || !daftar.data) {
+    await kirim(daftar.pesan ?? 'Gagal memuat daftar undangan.', tombolMenu());
+    return;
+  }
+  const menunggu = daftar.data;
+  if (menunggu.length === 0) {
+    await kirim(
+      '✉️ Belum ada undangan yang menunggu dipakai.\n\nBuat undangan baru untuk wali:',
+      new InlineKeyboard().text('➕ Buat undangan', 'undangan:buat').row().text('🏠 Menu utama', 'menu:utama'),
+    );
+    return;
+  }
+  const namaWali = (waliId: string | null): string =>
+    waliId ? (repoWali(db).ambil(waliId)?.nama_lengkap ?? '?') : '?';
+  const baris = menunggu
+    .map((u) => `• ${namaWali(u.wali_id)} — ${u.undangan_kode}\n  🔗 ${linkUndangan(u.undangan_kode ?? '')}`)
+    .join('\n\n');
+  const kb = new InlineKeyboard();
+  for (const u of menunggu) {
+    kb.text(`❌ Cabut: ${namaWali(u.wali_id)}`, `undangan:cabut:${u.id}`).row();
+  }
+  kb.text('➕ Buat undangan', 'undangan:buat').row();
+  kb.text('🏠 Menu utama', 'menu:utama');
+  await kirim(`✉️ Undangan wali — ${menunggu.length} menunggu dipakai:\n\n${baris}\n\nKetuk ❌ untuk mencabut (link langsung hangus).`, kb);
+}
+
+bot.callbackQuery('undangan:list', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  await tampilkanListUndangan(ctx, true);
+});
+
+bot.callbackQuery('undangan:buat', async (ctx) => {
   await ctx.answerCallbackQuery();
   if (waliAktif().length === 0) {
     await ganti(ctx, 'Belum ada wali di data master.');
     return;
   }
   await ganti(ctx, 'Buat undangan untuk wali siapa?', pemilihWaliUndangan());
+});
+
+bot.callbackQuery(/^undangan:cabut:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const undanganId = ctx.match[1];
+  if (!undanganId) {
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
+    return;
+  }
+  const hasil = undangan.cabutUndangan({
+    aktor: { peran: 'admin', id: actorId(ctx) },
+    undanganId,
+    waktu: new Date().toISOString(),
+  });
+  const kb = new InlineKeyboard()
+    .text('✉️ Lihat undangan', 'undangan:list')
+    .text('🏠 Menu utama', 'menu:utama');
+  await ganti(ctx, hasil.pesan ?? 'Selesai.', kb);
 });
 
 bot.callbackQuery(/^undang:pilih:(.+)$/, async (ctx) => {
@@ -693,7 +746,8 @@ bot.callbackQuery(/^undang:pilih:(.+)$/, async (ctx) => {
     waktu: new Date().toISOString(),
   });
   const kb = new InlineKeyboard()
-    .text('✉️ Buat undangan lain', 'menu:undang')
+    .text('✉️ Buat undangan lain', 'undangan:buat')
+    .text('✉️ Lihat undangan', 'undangan:list')
     .text('🏠 Menu utama', 'menu:utama');
   await ganti(ctx, teksHasilUndangan(hasil), kb);
 });

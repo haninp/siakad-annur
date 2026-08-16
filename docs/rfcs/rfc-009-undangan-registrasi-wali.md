@@ -58,6 +58,18 @@ dasarnya — yang belum ada adalah alur undangan itu sendiri.
    terbuka dan otomatis mengirim `/start <kode>` ke bot wali. Payload `start`
    hanya berisi kode (alfanumerik + `-`, aman di bawah batas 64 karakter);
    handler `/start <kode>` di bot wali tidak berubah sama sekali.
+7. **Daftar, status link, dan pencabutan (amandemen 2026-08-16, migrasi 7).**
+   - `/undang` + tombol `✉️ Undangan` di menu utama menampilkan daftar
+     undangan yang masih menunggu (wali, kode, link) dengan tombol
+     `❌ Cabut` per baris. Kode yang sudah dipakai **otomatis hilang dari
+     daftar** (filter `dipakai_pada IS NULL`).
+   - Kolom baru `dipakai_pada` / `dicabut_pada`; kode undangan **tidak lagi
+     dihapus** saat dipakai — link bekas tetap dikenali dan diberi pesan
+     berbeda: *"Link undangan ini sudah digunakan"* vs *"sudah dibatalkan
+     pengurus"* vs *"tidak dikenal"*.
+   - `cabutUndangan` (admin/pengurus): mencabut undangan yang belum dipakai;
+     link langsung hangus dan hilang dari daftar. Undangan yang sudah dipakai
+     tidak bisa dicabut (guard SQL).
 
 ## Skema
 

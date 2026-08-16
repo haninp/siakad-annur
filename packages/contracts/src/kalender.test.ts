@@ -10,6 +10,7 @@ const barisSah = {
   provisional: true,
   disetujui_oleh: null,
   disetujui_pada: null,
+  diingatkan_pada: null,
   sumber: 'myquran' as const,
   catatan: null,
 };

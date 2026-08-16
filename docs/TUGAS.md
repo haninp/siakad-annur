@@ -107,6 +107,12 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
       ringkasan tampil ⏳ MENUNGGU VERIFIKASI. Bot internal: 💳 Usulan pembayaran
       (daftar → lihat bukti → verifikasi/tolak + alasan → notifikasi wali via
       bot wali). `BENDAHARA_TELEGRAM_IDS` di `.env`.
+- [x] **1.14** Registrasi wali sungguhan — undangan & `pengguna_telegram` (RFC-009) `[berat]`
+      → admin `/undang` di bot internal → pilih wali → kode sekali pakai
+      `undang-XXXXXX`; wali kirim `/start <kode>` di bot wali → terdaftar, kode
+      hangus. `hubungkan` dipaksa sekali pakai di SQL (guard `undangan_kode`).
+      `waliUntuk()` membaca `pengguna_telegram` sebagai sumber kebenaran,
+      `DEV_WALI_BINDING` tinggal fallback dev. 15 test baru (repo + core).
 
 ## Fase 2 — akademik
 

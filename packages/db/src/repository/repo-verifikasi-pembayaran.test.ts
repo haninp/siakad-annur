@@ -171,7 +171,7 @@ describe('repoPenggunaTelegram', () => {
     expect(repo.cariByUndanganKode('undang-ABC123')?.id).toBe(id);
     expect(repo.cariByTelegramId(144666620)).toBeUndefined();
 
-    repo.hubungkan(id, 144666620);
+    repo.hubungkan(id, 'undang-ABC123', 144666620);
     expect(repo.cariByTelegramId(144666620)?.id).toBe(id);
     expect(repo.cariByUndanganKode('undang-ABC123')).toBeUndefined();
   });

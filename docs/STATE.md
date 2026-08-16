@@ -3,11 +3,21 @@
 > Diperbarui di akhir setiap sesi. Berkas ini yang dibaca lebih dulu oleh agent berikutnya,
 > apa pun mereknya. STATE yang basi lebih berbahaya daripada tidak ada, karena ia dipercaya.
 
-**Terakhir diperbarui:** 11 Agustus 2026, sesi sore
+**Terakhir diperbarui:** 16 Agustus 2026, sesi M2
 
 ---
 
 ## Yang baru selesai
+
+**1.14 — Registrasi wali sungguhan (RFC-009).** Pengurus membuat undangan via
+`/undang` di bot internal (pilih wali → kode sekali pakai `undang-XXXXXX`),
+wali mendaftar sendiri di bot wali dengan `/start <kode>` — tanpa menyentuh
+konfigurasi. `hubungkan` dipaksakan sekali pakai di SQL (guard `undangan_kode`
++ `aktif` + `telegram_id IS NULL`); satu telegram_id tidak bisa dipakai akun
+lain (anti-hijack). `waliUntuk()` membaca `pengguna_telegram` sebagai sumber
+kebenaran; `DEV_WALI_BINDING` tinggal fallback pengembangan. Handler core
+`buatUndangan` (admin/pengurus) + `gunakanUndangan` (mandiri) + 15 test baru
+(repo & core). `docs/rfcs/rfc-009-undangan-registrasi-wali.md`.
 
 **1.13 — Alur verifikasi pembayaran (RFC-008).** Wali submit bukti via bot wali
 (💳 Bayar tagihan: pilih anak → tagihan → metode → cash wajib nama penerima →

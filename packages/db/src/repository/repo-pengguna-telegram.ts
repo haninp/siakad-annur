@@ -24,8 +24,12 @@ export interface RepoPenggunaTelegram {
   /** Cari pengguna berdasarkan kode undangan. */
   readonly cariByUndanganKode: (kode: string) => PenggunaTelegram | undefined;
 
-  /** Hubungkan telegram_id ke pengguna yang dibuat via undangan. */
-  readonly hubungkan: (id: string, telegramId: number) => void;
+  /**
+   * Hubungkan telegram_id ke baris undangan — SEKALI PAKAI, dipaksakan di SQL:
+   * hanya berhasil bila kode masih terpasang, baris aktif, dan telegram_id
+   * belum terisi. Kode bekas otomatis tidak cocok (undangan_kode sudah NULL).
+   */
+  readonly hubungkan: (id: string, undanganKode: string, telegramId: number) => void;
 }
 
 export function repoPenggunaTelegram(db: DatabaseSync): RepoPenggunaTelegram {
@@ -61,8 +65,17 @@ export function repoPenggunaTelegram(db: DatabaseSync): RepoPenggunaTelegram {
       return row ? dariSql(entitasPenggunaTelegram, row) : undefined;
     },
 
-    hubungkan: (id, telegramId) => {
-      db.prepare(`UPDATE ${TABEL} SET telegram_id = ?, undangan_kode = NULL WHERE id = ?`).run(telegramId, id);
+    hubungkan: (id, undanganKode, telegramId) => {
+      const hasil = db
+        .prepare(
+          `UPDATE ${TABEL}
+           SET telegram_id = ?, undangan_kode = NULL
+           WHERE id = ? AND undangan_kode = ? AND aktif = 1 AND telegram_id IS NULL`,
+        )
+        .run(telegramId, id, undanganKode);
+      if (hasil.changes === 0) {
+        throw new Error('Kode undangan tidak ditemukan atau sudah dipakai');
+      }
     },
   };
 }

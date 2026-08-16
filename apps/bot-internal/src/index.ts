@@ -19,6 +19,7 @@ import { InlineKeyboard, type CallbackQueryContext, type Context } from 'grammy'
 import { buatBot } from '@siakad/bot';
 import {
   buatHandlerKeuangan,
+  buatHandlerUndangan,
   buatHandlerVerifikasiPembayaran,
   formatStatusPembayaran,
   statusPembayaran,
@@ -45,6 +46,7 @@ import {
   repoTarifKomponen,
   repoTahunAjaran,
   repoUsulanPembayaran,
+  repoWali,
 } from '@siakad/db';
 
 const token = process.env.TELEGRAM_TOKEN_INTERNAL;
@@ -91,6 +93,10 @@ const verifikasi = buatHandlerVerifikasiPembayaran({
   repoUsulanPembayaran: repoUsulanPembayaran(db),
   repoSantriWali: repoSantriWali(db),
   keuangan,
+});
+const undangan = buatHandlerUndangan({
+  repoPenggunaTelegram: repoPenggunaTelegram(db),
+  repoWali: repoWali(db),
 });
 
 const bot = buatBot({ token });
@@ -375,7 +381,7 @@ function terbitkanBulanan(): string {
 const TEKS_MENU =
   '🏫 SIAKAD An-Nuur — Menu Pengurus\n\n' +
   'Pilih 💰 Keuangan untuk pembayaran santri.\n' +
-  'Perintah: /status <nis> · /rekap · /piutang · (admin) /terbitkan · /bayar <nis> <nominal>';
+  'Perintah: /status <nis> · /rekap · /piutang · (admin) /terbitkan · /undang · /bayar <nis> <nominal>';
 
 function menuUtama(): InlineKeyboard {
   return new InlineKeyboard().text('💰 Keuangan', 'menu:keuangan');
@@ -408,6 +414,39 @@ function pemilihSantri(komponenId: string): InlineKeyboard {
   }
   kb.text('👈 Kembali', 'keu:santri');
   return kb;
+}
+
+// ── undangan wali (RFC-009) ──────────────────────────────────────────────────
+
+function waliAktif(): { id: string; nama_lengkap: string }[] {
+  return db.prepare(`SELECT id, nama_lengkap FROM wali ORDER BY nama_lengkap`).all() as {
+    id: string;
+    nama_lengkap: string;
+  }[];
+}
+
+function pemilihWaliUndangan(): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  for (const w of waliAktif()) {
+    kb.text(w.nama_lengkap, `undang:pilih:${w.id}`).row();
+  }
+  kb.text('🏠 Menu utama', 'menu:utama');
+  return kb;
+}
+
+function teksHasilUndangan(hasil: {
+  ok: boolean;
+  pesan?: string;
+  data?: { undangan_kode: string | null } | undefined;
+}): string {
+  if (!hasil.ok || !hasil.data?.undangan_kode) return hasil.pesan ?? 'Gagal membuat undangan.';
+  return (
+    `✉️ Undangan berhasil dibuat.\n\n` +
+    `Kode: ${hasil.data.undangan_kode}\n\n` +
+    `Sampaikan kode ini ke wali. Wali membuka @rtq_annur_bot lalu mengirim:\n` +
+    `/start ${hasil.data.undangan_kode}\n\n` +
+    `Kode hanya bisa dipakai sekali.`
+  );
 }
 
 function tombolMenu(): InlineKeyboard {
@@ -555,6 +594,42 @@ bot.callbackQuery(/^kp:(.+)$/, async (ctx) => {
 
 bot.command('terbitkan', async (ctx) => {
   await ctx.reply(terbitkanBulanan(), { reply_markup: tombolMenu() });
+});
+
+bot.command('undang', async (ctx) => {
+  const daftar = waliAktif();
+  if (daftar.length === 0) {
+    await ctx.reply('Belum ada wali di data master.', { reply_markup: tombolMenu() });
+    return;
+  }
+  await ctx.reply('Buat undangan untuk wali siapa?', { reply_markup: pemilihWaliUndangan() });
+});
+
+bot.callbackQuery('menu:undang', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  if (waliAktif().length === 0) {
+    await ganti(ctx, 'Belum ada wali di data master.');
+    return;
+  }
+  await ganti(ctx, 'Buat undangan untuk wali siapa?', pemilihWaliUndangan());
+});
+
+bot.callbackQuery(/^undang:pilih:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const waliId = ctx.match[1];
+  if (!waliId) {
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
+    return;
+  }
+  const hasil = undangan.buatUndangan({
+    aktor: { peran: 'admin', id: actorId(ctx) },
+    waliId,
+    waktu: new Date().toISOString(),
+  });
+  const kb = new InlineKeyboard()
+    .text('✉️ Buat undangan lain', 'menu:undang')
+    .text('🏠 Menu utama', 'menu:utama');
+  await ganti(ctx, teksHasilUndangan(hasil), kb);
 });
 
 bot.command('rekap', async (ctx) => {

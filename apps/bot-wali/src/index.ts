@@ -17,9 +17,9 @@
 import { InlineKeyboard, type CallbackQueryContext, type Context } from 'grammy';
 import { buatBot } from '@siakad/bot';
 import { formatStatusPembayaran, statusPembayaran } from '@siakad/core';
+import { buatHandlerUndangan, buatHandlerVerifikasiPembayaran } from '@siakad/core';
 import { bukaBasisData } from '@siakad/db';
 import type { Keringanan } from '@siakad/contracts';
-import { buatHandlerVerifikasiPembayaran } from '@siakad/core';
 import {
   buatDukunganTransaksi,
   repoAlokasiProta,
@@ -29,6 +29,7 @@ import {
   repoPembayaran,
   repoPemakaianLebihBayar,
   repoPendaftaran,
+  repoPenggunaTelegram,
   repoProta,
   repoRombel,
   repoSantri,
@@ -37,6 +38,7 @@ import {
   repoTarifKomponen,
   repoTahunAjaran,
   repoUsulanPembayaran,
+  repoWali,
 } from '@siakad/db';
 import { buatHandlerKeuangan } from '@siakad/core';
 
@@ -84,6 +86,10 @@ const verifikasi = buatHandlerVerifikasiPembayaran({
   repoUsulanPembayaran: repoUsulanPembayaran(db),
   repoSantriWali: repoSantriWali(db),
   keuangan,
+});
+const undangan = buatHandlerUndangan({
+  repoPenggunaTelegram: repoPenggunaTelegram(db),
+  repoWali: repoWali(db),
 });
 
 const bot = buatBot({ token });
@@ -134,6 +140,15 @@ interface SantriWali {
 
 function waliUntuk(telegramId: number | undefined) {
   if (telegramId === undefined) return undefined;
+  // Sumber kebenaran (RFC-009): pengguna_telegram — wali yang mendaftar lewat undangan.
+  const terdaftar = repoPenggunaTelegram(db).cariByTelegramId(telegramId);
+  if (terdaftar?.peran === 'wali' && terdaftar.wali_id) {
+    const wali = db
+      .prepare(`SELECT id, nama_lengkap FROM wali WHERE id = ?`)
+      .get(terdaftar.wali_id) as { id: string; nama_lengkap: string } | undefined;
+    if (wali) return wali;
+  }
+  // Fallback DEV (DEV_WALI_BINDING) — simulasi pengembangan sampai wali nyata terdaftar.
   const nama = devWaliBinding.get(telegramId);
   if (!nama) return undefined;
   return db
@@ -307,9 +322,12 @@ async function ganti(ctx: CallbackQueryContext<Context>, teks: string, kb?: Inli
   }
 }
 
-// Whitelist (RFC-004): hanya wali terdaftar di DEV_WALI_TELEGRAM_IDS.
+// Whitelist (RFC-004, diperluas RFC-009): wali terdaftar boleh semua;
+// /start bebas — itulah jalur pendaftaran (dengan kode undangan).
 bot.use(async (ctx, next) => {
   if (waliUntuk(ctx.from?.id)) return next();
+  const teks = ctx.message?.text ?? '';
+  if (teks.startsWith('/start')) return next();
   if (ctx.callbackQuery) {
     await ctx
       .answerCallbackQuery({ text: 'Maaf, akun Anda belum terdaftar sebagai wali.' })
@@ -320,11 +338,40 @@ bot.use(async (ctx, next) => {
 });
 
 bot.command('start', async (ctx) => {
-  const wali = waliUntuk(ctx.from?.id);
-  if (!wali) return;
-  await ctx.reply(`Assalamualaikum, Bapak/Ibu ${wali.nama_lengkap}.\n\n${teksRingkasan(wali)}`, {
-    reply_markup: menuUtama(),
-  });
+  const telegramId = ctx.from?.id;
+  if (telegramId === undefined) return;
+  let wali = waliUntuk(telegramId);
+  if (wali) {
+    await ctx.reply(`Assalamualaikum, Bapak/Ibu ${wali.nama_lengkap}.\n\n${teksRingkasan(wali)}`, {
+      reply_markup: menuUtama(),
+    });
+    return;
+  }
+
+  const kode = (ctx.match ?? '').toString().trim();
+  if (!kode) {
+    await ctx.reply(
+      'Assalamualaikum. Akun Anda belum terdaftar sebagai wali.\n\n' +
+        'Minta KODE UNDANGAN ke pengurus pesantren, lalu kirim:\n' +
+        '/start <kode>\n\nContoh: /start undang-K7Q2M9',
+    );
+    return;
+  }
+
+  const hasil = undangan.gunakanUndangan({ telegramId, kode });
+  if (!hasil.ok) {
+    await ctx.reply(hasil.pesan ?? 'Pendaftaran gagal. Coba lagi.');
+    return;
+  }
+  wali = waliUntuk(telegramId);
+  if (!wali) {
+    await ctx.reply('Pendaftaran berhasil. Kirim /start untuk melihat tagihan.');
+    return;
+  }
+  await ctx.reply(
+    `Assalamualaikum, Bapak/Ibu ${wali.nama_lengkap}. Pendaftaran berhasil.\n\n${teksRingkasan(wali)}`,
+    { reply_markup: menuUtama() },
+  );
 });
 
 bot.callbackQuery('menu:utama', async (ctx) => {

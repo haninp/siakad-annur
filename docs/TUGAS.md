@@ -113,6 +113,11 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
       hangus. `hubungkan` dipaksa sekali pakai di SQL (guard `undangan_kode`).
       `waliUntuk()` membaca `pengguna_telegram` sebagai sumber kebenaran,
       `DEV_WALI_BINDING` tinggal fallback dev. 15 test baru (repo + core).
+- [x] **1.15** Pencarian santri di bot internal (RFC-010) `[ringan]`
+      → 🔍 Cari santri di menu utama + `/cari <nis|nama>`: NIS persis → nama
+      mengandung → NIS diawali (maks 10); satu hasil langsung ke tampilan
+      status, banyak hasil jadi tombol pilihan. View detail santri punya area
+      aksi (`tombolDetailSantri`) siap diperluas dengan aksi tulis kelak.
 
 ## Fase 2 — akademik
 

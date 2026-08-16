@@ -9,6 +9,13 @@
 
 ## Yang baru selesai
 
+**1.15 — Pencarian santri di bot internal (RFC-010).** Tombol `🔍 Cari santri`
+di menu utama + perintah `/cari <nis|nama>`. Urutan hasil: NIS persis → nama
+mengandung → NIS diawali (maks 10). Satu hasil langsung menampilkan status
+tagihan (semua komponen + saldo, format RFC-007); banyak hasil jadi tombol
+pilihan. View detail santri (`santri:detail`) punya area aksi yang siap
+diperluas dengan aksi tulis kelak. `docs/rfcs/rfc-010-pencarian-santri.md`.
+
 **1.14 — Registrasi wali sungguhan (RFC-009).** Pengurus membuat undangan via
 `/undang` di bot internal (pilih wali → kode sekali pakai `undang-XXXXXX`),
 wali mendaftar sendiri di bot wali dengan `/start <kode>` — tanpa menyentuh

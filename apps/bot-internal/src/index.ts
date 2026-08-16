@@ -381,10 +381,10 @@ function terbitkanBulanan(): string {
 const TEKS_MENU =
   '🏫 SIAKAD An-Nuur — Menu Pengurus\n\n' +
   'Pilih 💰 Keuangan untuk pembayaran santri.\n' +
-  'Perintah: /status <nis> · /rekap · /piutang · (admin) /terbitkan · /undang · /bayar <nis> <nominal>';
+  'Perintah: /cari <nis|nama> · /status <nis> · /rekap · /piutang · (admin) /terbitkan · /undang · /bayar <nis> <nominal>';
 
 function menuUtama(): InlineKeyboard {
-  return new InlineKeyboard().text('💰 Keuangan', 'menu:keuangan');
+  return new InlineKeyboard().text('💰 Keuangan', 'menu:keuangan').text('🔍 Cari santri', 'menu:cari');
 }
 
 function menuKeuangan(): InlineKeyboard {
@@ -447,6 +447,63 @@ function teksHasilUndangan(hasil: {
     `/start ${hasil.data.undangan_kode}\n\n` +
     `Kode hanya bisa dipakai sekali.`
   );
+}
+
+// ── pencarian santri (RFC-010) ───────────────────────────────────────────────
+
+/**
+ * Cari santri berdasarkan NIS (persis/awalan) atau nama (mengandung).
+ * Urutan: NIS persis → nama mengandung → NIS diawali; maksimal 10 hasil.
+ */
+function cariSantriFleksibel(query: string): BarisSantri[] {
+  const q = query.trim();
+  if (!q) return [];
+  const hasil: BarisSantri[] = [];
+  const tampil = new Set<string>();
+  const tambah = (r: BarisSantri): void => {
+    if (!tampil.has(r.id)) {
+      tampil.add(r.id);
+      hasil.push(r);
+    }
+  };
+  const sql = `SELECT s.id, s.nis, s.nama_lengkap FROM santri s WHERE`;
+  for (const r of db.prepare(`${sql} s.nis = ? COLLATE NOCASE`).all(q) as unknown as BarisSantri[]) tambah(r);
+  for (const r of db
+    .prepare(`${sql} LOWER(s.nama_lengkap) LIKE ? ORDER BY s.nama_lengkap LIMIT 20`)
+    .all(`%${q.toLowerCase()}%`) as unknown as BarisSantri[]) tambah(r);
+  for (const r of db
+    .prepare(`${sql} s.nis LIKE ? COLLATE NOCASE LIMIT 20`)
+    .all(`${q}%`) as unknown as BarisSantri[]) {
+    tambah(r);
+  }
+  return hasil.slice(0, 10);
+}
+
+function pemilihHasilCari(daftar: BarisSantri[]): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  for (const s of daftar) {
+    kb.text(`${s.nama_lengkap}${s.nis ? ` (${s.nis})` : ''}`, `cari:pilih:${s.id}`).row();
+  }
+  kb.text('🏠 Menu utama', 'menu:utama');
+  return kb;
+}
+
+/** Area aksi view santri (RFC-010): tombol aksi tulis ditambahkan di sini kelak. */
+function tombolDetailSantri(): InlineKeyboard {
+  return new InlineKeyboard().text('🔍 Cari lagi', 'menu:cari').text('🏠 Menu utama', 'menu:utama');
+}
+
+function tampilHasilCari(reply: (teks: string, kb?: InlineKeyboard) => Promise<unknown>, query: string): void {
+  const daftar = cariSantriFleksibel(query);
+  if (daftar.length === 0) {
+    void reply(`Tidak ada santri dengan NIS atau nama '${query}'.`, tombolMenu());
+    return;
+  }
+  if (daftar.length === 1) {
+    void reply(teksStatus(daftar[0]!), tombolDetailSantri());
+    return;
+  }
+  void reply(`Ditemukan ${daftar.length} santri. Pilih:`, pemilihHasilCari(daftar));
 }
 
 function tombolMenu(): InlineKeyboard {
@@ -686,10 +743,22 @@ bot.command('status', async (ctx) => {
   await ctx.reply(teksStatus(santri), { reply_markup: tombolMenu() });
 });
 
+bot.command('cari', async (ctx) => {
+  const query = (ctx.match ?? '').trim();
+  if (!query) {
+    await ctx.reply('Gunakan: /cari <NIS atau nama>. Contoh: /cari 2627001 atau /cari aisyah');
+    return;
+  }
+  tampilHasilCari((teks, kb) => ctx.reply(teks, kb ? { reply_markup: kb } : undefined), query);
+});
+
 // ── alur bendahara: usulan pembayaran (RFC-008) ─────────────────────────────
 
 /** State "tunggu alasan penolakan" — chatId → usulanId (in-memory). */
 const stateTolak = new Map<number, string>();
+
+/** State "tunggu kata kunci pencarian santri" — chatId → aktif (RFC-010). */
+const stateCari = new Map<number, true>();
 
 const tokenWali = process.env.TELEGRAM_TOKEN_WALI;
 
@@ -856,30 +925,61 @@ function tombolBatalUsulan(): InlineKeyboard {
   return new InlineKeyboard().text('❌ Batal', 'keu:usulan');
 }
 
-// teks bebas → alasan penolakan
+// teks bebas → alasan penolakan (stateTolak) atau kata kunci pencarian (stateCari)
 bot.on('message:text', async (ctx) => {
   const chatId = ctx.from?.id ?? -1;
   const usulanId = stateTolak.get(chatId);
-  if (!usulanId) return;
-  const alasan = (ctx.message.text ?? '').trim();
-  if (!alasan) {
-    await ctx.reply('Alasan penolakan tidak boleh kosong.');
+  if (usulanId) {
+    const alasan = (ctx.message.text ?? '').trim();
+    if (!alasan) {
+      await ctx.reply('Alasan penolakan tidak boleh kosong.');
+      return;
+    }
+    stateTolak.delete(chatId);
+    const hasil = verifikasi.tolakUsulan({
+      aktor: { peran: 'bendahara', id: actorId(ctx) },
+      usulanId,
+      alasan,
+      waktu: new Date().toISOString(),
+    });
+    await ctx.reply(hasil.pesan ?? 'Selesai.', { reply_markup: tombolMenu() });
+    if (hasil.ok) {
+      const waliId = (db.prepare(`SELECT wali_id FROM usulan_pembayaran WHERE id = ?`).get(usulanId) as
+        | { wali_id: string }
+        | undefined)?.wali_id;
+      if (waliId) await kirimNotifWali(waliId, `❌ Pembayaran Anda DITOLAK.\nAlasan: ${alasan}\nStatus tagihan tetap BELUM BAYAR.`);
+    }
     return;
   }
-  stateTolak.delete(chatId);
-  const hasil = verifikasi.tolakUsulan({
-    aktor: { peran: 'bendahara', id: actorId(ctx) },
-    usulanId,
-    alasan,
-    waktu: new Date().toISOString(),
-  });
-  await ctx.reply(hasil.pesan ?? 'Selesai.', { reply_markup: tombolMenu() });
-  if (hasil.ok) {
-    const waliId = (db.prepare(`SELECT wali_id FROM usulan_pembayaran WHERE id = ?`).get(usulanId) as
-      | { wali_id: string }
-      | undefined)?.wali_id;
-    if (waliId) await kirimNotifWali(waliId, `❌ Pembayaran Anda DITOLAK.\nAlasan: ${alasan}\nStatus tagihan tetap BELUM BAYAR.`);
+  if (stateCari.has(chatId)) {
+    stateCari.delete(chatId);
+    tampilHasilCari((teks, kb) => ctx.reply(teks, kb ? { reply_markup: kb } : undefined), ctx.message.text ?? '');
   }
+});
+
+// ── pencarian santri (RFC-010) ───────────────────────────────────────────────
+
+bot.callbackQuery('menu:cari', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  stateCari.set(ctx.from?.id ?? -1, true);
+  await ganti(ctx, 'Ketik NIS atau nama santri yang ingin dicari.');
+});
+
+bot.callbackQuery(/^cari:pilih:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const santriId = ctx.match[1];
+  if (!santriId) {
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
+    return;
+  }
+  const santri = db
+    .prepare(`SELECT id, nis, nama_lengkap FROM santri WHERE id = ?`)
+    .get(santriId) as BarisSantri | undefined;
+  if (!santri) {
+    await ganti(ctx, 'Data tidak ditemukan. Menu mungkin sudah kedaluwarsa — kirim /start.');
+    return;
+  }
+  await ganti(ctx, teksStatus(santri), tombolDetailSantri());
 });
 
 // callback tak dikenal / kedaluwarsa

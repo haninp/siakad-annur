@@ -18,6 +18,7 @@
 import { InlineKeyboard, type CallbackQueryContext, type Context } from 'grammy';
 import { buatBot } from '@siakad/bot';
 import {
+  buatHandlerKalender,
   buatHandlerKeuangan,
   buatHandlerUndangan,
   buatHandlerVerifikasiPembayaran,
@@ -34,6 +35,7 @@ import {
   repoKeringanan,
   repoKomponenBiaya,
   repoLebihBayar,
+  repoKalenderHijriah,
   repoPembayaran,
   repoPemakaianLebihBayar,
   repoPendaftaran,
@@ -98,6 +100,7 @@ const undangan = buatHandlerUndangan({
   repoPenggunaTelegram: repoPenggunaTelegram(db),
   repoWali: repoWali(db),
 });
+const kalender = buatHandlerKalender({ repoKalenderHijriah: repoKalenderHijriah(db) });
 
 const bot = buatBot({ token });
 
@@ -381,7 +384,7 @@ function terbitkanBulanan(): string {
 const TEKS_MENU =
   '🏫 SIAKAD An-Nuur — Menu Pengurus\n\n' +
   'Pilih 💰 Keuangan untuk pembayaran santri.\n' +
-  'Perintah: /cari <nis|nama> · /status <nis> · /rekap · /piutang · (admin) /terbitkan · /undang · /bayar <nis> <nominal>';
+  'Perintah: /cari <nis|nama> · /status <nis> · /rekap · /piutang · /setujui <tahun>-<bulan> · (admin) /terbitkan · /undang · /bayar <nis> <nominal>';
 
 function menuUtama(): InlineKeyboard {
   return new InlineKeyboard()
@@ -813,6 +816,25 @@ bot.command('cari', async (ctx) => {
     return;
   }
   tampilHasilCari((teks, kb) => ctx.reply(teks, kb ? { reply_markup: kb } : undefined), query);
+});
+
+bot.command('setujui', async (ctx) => {
+  const bagian = (ctx.match ?? '').trim().split('-');
+  const tahun = Number(bagian[0]);
+  const bulan = Number(bagian[1]);
+  if (!Number.isInteger(tahun) || !Number.isInteger(bulan) || bulan < 1 || bulan > 12) {
+    await ctx.reply('Gunakan: /setujui <tahun>-<bulan>. Contoh: /setujui 1448-09', {
+      reply_markup: tombolMenu(),
+    });
+    return;
+  }
+  const hasil = kalender.setujuiBulanHijriah({
+    aktor: { peran: 'admin', id: actorId(ctx) },
+    tahun,
+    bulan,
+    waktu: new Date().toISOString(),
+  });
+  await ctx.reply(hasil.pesan ?? 'Selesai.', { reply_markup: tombolMenu() });
 });
 
 // ── alur bendahara: usulan pembayaran (RFC-008) ─────────────────────────────

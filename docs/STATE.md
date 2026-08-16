@@ -9,6 +9,15 @@
 
 ## Yang baru selesai
 
+**1.17 — Reminder worker: kalender hijriah & jatuh tempo (RFC-012).** Loop
+`apps/worker` kini menjalankan tiga job: notifikasi terbit (RFC-011), reminder
+jatuh tempo H-3/H-1 ke wali terdaftar (`notifikasi_jatuh_tempo`, masing-masing
+tahap sekali), dan reminder bulan hijriah provisional yang mulai ≤3 hari ke
+pengurus (`diingatkan_pada` di `kalender_hijriah`, migrasi 9) dengan perintah
+`/setujui <tahun>-<bulan>` di bot internal (memakai `setujuiBulanHijriah` yang
+sudah ada). Handoff 0013 (reminder kalender hijriah) ditutup — P1 terpenuhi dan
+fondasinya jadi nyata. `docs/rfcs/rfc-012-reminder-worker.md`.
+
 **1.16 — Worker notifikasi tagihan terbit (RFC-011).** `apps/worker` kini
 daemon nyata: tiap 60 detik memeriksa tagihan status 'terbit' yang belum
 dinotifikasi, lalu mengirim pesan proaktif ke wali TERDAFTAR

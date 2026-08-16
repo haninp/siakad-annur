@@ -132,6 +132,13 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
       2026-08 untuk … Rp 450.000, batas …"). Jejak `notifikasi_terbit`
       (migrasi 8), idempoten; tagihan tanpa wali terdaftar TIDAK ditandai
       (terkirim begitu wali daftar). `npm run worker:notifikasi`.
+- [x] **1.17** Reminder worker — kalender hijriah & jatuh tempo (RFC-012) `[ringan]`
+      → job baru di loop worker yang sama: (a) bulan hijriah provisional yang
+      mulai ≤3 hari → kirim ke pengurus + `/setujui <tahun>-<bulan>` di bot
+      internal (core `setujuiBulanHijriah`); jejak `diingatkan_pada` (migrasi 9).
+      (b) tagihan jatuh tempo H-3/H-1 → reminder ke wali terdaftar; jejak
+      `notifikasi_jatuh_tempo` (tahap h3/h1, masing-masing sekali). Handoff
+      0013 ditutup.
 
 ## Fase 2 — akademik
 

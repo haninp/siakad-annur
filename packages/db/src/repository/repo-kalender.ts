@@ -28,6 +28,13 @@ export interface RepoKalenderHijriah {
   readonly hitungBulanPadaTanggal: (masehi: string) => KalenderHijriah | undefined;
   /** Upsert baris; selalu reset persetujuan karena sumber mungkin berubah. */
   readonly simpan: (baris: KalenderHijriah) => void;
+  /**
+   * Baris provisional yang belum diingatkan dan mulai dalam rentang tanggal
+   * Masehi (RFC-012) — untuk reminder worker.
+   */
+  readonly cariPerluDiingatkan: (mulaiDari: string, sampai: string) => KalenderHijriah[];
+  /** Tandai baris sudah diingatkan (RFC-012) — idempoten. */
+  readonly tandaiDiingatkan: (tahun: number, bulan: number, waktu: string) => void;
 }
 
 export function repoKalenderHijriah(db: DatabaseSync): RepoKalenderHijriah {
@@ -126,6 +133,25 @@ export function repoKalenderHijriah(db: DatabaseSync): RepoKalenderHijriah {
       const sqlValues = keSql(ent, baris);
       const values = ent.kolom.map((k) => sqlValues[k]) as SQLInputValue[];
       db.prepare(simpanSql).run(...values);
+    },
+
+    cariPerluDiingatkan: (mulaiDari, sampai) => {
+      const rows = db
+        .prepare(
+          `SELECT ${kolom} FROM ${tabel}
+           WHERE provisional = 1 AND diingatkan_pada IS NULL
+             AND tanggal_mulai_masehi BETWEEN ? AND ?
+           ORDER BY tanggal_mulai_masehi`,
+        )
+        .all(mulaiDari, sampai) as Record<string, unknown>[];
+      return rows.map((r) => dariSql(ent, r));
+    },
+
+    tandaiDiingatkan: (tahun, bulan, waktu) => {
+      db.prepare(
+        `UPDATE ${tabel} SET diingatkan_pada = ?
+         WHERE tahun_hijriah = ? AND bulan_hijriah = ?`,
+      ).run(waktu, tahun, bulan);
     },
   };
 }

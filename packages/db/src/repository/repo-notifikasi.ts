@@ -28,6 +28,19 @@ export interface RepoNotifikasi {
 
   /** Tandai tagihan sudah dinotifikasi — idempoten (INSERT OR IGNORE). */
   readonly tandaiNotifikasiTerbit: (tagihanId: string, waktu: string) => void;
+
+  /**
+   * Tagihan 'terbit' yang jatuh temponya tepat `hariIni + tambahHari` dan
+   * belum pernah direminder untuk tahap itu (RFC-012).
+   */
+  readonly cariTagihanJatuhTempo: (
+    hariIni: string,
+    tambahHari: number,
+    tahap: 'h3' | 'h1',
+  ) => TagihanPerluNotifikasi[];
+
+  /** Tandai tahap reminder sudah dikirim — idempoten (INSERT OR IGNORE). */
+  readonly tandaiJatuhTempo: (tagihanId: string, tahap: 'h3' | 'h1', waktu: string) => void;
 }
 
 const KOLOM = entitasNotifikasiTerbit.kolom.join(', ');
@@ -69,6 +82,31 @@ export function repoNotifikasi(db: DatabaseSync): RepoNotifikasi {
       db.prepare(
         `INSERT OR IGNORE INTO ${entitasNotifikasiTerbit.nama} (${KOLOM}) VALUES (?, ?)`,
       ).run(tagihanId, waktu);
+    },
+
+    cariTagihanJatuhTempo: (hariIni, tambahHari, tahap) => {
+      const rows = db
+        .prepare(
+          `SELECT t.id AS tagihan_id, t.periode, t.nominal, t.jatuh_tempo,
+                  k.nama AS komponen_nama, s.id AS santri_id, s.nama_lengkap AS santri_nama
+           FROM tagihan t
+           JOIN komponen_biaya k ON k.id = t.komponen_biaya_id
+           JOIN santri s ON s.id = t.santri_id
+           LEFT JOIN notifikasi_jatuh_tempo n ON n.tagihan_id = t.id AND n.tahap = ?
+           WHERE t.status = 'terbit'
+             AND t.jatuh_tempo = date(?, '+${tambahHari} day')
+             AND n.tagihan_id IS NULL
+           ORDER BY t.jatuh_tempo
+           LIMIT 50`,
+        )
+        .all(tahap, hariIni) as unknown as TagihanPerluNotifikasi[];
+      return rows;
+    },
+
+    tandaiJatuhTempo: (tagihanId, tahap, waktu) => {
+      db.prepare(
+        `INSERT OR IGNORE INTO notifikasi_jatuh_tempo (tagihan_id, tahap, dikirim_pada) VALUES (?, ?, ?)`,
+      ).run(tagihanId, tahap, waktu);
     },
   };
 }

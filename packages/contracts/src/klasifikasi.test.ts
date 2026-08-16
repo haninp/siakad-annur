@@ -8,8 +8,10 @@ import {
   DDL_KEUANGAN,
   DDL_NOTIFIKASI_TERBIT,
   DDL_PEMAKAIAN_LEBIH_BAYAR,
+  DDL_REMINDER,
   TABEL_KEUANGAN,
   TABEL_NOTIFIKASI_TERBIT,
+  TABEL_NOTIFIKASI_JATUH_TEMPO,
   TABEL_PEMAKAIAN_LEBIH_BAYAR,
 } from './keuangan.js';
 import { DDL_KALENDER_HIJRIAH, TABEL_KALENDER_HIJRIAH } from './kalender.js';
@@ -43,13 +45,14 @@ describe('kelengkapan klasifikasi data pribadi', () => {
         ...TABEL_PEMAKAIAN_LEBIH_BAYAR,
         ...TABEL_KALENDER_HIJRIAH,
         ...TABEL_NOTIFIKASI_TERBIT,
+        ...TABEL_NOTIFIKASI_JATUH_TEMPO,
       ].sort(),
     );
   });
 
   it('setiap tabel yang terdaftar benar-benar dibuat DDL', () => {
     const ddl =
-      DDL_MASTER_DATA + DDL_IZIN + DDL_KEUANGAN + DDL_PEMAKAIAN_LEBIH_BAYAR + DDL_KALENDER_HIJRIAH + DDL_NOTIFIKASI_TERBIT;
+      DDL_MASTER_DATA + DDL_IZIN + DDL_KEUANGAN + DDL_PEMAKAIAN_LEBIH_BAYAR + DDL_KALENDER_HIJRIAH + DDL_NOTIFIKASI_TERBIT + DDL_REMINDER;
     for (const tabel of [
       ...TABEL_MASTER_DATA,
       ...TABEL_IZIN,
@@ -57,6 +60,7 @@ describe('kelengkapan klasifikasi data pribadi', () => {
       ...TABEL_PEMAKAIAN_LEBIH_BAYAR,
       ...TABEL_KALENDER_HIJRIAH,
       ...TABEL_NOTIFIKASI_TERBIT,
+      ...TABEL_NOTIFIKASI_JATUH_TEMPO,
     ]) {
       expect(ddl).toContain(`CREATE TABLE ${tabel} (`);
     }

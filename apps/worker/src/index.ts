@@ -1,16 +1,18 @@
 /**
- * Worker notifikasi (RFC-011): tagihan yang baru terbit diberitahukan
- * proaktif ke wali terdaftar via bot wali (@rtq_annur_bot).
+ * Worker (RFC-011/012) — notifikasi & reminder:
+ *  1. Tagihan terbit → wali terdaftar (RFC-011)
+ *  2. Jatuh tempo H-3 / H-1 → wali terdaftar (RFC-012)
+ *  3. Kalender hijriah provisional akan dimulai → pengurus (RFC-012, handoff 0013)
  *
  * Long-running dengan interval (default 60 dtk); `--sekali` untuk satu
- * putaran (uji). Logika batch ada di `packages/core` — di sini hanya
- * fungsi kirim (fetch Telegram) dan interval.
+ * putaran (uji). Logika batch di `packages/core` — di sini hanya fungsi
+ * kirim (fetch Telegram), interval, dan daftar pengurus.
  *
  * Menjalankan:  npm run worker:notifikasi        (loop)
  *               npm run worker:notifikasi -- --sekali
  */
-import { buatHandlerNotifikasi } from '@siakad/core';
-import { bukaBasisData, repoNotifikasi } from '@siakad/db';
+import { buatHandlerNotifikasi, buatHandlerReminder } from '@siakad/core';
+import { bukaBasisData, repoKalenderHijriah, repoNotifikasi } from '@siakad/db';
 
 const tokenWali = process.env.TELEGRAM_TOKEN_WALI;
 if (!tokenWali) {
@@ -18,8 +20,17 @@ if (!tokenWali) {
   process.exit(1);
 }
 
+const adminIds = (process.env.ADMIN_TELEGRAM_IDS ?? '')
+  .split(',')
+  .map((s) => Number(s.trim()))
+  .filter((n) => Number.isInteger(n));
+
 const db = bukaBasisData({ lokasi: process.env.SIAKAD_DB ?? 'data/sqlite/siakad.db' });
 const notifikasi = buatHandlerNotifikasi({ repoNotifikasi: repoNotifikasi(db) });
+const reminder = buatHandlerReminder({
+  repoNotifikasi: repoNotifikasi(db),
+  repoKalenderHijriah: repoKalenderHijriah(db),
+});
 
 async function kirimTelegram(telegramId: number, teks: string): Promise<boolean> {
   try {
@@ -34,15 +45,45 @@ async function kirimTelegram(telegramId: number, teks: string): Promise<boolean>
   }
 }
 
+const tanggalJakarta = (): string =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+
 async function satuPutaran(): Promise<void> {
-  const hasil = await notifikasi.kirimNotifikasiTerbit({
-    waktu: new Date().toISOString(),
+  const waktu = new Date().toISOString();
+  const hariIni = tanggalJakarta();
+
+  const terbit = await notifikasi.kirimNotifikasiTerbit({ waktu, kirim: kirimTelegram });
+  if (terbit.tagihanDiproses > 0) {
+    console.log(
+      `[${waktu}] notifikasi terbit: ${terbit.tagihanDiproses} tagihan, ` +
+        `${terbit.pesanTerkirim} terkirim, ${terbit.gagal} gagal`,
+    );
+  }
+
+  const tempo = await reminder.kirimReminderJatuhTempo({ waktu, hariIni, kirim: kirimTelegram });
+  if (tempo.itemDiproses > 0) {
+    console.log(
+      `[${waktu}] reminder jatuh tempo: ${tempo.itemDiproses} tagihan, ` +
+        `${tempo.pesanTerkirim} terkirim, ${tempo.gagal} gagal`,
+    );
+  }
+
+  const hijriah = await reminder.kirimReminderHijriah({
+    waktu,
+    hariIni,
+    dalamHari: 3,
+    pengurusIds: adminIds,
     kirim: kirimTelegram,
   });
-  if (hasil.tagihanDiproses > 0) {
+  if (hijriah.itemDiproses > 0) {
     console.log(
-      `[${new Date().toISOString()}] notifikasi tagihan: ${hasil.tagihanDiproses} diproses, ` +
-        `${hasil.pesanTerkirim} terkirim, ${hasil.gagal} gagal`,
+      `[${waktu}] reminder hijriah: ${hijriah.itemDiproses} bulan, ` +
+        `${hijriah.pesanTerkirim} terkirim, ${hijriah.gagal} gagal`,
     );
   }
 }

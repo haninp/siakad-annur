@@ -122,3 +122,31 @@ describe('tandaiNotifikasiTerbit', () => {
     expect(baris.dikirim_pada).toBe('w1');
   });
 });
+
+describe('cariTagihanJatuhTempo & tandaiJatuhTempo (RFC-012)', () => {
+  it('hanya tagihan terbit yang jatuh temponya H-3/H-1 dan belum ditandai', () => {
+    const a = seedDasar(144666620); // santri untuk h3
+    const b = seedDasar(177782856); // santri untuk h1
+    const c = seedDasar(null); // santri untuk bukan-jendela
+    const h3 = buatUlid(2_000_000_000_011);
+    const h1 = buatUlid(2_000_000_000_012);
+    const bukan = buatUlid(2_000_000_000_013);
+    sisipTagihan(h3, a.santriId, a.komponen, a.ta, 'terbit');
+    sisipTagihan(h1, b.santriId, b.komponen, b.ta, 'terbit');
+    sisipTagihan(bukan, c.santriId, c.komponen, c.ta, 'terbit');
+    // Untuk H-3/H-1 perlu jatuh_tempo spesifik — ubah via SQL
+    db.prepare(`UPDATE tagihan SET jatuh_tempo = '2026-08-19' WHERE id = ?`).run(h3);
+    db.prepare(`UPDATE tagihan SET jatuh_tempo = '2026-08-17' WHERE id = ?`).run(h1);
+    db.prepare(`UPDATE tagihan SET jatuh_tempo = '2026-09-01' WHERE id = ?`).run(bukan);
+    const repo = repoNotifikasi(db);
+
+    const daftarH3 = repo.cariTagihanJatuhTempo('2026-08-16', 3, 'h3');
+    expect(daftarH3.map((t) => t.tagihan_id)).toEqual([h3]);
+    expect(repo.cariTagihanJatuhTempo('2026-08-16', 1, 'h1').map((t) => t.tagihan_id)).toEqual([h1]);
+
+    repo.tandaiJatuhTempo(h3, 'h3', 'w');
+    expect(repo.cariTagihanJatuhTempo('2026-08-16', 3, 'h3')).toHaveLength(0);
+    // tahap h1 untuk tagihan yang sama tetap bisa
+    expect(repo.cariTagihanJatuhTempo('2026-08-18', 1, 'h1').map((t) => t.tagihan_id)).toEqual([h3]);
+  });
+});

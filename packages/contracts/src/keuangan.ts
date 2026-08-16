@@ -539,3 +539,44 @@ CREATE TABLE notifikasi_terbit (
 
 /** Tabel yang dibuat oleh DDL_NOTIFIKASI_TERBIT. */
 export const TABEL_NOTIFIKASI_TERBIT: readonly string[] = ['notifikasi_terbit'];
+
+// ── notifikasi_jatuh_tempo (RFC-012) ────────────────────────────────────────
+
+export const TahapJatuhTempo = z.enum(['h3', 'h1']);
+export type TahapJatuhTempo = z.infer<typeof TahapJatuhTempo>;
+
+export const NotifikasiJatuhTempo = z.object({
+  tagihan_id: Ulid,
+  /** H-3 atau H-1 — masing-masing dikirim tepat sekali. */
+  tahap: TahapJatuhTempo,
+  dikirim_pada: WaktuIso,
+});
+export type NotifikasiJatuhTempo = z.infer<typeof NotifikasiJatuhTempo>;
+
+const klasifikasiNotifikasiJatuhTempo: PetaKlasifikasi<NotifikasiJatuhTempo> = {
+  tagihan_id: 'publik',
+  tahap: 'publik',
+  dikirim_pada: 'publik',
+};
+
+export const entitasNotifikasiJatuhTempo: Entitas<NotifikasiJatuhTempo> = {
+  nama: 'notifikasi_jatuh_tempo',
+  skema: NotifikasiJatuhTempo,
+  kolom: ['tagihan_id', 'tahap', 'dikirim_pada'],
+  klasifikasi: klasifikasiNotifikasiJatuhTempo,
+};
+
+/** DDL tabel notifikasi_jatuh_tempo — migrasi v9 (RFC-012, reminder worker). */
+export const DDL_REMINDER = `
+ALTER TABLE kalender_hijriah ADD COLUMN diingatkan_pada TEXT;
+
+CREATE TABLE notifikasi_jatuh_tempo (
+  tagihan_id   TEXT NOT NULL REFERENCES tagihan(id),
+  tahap        TEXT NOT NULL CHECK (tahap IN ('h3','h1')),
+  dikirim_pada TEXT NOT NULL,
+  PRIMARY KEY (tagihan_id, tahap)
+) STRICT;
+`;
+
+/** Tabel yang dibuat oleh DDL_REMINDER. */
+export const TABEL_NOTIFIKASI_JATUH_TEMPO: readonly string[] = ['notifikasi_jatuh_tempo'];

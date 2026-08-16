@@ -26,6 +26,7 @@ function seedBulan(db: DatabaseSync, tahun = 1448, bulan = 9) {
     provisional: true,
     disetujui_oleh: null,
     disetujui_pada: null,
+    diingatkan_pada: null,
     sumber: 'myquran',
     catatan: null,
   });
@@ -48,6 +49,7 @@ describe('aturan kalender', () => {
       provisional: false,
       disetujui_oleh: null,
       disetujui_pada: null,
+      diingatkan_pada: null,
       sumber: 'kemenag',
       catatan: null,
     });
@@ -59,6 +61,7 @@ describe('aturan kalender', () => {
       provisional: false,
       disetujui_oleh: null,
       disetujui_pada: null,
+      diingatkan_pada: null,
       sumber: 'kemenag',
       catatan: null,
     });

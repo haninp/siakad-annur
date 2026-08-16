@@ -18,6 +18,7 @@ function barisSah(tahun: number, bulan: number, mulai: string): {
   provisional: boolean;
   disetujui_oleh: null;
   disetujui_pada: null;
+  diingatkan_pada: null;
   sumber: 'myquran';
   catatan: null;
 } {
@@ -29,6 +30,7 @@ function barisSah(tahun: number, bulan: number, mulai: string): {
     provisional: true,
     disetujui_oleh: null,
     disetujui_pada: null,
+    diingatkan_pada: null,
     sumber: 'myquran',
     catatan: null,
   };
@@ -103,5 +105,27 @@ describe('repoKalenderHijriah', () => {
     expect(repo.hitungBulanPadaTanggal('2026-06-20')?.bulan_hijriah).toBe(1);
     expect(repo.hitungBulanPadaTanggal('2026-07-20')?.bulan_hijriah).toBe(2);
     expect(repo.hitungBulanPadaTanggal('2026-06-01')).toBeUndefined();
+  });
+});
+
+describe('cariPerluDiingatkan & tandaiDiingatkan (RFC-012)', () => {
+  let db: DatabaseSync;
+
+  beforeEach(() => {
+    db = basisDataBaru();
+  });
+
+  it('hanya baris provisional yang belum diingatkan dalam rentang', () => {
+    const repo = repoKalenderHijriah(db);
+    repo.sisip(barisSah(1448, 9, '2026-08-18'));
+    repo.sisip(barisSah(1448, 10, '2026-09-01'));
+    repo.sisip({ ...barisSah(1449, 1, '2027-06-06'), provisional: false });
+    repo.tandaiDiingatkan(1448, 10, 'w');
+
+    const daftar = repo.cariPerluDiingatkan('2026-08-16', '2026-08-19');
+    expect(daftar.map((k) => k.bulan_hijriah)).toEqual([9]);
+
+    repo.tandaiDiingatkan(1448, 9, 'w2');
+    expect(repo.cariPerluDiingatkan('2026-08-16', '2026-08-19')).toHaveLength(0);
   });
 });

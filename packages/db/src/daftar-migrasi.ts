@@ -5,6 +5,7 @@ import {
   DDL_MASTER_DATA,
   DDL_NOTIFIKASI_TERBIT,
   DDL_PEMAKAIAN_LEBIH_BAYAR,
+  DDL_REMINDER,
   DDL_STATUS_UNDANGAN,
   DDL_VERIFIKASI_PEMBAYARAN,
 } from '@siakad/contracts';
@@ -61,5 +62,10 @@ export const DAFTAR_MIGRASI: readonly Migrasi[] = [
     versi: 8,
     nama: 'notifikasi_terbit (worker RFC-011)',
     sql: DDL_NOTIFIKASI_TERBIT,
+  },
+  {
+    versi: 9,
+    nama: 'reminder: diingatkan_pada kalender + notifikasi_jatuh_tempo (RFC-012)',
+    sql: DDL_REMINDER,
   },
 ];

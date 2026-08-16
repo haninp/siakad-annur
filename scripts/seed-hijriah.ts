@@ -127,6 +127,7 @@ async function utama(): Promise<void> {
         provisional: true,
         disetujui_oleh: null,
         disetujui_pada: null,
+        diingatkan_pada: null,
         sumber: 'myquran',
         catatan: 'Di-seed otomatis dari myQuran API',
       });

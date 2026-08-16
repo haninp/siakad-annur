@@ -18,3 +18,4 @@ export * from './status-pembayaran.js';
 export * from './pembayaran-verifikasi.js';
 export * from './undangan.js';
 export * from './notifikasi.js';
+export * from './reminder.js';

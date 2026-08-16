@@ -24,6 +24,8 @@ export const KalenderHijriah = z.object({
   provisional: z.boolean(),
   disetujui_oleh: z.string().nullable(),
   disetujui_pada: WaktuIso.nullable(),
+  /** Terisi saat worker mengingatkan pengurus (RFC-012) — tidak berulang. */
+  diingatkan_pada: WaktuIso.nullable(),
   sumber: SumberKalender,
   catatan: z.string().trim().min(1).nullable(),
 });
@@ -37,6 +39,7 @@ const klasifikasiKalenderHijriah: PetaKlasifikasi<KalenderHijriah> = {
   provisional: 'publik',
   disetujui_oleh: 'publik',
   disetujui_pada: 'publik',
+  diingatkan_pada: 'publik',
   sumber: 'publik',
   catatan: 'publik',
 };
@@ -52,6 +55,7 @@ export const entitasKalenderHijriah: Entitas<KalenderHijriah> = {
     'provisional',
     'disetujui_oleh',
     'disetujui_pada',
+    'diingatkan_pada',
     'sumber',
     'catatan',
   ],

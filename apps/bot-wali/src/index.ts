@@ -352,8 +352,8 @@ bot.command('start', async (ctx) => {
   if (!kode) {
     await ctx.reply(
       'Assalamualaikum. Akun Anda belum terdaftar sebagai wali.\n\n' +
-        'Minta KODE UNDANGAN ke pengurus pesantren, lalu kirim:\n' +
-        '/start <kode>\n\nContoh: /start undang-K7Q2M9',
+        'Buka LINK UNDANGAN yang dikirim pengurus (contoh: https://t.me/rtq_annur_bot?start=undang-XXXXXX).\n' +
+        'Atau kirim manual: /start <kode undangan>',
     );
     return;
   }

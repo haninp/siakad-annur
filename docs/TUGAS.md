@@ -109,7 +109,9 @@ Dimulai setelah P3 terjawab sebagian. Rincian menyusul seiring desain; yang past
       bot wali). `BENDAHARA_TELEGRAM_IDS` di `.env`.
 - [x] **1.14** Registrasi wali sungguhan — undangan & `pengguna_telegram` (RFC-009) `[berat]`
       → admin `/undang` di bot internal → pilih wali → kode sekali pakai
-      `undang-XXXXXX`; wali kirim `/start <kode>` di bot wali → terdaftar, kode
+      `undang-XXXXXX`; bot menampilkan **link deep link**
+      `https://t.me/rtq_annur_bot?start=<kode>` — wali mengetuk link dari WA,
+      Telegram terbuka, `/start <kode>` terkirim otomatis, terdaftar, kode
       hangus. `hubungkan` dipaksa sekali pakai di SQL (guard `undangan_kode`).
       `waliUntuk()` membaca `pengguna_telegram` sebagai sumber kebenaran,
       `DEV_WALI_BINDING` tinggal fallback dev. 15 test baru (repo + core).

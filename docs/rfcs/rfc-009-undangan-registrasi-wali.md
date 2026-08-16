@@ -21,10 +21,13 @@ dasarnya — yang belum ada adalah alur undangan itu sendiri.
 1. Pengurus (bot internal)  /undang → pilih wali dari daftar
 2. Core membuat kode sekali pakai:  undang-XXXXXX
    → baris pengguna_telegram baru: peran='wali', wali_id, undangan_kode, aktif=1
-3. Pengurus menyampaikan kode ke wali (di luar sistem, mis. WhatsApp)
-4. Wali membuka @rtq_annur_bot, mengirim:  /start undang-XXXXXX
-5. Core menghubungkan telegram_id ke baris undangan → kode hangus (NULL)
-6. Wali langsung melihat ringkasan tagihan anaknya
+3. Bot menampilkan LINK UNDANGAN penuh:
+   https://t.me/rtq_annur_bot?start=undang-XXXXXX
+4. Pengurus meneruskan link ke wali (WhatsApp/chat apa pun)
+5. Wali MENGETUK link → Telegram terbuka → bot menerima /start undang-XXXXXX
+   (deep link otomatis; tidak ada yang perlu diketik)
+6. Core menghubungkan telegram_id ke baris undangan → kode hangus (NULL)
+7. Wali langsung melihat ringkasan tagihan anaknya
 ```
 
 ## Keputusan
@@ -49,6 +52,12 @@ dasarnya — yang belum ada adalah alur undangan itu sendiri.
 5. **Peran lain tidak masuk alur ini.** Admin/bendahara/pengurus tetap lewat
    whitelist env (`ADMIN_TELEGRAM_IDS`, `BENDAHARA_TELEGRAM_IDS`) sampai ada
    kebutuhan nyata.
+6. **Deep link Telegram (amandemen 2026-08-16).** Bot internal menampilkan
+   link penuh `https://t.me/<bot-wali>?start=<kode>` — wali tidak perlu
+   mengetik apa pun, cukup mengetuk link dari WhatsApp/chat apa pun; Telegram
+   terbuka dan otomatis mengirim `/start <kode>` ke bot wali. Payload `start`
+   hanya berisi kode (alfanumerik + `-`, aman di bawah batas 64 karakter);
+   handler `/start <kode>` di bot wali tidak berubah sama sekali.
 
 ## Skema
 

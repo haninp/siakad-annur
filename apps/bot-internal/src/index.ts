@@ -418,6 +418,13 @@ function pemilihSantri(komponenId: string): InlineKeyboard {
 
 // ── undangan wali (RFC-009) ──────────────────────────────────────────────────
 
+/** Deep link t.me — wali mengetuk link dari WA/chat apa pun, Telegram terbuka. */
+const usernameBotWali = process.env.TELEGRAM_BOT_WALI_USERNAME ?? '';
+
+function linkUndangan(kode: string): string {
+  return usernameBotWali ? `https://t.me/${usernameBotWali}?start=${kode}` : kode;
+}
+
 function waliAktif(): { id: string; nama_lengkap: string }[] {
   return db.prepare(`SELECT id, nama_lengkap FROM wali ORDER BY nama_lengkap`).all() as {
     id: string;
@@ -440,11 +447,13 @@ function teksHasilUndangan(hasil: {
   data?: { undangan_kode: string | null } | undefined;
 }): string {
   if (!hasil.ok || !hasil.data?.undangan_kode) return hasil.pesan ?? 'Gagal membuat undangan.';
+  const kode = hasil.data.undangan_kode;
   return (
-    `✉️ Undangan berhasil dibuat.\n\n` +
-    `Kode: ${hasil.data.undangan_kode}\n\n` +
-    `Sampaikan kode ini ke wali. Wali membuka @rtq_annur_bot lalu mengirim:\n` +
-    `/start ${hasil.data.undangan_kode}\n\n` +
+    `✉️ Undangan berhasil dibuat untuk wali.\n\n` +
+    `🔗 ${linkUndangan(kode)}\n\n` +
+    `Kirim link ini ke wali lewat WhatsApp/chat apa pun. Wali tinggal ` +
+    `mengetuknya — Telegram terbuka dan pendaftaran selesai otomatis.\n\n` +
+    `Kode manual (bila perlu diketik): ${kode}\n` +
     `Kode hanya bisa dipakai sekali.`
   );
 }

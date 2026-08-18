@@ -1,7 +1,9 @@
 # Handoff 0015 — RFC-014 Peran Bendahara (dalam pengerjaan)
 
 Tanggal: 2026-08-18 (malam)
-Status: **BELUM selesai** — sesi dihentikan atas permintaan Hani ("sudah malam")
+Status: **BELUM selesai** — sesi dihentikan atas permintaan Hani ("sudah malam").
+WIP sudah di-commit & di-push: **`28aadbf`** di `main` (build + lint + 384 test
+hijau).
 
 ## Yang sudah dikerjakan
 

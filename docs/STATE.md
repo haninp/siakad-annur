@@ -239,7 +239,13 @@ diuji sungguhan di Colima aarch64: build, migrasi di container, dan pembacaan da
 
 ## Sedang dikerjakan
 
-Tidak ada. Sesi berhenti di batas tugas yang bersih.
+**RFC-014 — Peran Bendahara (laporan keuangan + verifikasi).** Spec disetujui
+(`docs/rfcs/rfc-014-peran-bendahara.md`). Fondasi selesai: `repo-laporan.ts`
+(db, agregat SQL) + `laporan.ts` (core, izin bendahara/pengurus + validasi
+periode) — build hijau. Tersisa: export core index, test laporan, gate peran di
+bot-internal (`peranUntuk`, menu `📊 Laporan keuangan` + `/laporan`), matriks
+peran docs/02, ritual selesai + commit + deploy + push. Detail:
+`docs/handoff/0015-rfc014-bendahara.md`.
 
 ## Langkah berikutnya
 

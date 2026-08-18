@@ -770,11 +770,8 @@ bot.command('laporan', async (ctx) => {
 
 // ── perintah teks (fallback) ──────────────────────────────────────────────────
 
+// /terbitkan = urusan keuangan → admin & bendahara (amendemen RFC-014, 2026-08-18).
 bot.command('terbitkan', async (ctx) => {
-  if (peranUntuk(ctx.from?.id) !== 'admin') {
-    await ctx.reply('Perintah ini khusus admin.').catch(() => undefined);
-    return;
-  }
   await ctx.reply(terbitkanBulanan(), { reply_markup: tombolMenu() });
 });
 

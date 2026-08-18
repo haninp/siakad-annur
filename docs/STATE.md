@@ -3,11 +3,18 @@
 > Diperbarui di akhir setiap sesi. Berkas ini yang dibaca lebih dulu oleh agent berikutnya,
 > apa pun mereknya. STATE yang basi lebih berbahaya daripada tidak ada, karena ia dipercaya.
 
-**Terakhir diperbarui:** 18 Agustus 2026, sesi RFC-014
+**Terakhir diperbarui:** 18 Agustus 2026, sesi amendemen RFC-014
 
 ---
 
 ## Yang baru selesai
+
+**1.20 — Amendemen RFC-014: `/terbitkan` untuk bendahara + struktur menu.** Per
+keputusan pemilik domain, penerbitan tagihan SPP bulanan (`/terbitkan`, back
+office) adalah urusan keuangan → kini tersedia bagi **admin & bendahara**
+(sebelumnya admin saja). Matriks docs/02 diperbarui; amendemen dicatat di
+`docs/rfcs/rfc-014-peran-bendahara.md`. **Struktur menu + role access** didokumentasikan
+di `docs/09-struktur-menu.md` (diagram Mermaid + tabel tombol & perintah).
 
 **1.19 — Peran bendahara mandiri + laporan keuangan (RFC-014).** Bendahara
 bukan lagi "admin kedua": `peranUntuk(telegramId)` di bot internal memetakan

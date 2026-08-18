@@ -74,3 +74,12 @@ periode sudah benar secara akrual.
   `📊 Laporan keuangan` + `💳 Usulan pembayaran`, tanpa menu Undangan;
   `/laporan` menampilkan angka yang cocok dengan `/rekap`+`/piutang`;
   admin tetap bisa semua menu.
+
+## Amendemen (2026-08-18)
+
+Keputusan butir 1 ("Bendahara TIDAK boleh menerbitkan tagihan") diamendemen
+oleh pemilik domain: **`/terbitkan` (penerbitan tagihan SPP bulanan, back
+office) adalah urusan keuangan → tersedia bagi bendahara**, di samping admin.
+Ketentuan lain butir 1 (undangan, kalender hijriah, catat pembayaran manual
+tetap tidak boleh) tidak berubah. Matriks di `docs/02` diperbarui; ini
+mengembalikan kendali penerbitan ke finansial tanpa memberi hak admin lain.

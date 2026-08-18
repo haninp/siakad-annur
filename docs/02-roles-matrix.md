@@ -28,7 +28,7 @@ sumber kebenaran masa depan `pengguna_telegram` (RFC-009).
 | ------------------------------------------------ | :---: | :-------: | :------: | :------------------: | :-----------: |
 | Kelola pengguna & pemetaan `telegram_id`         |  ✅   |     —     |    —     |          —           |       —       |
 | Kelola data master (santri, kelas, mapel, tarif) |  ✅   |     —     |    ✅    |          —           |       —       |
-| Terbitkan tagihan (invoice) — back office                |  ✅   |     —     |    —     |          —           |       —       |
+| Terbitkan tagihan (invoice) — back office                |  ✅   |     ✅    |    —     |          —           |       —       |
 | Catat pembayaran (manual)                        |  ✅   |     —     |    —     |          —           |       —       |
 | Pantau status pembayaran & piutang (individu & kolektif) |  ✅   |     ✅    |    ✅    |          —           |       —       |
 | Baca laporan keuangan (terbit/masuk/sisa)        |  ✅   |     ✅    |    ✅    |          —           |       —       |
@@ -49,10 +49,12 @@ sumber kebenaran masa depan `pengguna_telegram` (RFC-009).
 | Tanya-jawab bebas ke agent                       |  ✅   |     —     |    ✅    |          —           |       —       |
 | Lihat NIK / NISN / no. rekening                  |  ✅   |     —     |    ✅    |          —           | milik anaknya |
 
-> **Catatan `bendahara` (RFC-014):** "Catat pembayaran" bagi bendahara hanya terjadi lewat
-> alur verifikasi usulan wali (RFC-008) — tanpa jalur manual. Bot internal menyembunyikan
-> menu/tombol di luar hak peran, tetapi **penegak izin terakhir tetap handler di
-> `packages/core`** (AGENTS.md).
+> **Catatan `bendahara` (RFC-014 + amendemen 2026-08-18):** "Catat pembayaran"
+> bagi bendahara hanya terjadi lewat alur verifikasi usulan wali (RFC-008) —
+> tanpa jalur manual. **Amendemen**: `/terbitkan` (tagihan SPP bulanan, back
+> office) adalah urusan keuangan → tersedia bagi admin & bendahara (sebelumnya
+> admin saja). Bot internal menyembunyikan menu/tombol di luar hak peran,
+> tetapi **penegak izin terakhir tetap handler di `packages/core`** (AGENTS.md).
 
 ## Aturan penyempitan
 

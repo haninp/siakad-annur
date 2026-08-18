@@ -3,11 +3,29 @@
 > Diperbarui di akhir setiap sesi. Berkas ini yang dibaca lebih dulu oleh agent berikutnya,
 > apa pun mereknya. STATE yang basi lebih berbahaya daripada tidak ada, karena ia dipercaya.
 
-**Terakhir diperbarui:** 16 Agustus 2026, sesi M2
+**Terakhir diperbarui:** 18 Agustus 2026, sesi RFC-013
 
 ---
 
 ## Yang baru selesai
+
+**1.18 — Perlindungan data pribadi di tampilan chat (RFC-013).** Tiga lapisan:
+(1) `formatNamaTampil` di core — nama wali ditampilkan sebagai kunyah →
+panggilan → nama lengkap, satu fungsi untuk kedua bot; daftar wali di bot
+internal (`/undang`, pemilih) menyertakan pembeda alami NIS anak
+(`Ummu Aisyah · anak 2627005`) kala alias kembar. (2) Helper tampilan
+`escapeMarkdownV2` + `spoil` di core (siap dipakai fitur yang merender
+tanggal lahir/NIK kelak; alur reveal + `audit_log` sengaja menyusul bersama
+trigger pertamanya). (3) **Reconfirmation registrasi**: `/start <kode>`
+sekarang memvalidasi kode tanpa menghubungkan (`periksaUndangan`), lalu
+menanyakan salah satu nama lengkap anak milik wali — cocok case-insensitive
+persis setelah trim (`konfirmasiUndangan`); 3× salah → arahkan hubungi
+pengurus, kode TIDAK hangus (proteksi, bukan hukuman). Semua aturan di core,
+state percobaan in-memory di bot (pola `stateBayar`). Seed `simulasi-ulang`
+memuat alias kunyah/panggilan untuk 4 wali dummy. 21 test baru (384 total).
+`docs/rfcs/rfc-013-perlindungan-data-tampilan.md`. Catatan: dev DB perlu
+`npm run db:ulang && node data/simulasi-ulang.ts` + restart bot agar alias
+dan alur barunya berlaku di uji live.
 
 **1.17 — Reminder worker: kalender hijriah & jatuh tempo (RFC-012).** Loop
 `apps/worker` kini menjalankan tiga job: notifikasi terbit (RFC-011), reminder
@@ -249,9 +267,11 @@ tidak menunggu apa pun.
 1. **P3 — sesi dengan pemegang pengetahuan keuangan.** Terjawab sebagian besar pada
    10 Agustus 2026. Yang masih terbuka: makna kolom `Khusus PROTA` dan nasib sheet arsip
    Juli–Agustus 2023. Bagian keuangan pada `contracts` sudah tidak lagi diblokir penuh.
-2. **Perlindungan data**: bentuk persetujuan wali, retensi data alumni, akses wali setelah
-   santri keluar, penanggung jawab data. Sekarang lebih mendesak — `NIK` **terisi nyata** di
-   master berkas 04, bukan risiko hipotetis.
+2. **Perlindungan data**: tampilan chat sudah diamankan (RFC-013). Yang masih
+   menggantung: bentuk persetujuan wali, retensi data alumni, akses wali setelah
+   santri keluar, penanggung jawab data. **NIK terisi nyata** di master berkas 04 —
+   alur reveal + `audit_log` dibangun bersama fitur pertama yang menampilkannya
+   (keputusan RFC-013 butir 5).
 3. **Akademik**: daftar mapel per jalur & marhalah, skala nilai diniyah, aspek akhlak,
    hari & jam KBM. **Tidak memblokir** — keempatnya tabel seed, diisi lewat Sheet Pola.
 4. _(Jalur tulis `bot-wali`, pembatalan, dan batas pengulangannya sudah terjawab — ADR 0009

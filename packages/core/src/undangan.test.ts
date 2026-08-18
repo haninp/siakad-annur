@@ -1,13 +1,25 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { buatUlid } from '@siakad/contracts';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { bukaBasisData, DAFTAR_MIGRASI, jalankanMigrasi, repoPenggunaTelegram, repoWali } from '@siakad/db';
+import {
+  bukaBasisData,
+  DAFTAR_MIGRASI,
+  jalankanMigrasi,
+  repoPenggunaTelegram,
+  repoSantri,
+  repoSantriWali,
+  repoWali,
+} from '@siakad/db';
 import { buatHandlerUndangan, type DepUndangan } from './undangan.js';
 
 /**
  * Alur undangan (RFC-009): pengurus membuat kode sekali pakai, wali memakainya
  * sendiri. Validasi & izin di core — bukan di bot. Amandemen migrasi 7:
  * link bekas/dicabut dikenali statusnya; pengurus bisa cabut & lihat daftar.
+ *
+ * RFC-013: reconfirmation — wali menyebut nama anaknya sebelum terhubung;
+ * periksaUndangan memvalidasi tanpa menghubungkan, konfirmasiUndangan mencocokkan
+ * jawaban (case-insensitive, persis setelah trim) lalu menghubungkan.
  */
 
 let db: DatabaseSync;
@@ -23,6 +35,8 @@ beforeEach(() => {
   handler = buatHandlerUndangan({
     repoPenggunaTelegram: repoPenggunaTelegram(db),
     repoWali: repoWali(db),
+    repoSantriWali: repoSantriWali(db),
+    repoSantri: repoSantri(db),
   } satisfies DepUndangan);
 });
 
@@ -31,6 +45,21 @@ function sisipWali(id: string, nama: string): void {
     `INSERT INTO wali (id, nik, nama_lengkap, no_hp, alamat, status_hidup)
      VALUES (?, NULL, ?, NULL, NULL, 'hidup')`,
   ).run(id, nama);
+}
+
+function sisipAnak(santriId: string, waliId: string, nama: string, nis = '2627001'): void {
+  db.prepare(
+    `INSERT INTO santri (id, nis, nisn, nik, nama_lengkap, jenis_kelamin, tempat_lahir,
+       tanggal_lahir, alamat, desa_kelurahan, kecamatan, kabupaten, provinsi, kode_pos,
+       status, anak_ke, jumlah_saudara)
+     VALUES (?, ?, NULL, NULL, ?, 'laki_laki', 'Depok', '2019-01-01',
+       NULL, NULL, NULL, NULL, NULL, NULL, 'aktif', NULL, NULL)`,
+  ).run(santriId, nis, nama);
+  db.prepare(
+    `INSERT INTO santri_wali (santri_id, wali_id, hubungan, penanggung_biaya,
+       penerima_notifikasi, aktif)
+     VALUES (?, ?, 'ayah', 1, 1, 1)`,
+  ).run(santriId, waliId);
 }
 
 function buatKode(waliId: string): string {
@@ -234,5 +263,192 @@ describe('daftarUndangan', () => {
     const hasil = handler.daftarUndangan({ aktor: WALI });
     expect(hasil.ok).toBe(false);
     expect(hasil.pesan).toMatch(/Hanya pengurus/);
+  });
+});
+
+describe('periksaUndangan (RFC-013)', () => {
+  const waliId = buatUlid(2_000_000_000_001);
+
+  it('kode valid dilaporkan OK dengan jumlah anak', () => {
+    sisipWali(waliId, 'Bapak Contoh');
+    sisipAnak(buatUlid(2_000_000_000_011), waliId, 'Santri Contoh Satu');
+    sisipAnak(buatUlid(2_000_000_000_012), waliId, 'Santri Contoh Dua', '2627002');
+    const kode = buatKode(waliId);
+
+    const hasil = handler.periksaUndangan({ kode });
+
+    expect(hasil.ok).toBe(true);
+    expect(hasil.data?.waliId).toBe(waliId);
+    expect(hasil.data?.jumlahAnak).toBe(2);
+  });
+
+  it('kode asal-asalan ditolak', () => {
+    const hasil = handler.periksaUndangan({ kode: 'tebak-tebakan' });
+    expect(hasil.ok).toBe(false);
+    expect(hasil.pesan).toMatch(/tidak dikenal/);
+  });
+
+  it('link yang sudah dipakai ditolak', () => {
+    sisipWali(waliId, 'Bapak Contoh');
+    sisipAnak(buatUlid(2_000_000_000_011), waliId, 'Santri Contoh Satu');
+    const kode = buatKode(waliId);
+    handler.gunakanUndangan({ telegramId: 177782856, kode, waktu: 'w' });
+
+    const hasil = handler.periksaUndangan({ kode });
+    expect(hasil.ok).toBe(false);
+    expect(hasil.pesan).toMatch(/sudah digunakan/);
+  });
+
+  it('link yang dicabut ditolak', () => {
+    sisipWali(waliId, 'Bapak Contoh');
+    sisipAnak(buatUlid(2_000_000_000_011), waliId, 'Santri Contoh Satu');
+    const kode = buatKode(waliId);
+    const undangan = repoPenggunaTelegram(db).cariStatusByKode(kode)!;
+    handler.cabutUndangan({ aktor: ADMIN, undanganId: undangan.id, waktu: 'x' });
+
+    const hasil = handler.periksaUndangan({ kode });
+    expect(hasil.ok).toBe(false);
+    expect(hasil.pesan).toMatch(/sudah dibatalkan/);
+  });
+
+  it('wali tanpa anak aktif diarahkan ke pengurus (mustahil lulus konfirmasi)', () => {
+    sisipWali(waliId, 'Bapak Contoh');
+    const kode = buatKode(waliId);
+
+    const hasil = handler.periksaUndangan({ kode });
+    expect(hasil.ok).toBe(false);
+    expect(hasil.pesan).toMatch(/Hubungi pengurus/);
+  });
+});
+
+describe('konfirmasiUndangan (RFC-013)', () => {
+  const waliId = buatUlid(2_000_000_000_001);
+
+  it('nama anak yang cocok → terhubung dan kode hangus', () => {
+    sisipWali(waliId, 'Bapak Contoh');
+    sisipAnak(buatUlid(2_000_000_000_011), waliId, 'Santri Contoh Satu');
+    const kode = buatKode(waliId);
+
+    const hasil = handler.konfirmasiUndangan({
+      telegramId: 177782856,
+      kode,
+      namaAnak: 'Santri Contoh Satu',
+      waktu: 'w',
+    });
+
+    expect(hasil.ok).toBe(true);
+    expect(hasil.data?.telegram_id).toBe(177782856);
+    const terhubung = repoPenggunaTelegram(db).cariByTelegramId(177782856);
+    expect(terhubung?.wali_id).toBe(waliId);
+    expect(terhubung?.dipakai_pada).toBe('w');
+  });
+
+  it('cocok case-insensitive dan setelah trim', () => {
+    sisipWali(waliId, 'Bapak Contoh');
+    sisipAnak(buatUlid(2_000_000_000_011), waliId, 'Aisyah Zahra');
+    const kode = buatKode(waliId);
+
+    const hasil = handler.konfirmasiUndangan({
+      telegramId: 177782856,
+      kode,
+      namaAnak: '  aisyah ZAHRA  ',
+      waktu: 'w',
+    });
+
+    expect(hasil.ok).toBe(true);
+  });
+
+  it('salah satu dari beberapa anak diterima', () => {
+    sisipWali(waliId, 'Bapak Contoh');
+    sisipAnak(buatUlid(2_000_000_000_011), waliId, 'Santri Contoh Satu');
+    sisipAnak(buatUlid(2_000_000_000_012), waliId, 'Aisyah Zahra', '2627002');
+    const kode = buatKode(waliId);
+
+    const hasil = handler.konfirmasiUndangan({
+      telegramId: 177782856,
+      kode,
+      namaAnak: 'Aisyah Zahra',
+      waktu: 'w',
+    });
+
+    expect(hasil.ok).toBe(true);
+  });
+
+  it('nama yang tidak cocok ditolak DAN kode tetap berlaku', () => {
+    sisipWali(waliId, 'Bapak Contoh');
+    sisipAnak(buatUlid(2_000_000_000_011), waliId, 'Santri Contoh Satu');
+    const kode = buatKode(waliId);
+
+    const gagal = handler.konfirmasiUndangan({
+      telegramId: 177782856,
+      kode,
+      namaAnak: 'Nama Orang Lain',
+      waktu: 'w',
+    });
+    expect(gagal.ok).toBe(false);
+    expect(gagal.pesan).toMatch(/tidak cocok/);
+
+    // Kode TIDAK hangus — pemilik sah bisa coba lagi (proteksi, bukan hukuman).
+    const menunggu = repoPenggunaTelegram(db).cariMenunggu();
+    expect(menunggu.some((u) => u.undangan_kode === kode)).toBe(true);
+
+    const berhasil = handler.konfirmasiUndangan({
+      telegramId: 177782856,
+      kode,
+      namaAnak: 'Santri Contoh Satu',
+      waktu: 'w',
+    });
+    expect(berhasil.ok).toBe(true);
+  });
+
+  it('tiga kali salah pun kode tetap berlaku (percobaan dihitung bot, core menolak konsisten)', () => {
+    sisipWali(waliId, 'Bapak Contoh');
+    sisipAnak(buatUlid(2_000_000_000_011), waliId, 'Santri Contoh Satu');
+    const kode = buatKode(waliId);
+
+    for (let i = 0; i < 3; i++) {
+      const hasil = handler.konfirmasiUndangan({
+        telegramId: 177782856,
+        kode,
+        namaAnak: 'Bukan Anaknya',
+        waktu: 'w',
+      });
+      expect(hasil.ok).toBe(false);
+    }
+    expect(repoPenggunaTelegram(db).cariMenunggu().some((u) => u.undangan_kode === kode)).toBe(true);
+  });
+
+  it('jawaban kosong ditolak', () => {
+    sisipWali(waliId, 'Bapak Contoh');
+    sisipAnak(buatUlid(2_000_000_000_011), waliId, 'Santri Contoh Satu');
+    const kode = buatKode(waliId);
+
+    const hasil = handler.konfirmasiUndangan({
+      telegramId: 177782856,
+      kode,
+      namaAnak: '   ',
+      waktu: 'w',
+    });
+    expect(hasil.ok).toBe(false);
+    expect(hasil.pesan).toMatch(/Sebutkan nama/);
+  });
+
+  it('telegram_id yang sudah terdaftar ditolak sebelum verifikasi nama (anti-hijack)', () => {
+    const waliLainId = buatUlid(2_000_000_000_002);
+    sisipWali(waliId, 'Bapak Contoh');
+    sisipAnak(buatUlid(2_000_000_000_011), waliId, 'Santri Contoh Satu');
+    sisipWali(waliLainId, 'Ibu Siti');
+    const kodeLain = buatKode(waliLainId);
+    handler.gunakanUndangan({ telegramId: 177782856, kode: kodeLain, waktu: 'w' });
+
+    const kode = buatKode(waliId);
+    const hasil = handler.konfirmasiUndangan({
+      telegramId: 177782856,
+      kode,
+      namaAnak: 'Santri Contoh Satu',
+      waktu: 'w',
+    });
+    expect(hasil.ok).toBe(false);
+    expect(hasil.pesan).toMatch(/sudah terdaftar untuk wali lain/);
   });
 });

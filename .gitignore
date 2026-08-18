@@ -7,8 +7,13 @@ dist/
 
 # Data — tidak pernah masuk git.
 # Basis data, snapshot, dan ekspor berisi data pribadi santri & wali.
-data/
+# Kecuali skrip seed/simulasi (isinya KARANGAN): `data/*` mengecualikan isi
+# direktori tanpa mengecualikan direktori itu sendiri, sehingga `!data/*.ts`
+# tetap bisa menyertakan kembali skrip-skrip tersebut.
+data/*
 !data/.gitkeep
+!data/*.ts
+!data/*.js
 
 # Kredensial — tidak pernah masuk git.
 .env

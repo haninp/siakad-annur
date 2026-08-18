@@ -22,6 +22,7 @@ import {
   buatHandlerKeuangan,
   buatHandlerUndangan,
   buatHandlerVerifikasiPembayaran,
+  formatNamaTampil,
   formatStatusPembayaran,
   statusPembayaran,
   terbitkanTagihanBulanan,
@@ -49,6 +50,7 @@ import {
   repoTahunAjaran,
   repoUsulanPembayaran,
   repoWali,
+  repoWaliAlias,
 } from '@siakad/db';
 
 const token = process.env.TELEGRAM_TOKEN_INTERNAL;
@@ -99,6 +101,8 @@ const verifikasi = buatHandlerVerifikasiPembayaran({
 const undangan = buatHandlerUndangan({
   repoPenggunaTelegram: repoPenggunaTelegram(db),
   repoWali: repoWali(db),
+  repoSantriWali: repoSantriWali(db),
+  repoSantri: repoSantri(db),
 });
 const kalender = buatHandlerKalender({ repoKalenderHijriah: repoKalenderHijriah(db) });
 
@@ -431,17 +435,37 @@ function linkUndangan(kode: string): string {
   return usernameBotWali ? `https://t.me/${usernameBotWali}?start=${kode}` : kode;
 }
 
-function waliAktif(): { id: string; nama_lengkap: string }[] {
-  return db.prepare(`SELECT id, nama_lengkap FROM wali ORDER BY nama_lengkap`).all() as {
+/**
+ * Daftar wali untuk tampilan (RFC-013): nama memakai `formatNamaTampil`
+ * (kunyah → panggilan → lengkap) dan menyertakan NIS anak sebagai pembeda
+ * alami kala alias kembar — `Ummu Aisyah · anak 2627005`.
+ */
+function waliAktif(): { id: string; nama_tampil: string; nisAnak: string | null }[] {
+  const rows = db.prepare(`SELECT id, nama_lengkap FROM wali ORDER BY nama_lengkap`).all() as {
     id: string;
     nama_lengkap: string;
   }[];
+  const aliasSemua = repoWaliAlias(db).ambilSemua();
+  return rows.map((w) => {
+    const alias = aliasSemua.filter((a) => a.wali_id === w.id);
+    const nisAnak =
+      (
+        db
+          .prepare(
+            `SELECT s.nis FROM santri_wali ws JOIN santri s ON s.id = ws.santri_id
+             WHERE ws.wali_id = ? AND ws.aktif = 1 ORDER BY s.nis LIMIT 1`,
+          )
+          .get(w.id) as { nis: string } | undefined
+      )?.nis ?? null;
+    return { id: w.id, nama_tampil: formatNamaTampil(w, alias), nisAnak };
+  });
 }
 
 function pemilihWaliUndangan(): InlineKeyboard {
   const kb = new InlineKeyboard();
   for (const w of waliAktif()) {
-    kb.text(w.nama_lengkap, `undang:pilih:${w.id}`).row();
+    const label = w.nisAnak ? `${w.nama_tampil} · anak ${w.nisAnak}` : w.nama_tampil;
+    kb.text(label, `undang:pilih:${w.id}`).row();
   }
   kb.text('🏠 Menu utama', 'menu:utama');
   return kb;
@@ -690,8 +714,12 @@ async function tampilkanListUndangan(ctx: CallbackQueryContext<Context> | { repl
     );
     return;
   }
-  const namaWali = (waliId: string | null): string =>
-    waliId ? (repoWali(db).ambil(waliId)?.nama_lengkap ?? '?') : '?';
+  const namaWali = (waliId: string | null): string => {
+    if (!waliId) return '?';
+    const w = waliAktif().find((d) => d.id === waliId);
+    if (!w) return '?';
+    return w.nisAnak ? `${w.nama_tampil} · anak ${w.nisAnak}` : w.nama_tampil;
+  };
   const baris = menunggu
     .map((u) => `• ${namaWali(u.wali_id)} — ${u.undangan_kode}\n  🔗 ${linkUndangan(u.undangan_kode ?? '')}`)
     .join('\n\n');

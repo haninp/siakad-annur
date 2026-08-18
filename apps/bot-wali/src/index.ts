@@ -90,6 +90,8 @@ const verifikasi = buatHandlerVerifikasiPembayaran({
 const undangan = buatHandlerUndangan({
   repoPenggunaTelegram: repoPenggunaTelegram(db),
   repoWali: repoWali(db),
+  repoSantriWali: repoSantriWali(db),
+  repoSantri: repoSantri(db),
 });
 
 const bot = buatBot({ token });
@@ -129,6 +131,14 @@ interface StateBayar {
   step: 'tunggu-nama' | 'tunggu-bukti' | 'konfirmasi';
 }
 const stateBayar = new Map<number, StateBayar>();
+
+// ── state reconfirmation registrasi (RFC-013, in-memory — hilang saat restart) ──
+interface StateKonfirmasi {
+  kode: string;
+  percobaan: number;
+}
+const MAX_PERCOBAAN_KONFIRMASI = 3;
+const stateKonfirmasi = new Map<number, StateKonfirmasi>();
 
 // ── akses data (baca) ────────────────────────────────────────────────────────
 
@@ -326,6 +336,9 @@ async function ganti(ctx: CallbackQueryContext<Context>, teks: string, kb?: Inli
 // /start bebas — itulah jalur pendaftaran (dengan kode undangan).
 bot.use(async (ctx, next) => {
   if (waliUntuk(ctx.from?.id)) return next();
+  // RFC-013: jawaban nama anak saat reconfirmation adalah teks biasa —
+  // izinkan selama alur konfirmasi aktif untuk akun ini.
+  if (stateKonfirmasi.has(ctx.from?.id ?? -1)) return next();
   const teks = ctx.message?.text ?? '';
   if (teks.startsWith('/start')) return next();
   if (ctx.callbackQuery) {
@@ -340,7 +353,7 @@ bot.use(async (ctx, next) => {
 bot.command('start', async (ctx) => {
   const telegramId = ctx.from?.id;
   if (telegramId === undefined) return;
-  let wali = waliUntuk(telegramId);
+  const wali = waliUntuk(telegramId);
   if (wali) {
     await ctx.reply(`Assalamualaikum, Bapak/Ibu ${wali.nama_lengkap}.\n\n${teksRingkasan(wali)}`, {
       reply_markup: menuUtama(),
@@ -358,19 +371,71 @@ bot.command('start', async (ctx) => {
     return;
   }
 
-  const hasil = undangan.gunakanUndangan({ telegramId, kode, waktu: new Date().toISOString() });
-  if (!hasil.ok) {
+  // RFC-013: reconfirmation dulu — kode divalidasi TANPA menghubungkan,
+  // lalu wali diminta menyebut nama anaknya (lapisan kedua setelah kode).
+  const periksa = undangan.periksaUndangan({ kode });
+  if (!periksa.ok) {
+    await ctx.reply(periksa.pesan ?? 'Pendaftaran gagal. Coba lagi.');
+    return;
+  }
+  stateKonfirmasi.set(telegramId, { kode, percobaan: 0 });
+  await ctx.reply(
+    'Assalamualaikum, Bapak/Ibu. Sebelum mendaftar, kami perlu memastikan link ini sampai ke orang yang tepat.\n\n' +
+      'Sebutkan salah satu NAMA LENGKAP anak Bapak/Ibu yang terdaftar di RTQ An-Nuur ' +
+      '(contoh: Fathan Rabbani).\n\n' +
+      'Ketik nama anak di sini.',
+  );
+});
+
+// ── reconfirmation registrasi (RFC-013) ──────────────────────────────────────
+bot.on('message:text', async (ctx) => {
+  const telegramId = ctx.from?.id;
+  if (telegramId === undefined) return;
+  const state = stateKonfirmasi.get(telegramId);
+  if (!state) return; // bukan alur konfirmasi — biarkan handler lain berjalan
+
+  const namaAnak = (ctx.message?.text ?? '').trim();
+  const hasil = undangan.konfirmasiUndangan({
+    telegramId,
+    kode: state.kode,
+    namaAnak,
+    waktu: new Date().toISOString(),
+  });
+
+  if (hasil.ok) {
+    stateKonfirmasi.delete(telegramId);
+    const wali = waliUntuk(telegramId);
+    if (!wali) {
+      await ctx.reply('Pendaftaran berhasil. Kirim /start untuk melihat tagihan.');
+      return;
+    }
+    await ctx.reply(
+      `Assalamualaikum, Bapak/Ibu ${wali.nama_lengkap}. Pendaftaran berhasil.\n\n${teksRingkasan(wali)}`,
+      { reply_markup: menuUtama() },
+    );
+    return;
+  }
+
+  // Galat permanen (kode sudah dipakai/dicabut, sudah terdaftar, tanpa anak) →
+  // hentikan alur; hanya jawaban "nama tidak cocok" yang memberi percobaan ulang.
+  if (!(hasil.pesan ?? '').includes('tidak cocok')) {
+    stateKonfirmasi.delete(telegramId);
     await ctx.reply(hasil.pesan ?? 'Pendaftaran gagal. Coba lagi.');
     return;
   }
-  wali = waliUntuk(telegramId);
-  if (!wali) {
-    await ctx.reply('Pendaftaran berhasil. Kirim /start untuk melihat tagihan.');
+  const percobaan = state.percobaan + 1;
+  if (percobaan >= MAX_PERCOBAAN_KONFIRMASI) {
+    stateKonfirmasi.delete(telegramId);
+    await ctx.reply(
+      'Konfirmasi gagal. Hubungi pengurus untuk dibantu mendaftar.\n\n' +
+        'Kode undangan Anda TIDAK hangus — setelah berkonsultasi, buka link undangan lagi.',
+    );
     return;
   }
+  state.percobaan = percobaan;
   await ctx.reply(
-    `Assalamualaikum, Bapak/Ibu ${wali.nama_lengkap}. Pendaftaran berhasil.\n\n${teksRingkasan(wali)}`,
-    { reply_markup: menuUtama() },
+    `Nama yang Anda sebutkan tidak cocok dengan daftar anak di RTQ An-Nuur. ` +
+      `Coba lagi (percobaan ${percobaan} dari ${MAX_PERCOBAAN_KONFIRMASI}).`,
   );
 });
 

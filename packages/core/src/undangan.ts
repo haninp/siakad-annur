@@ -1,6 +1,12 @@
 import { randomBytes } from 'node:crypto';
-import { buatUlid, type PenggunaTelegram, type Wali } from '@siakad/contracts';
-import type { RepoMasterIdTunggal, RepoPenggunaTelegram } from '@siakad/db';
+import {
+  buatUlid,
+  type PenggunaTelegram,
+  type Santri,
+  type SantriWali,
+  type Wali,
+} from '@siakad/contracts';
+import type { RepoMasterIdTunggal, RepoMasterKomposit, RepoPenggunaTelegram } from '@siakad/db';
 import type { Aktor, HasilHandler } from './aktor.js';
 import { peranCukup } from './aktor.js';
 
@@ -22,6 +28,12 @@ import { peranCukup } from './aktor.js';
 export interface DepUndangan {
   readonly repoPenggunaTelegram: RepoPenggunaTelegram;
   readonly repoWali: RepoMasterIdTunggal<Wali>;
+  /**
+   * RFC-013: reconfirmation mencocokkan jawaban wali terhadap nama anaknya —
+   * tautan `santri_wali` (aktif) + nama dari `santri`.
+   */
+  readonly repoSantriWali: RepoMasterKomposit<SantriWali>;
+  readonly repoSantri: RepoMasterIdTunggal<Santri>;
 }
 
 export interface BuatUndanganInput {
@@ -33,6 +45,19 @@ export interface BuatUndanganInput {
 export interface GunakanUndanganInput {
   readonly telegramId: number;
   readonly kode: string;
+  readonly waktu: string;
+}
+
+/** RFC-013: validasi kode TANPA menghubungkan — dipakai sebelum bertanya nama anak. */
+export interface PeriksaUndanganInput {
+  readonly kode: string;
+}
+
+/** RFC-013: jawaban nama anak + kode → hubungkan bila cocok. */
+export interface KonfirmasiUndanganInput {
+  readonly telegramId: number;
+  readonly kode: string;
+  readonly namaAnak: string;
   readonly waktu: string;
 }
 
@@ -165,5 +190,121 @@ export function buatHandlerUndangan(dep: DepUndangan) {
     return { ok: true, pesan: `${daftar.length} undangan menunggu dipakai.`, data: daftar };
   }
 
-  return { buatUndangan, gunakanUndangan, cabutUndangan, daftarUndangan };
+  // ── reconfirmation RFC-013 ─────────────────────────────────────────────────
+
+  /** Nama anak AKTIF milik wali — daftar yang dipakai mencocokkan jawaban. */
+  function namaAnakWali(waliId: string): string[] {
+    const tautan = dep.repoSantriWali.ambilSemua().filter((t) => t.wali_id === waliId && t.aktif);
+    const nama: string[] = [];
+    for (const t of tautan) {
+      const santri = dep.repoSantri.ambil(t.santri_id);
+      if (santri) nama.push(santri.nama_lengkap);
+    }
+    return nama;
+  }
+
+  /**
+   * RFC-013: validasi kode undangan TANPA menghubungkan apa pun. Bot memanggil
+   * ini di `/start <kode>` sebelum bertanya nama anak — jadi link bekas/dicabut
+   * ditolak lebih dulu, dan wali tanpa anak aktif (mustahil lulus konfirmasi)
+   * diarahkan ke pengurus. State percobaan hidup di bot (in-memory), bukan di sini.
+   */
+  function periksaUndangan(input: PeriksaUndanganInput): HasilHandler<{
+    waliId: string;
+    jumlahAnak: number;
+  }> {
+    const kode = (input.kode ?? '').trim();
+    if (!POLA_KODE.test(kode)) {
+      return { ok: false, pesan: 'Kode undangan tidak dikenal. Minta link baru ke pengurus.' };
+    }
+    const status = dep.repoPenggunaTelegram.cariStatusByKode(kode);
+    if (!status) {
+      return { ok: false, pesan: 'Kode undangan tidak dikenal. Minta link baru ke pengurus.' };
+    }
+    if (status.dipakai_pada) {
+      return { ok: false, pesan: 'Link undangan ini sudah digunakan.' };
+    }
+    if (status.dicabut_pada || !status.aktif) {
+      return { ok: false, pesan: 'Link undangan ini sudah dibatalkan pengurus.' };
+    }
+    const undangan = dep.repoPenggunaTelegram.cariByUndanganKode(kode);
+    if (!undangan?.wali_id) {
+      return { ok: false, pesan: 'Link undangan ini tidak bisa dipakai. Minta link baru ke pengurus.' };
+    }
+    const jumlahAnak = namaAnakWali(undangan.wali_id).length;
+    if (jumlahAnak === 0) {
+      return {
+        ok: false,
+        pesan: 'Tidak ada anak yang terdaftar atas nama Bapak/Ibu ini. Hubungi pengurus.',
+      };
+    }
+    return { ok: true, pesan: 'Kode undangan valid.', data: { waliId: undangan.wali_id, jumlahAnak } };
+  }
+
+  /**
+   * RFC-013: reconfirmation — wali menyebut salah satu nama lengkap anaknya
+   * (case-insensitive, persis setelah trim) sebelum telegram_id dihubungkan.
+   * Kode tetap valid bila jawaban salah; yang menghitung percobaan adalah bot.
+   */
+  function konfirmasiUndangan(input: KonfirmasiUndanganInput): HasilHandler<PenggunaTelegram> {
+    const kode = (input.kode ?? '').trim();
+    const nama = (input.namaAnak ?? '').trim();
+    if (!nama) {
+      return { ok: false, pesan: 'Sebutkan nama lengkap anak yang terdaftar di RTQ An-Nuur.' };
+    }
+    if (!POLA_KODE.test(kode)) {
+      return { ok: false, pesan: 'Kode undangan tidak dikenal. Minta link baru ke pengurus.' };
+    }
+    const status = dep.repoPenggunaTelegram.cariStatusByKode(kode);
+    if (!status) {
+      return { ok: false, pesan: 'Kode undangan tidak dikenal. Minta link baru ke pengurus.' };
+    }
+    if (status.dipakai_pada) {
+      return { ok: false, pesan: 'Link undangan ini sudah digunakan.' };
+    }
+    if (status.dicabut_pada || !status.aktif) {
+      return { ok: false, pesan: 'Link undangan ini sudah dibatalkan pengurus.' };
+    }
+    const sudahDipakai = dep.repoPenggunaTelegram.cariByTelegramId(input.telegramId);
+    if (sudahDipakai) {
+      return {
+        ok: false,
+        pesan: 'Nomor Telegram ini sudah terdaftar untuk wali lain. Hubungi pengurus bila ini keliru.',
+      };
+    }
+    const undangan = dep.repoPenggunaTelegram.cariByUndanganKode(kode);
+    if (!undangan?.wali_id) {
+      return { ok: false, pesan: 'Link undangan ini tidak bisa dipakai. Minta link baru ke pengurus.' };
+    }
+    const namaAnak = namaAnakWali(undangan.wali_id);
+    if (namaAnak.length === 0) {
+      return {
+        ok: false,
+        pesan: 'Tidak ada anak yang terdaftar atas nama Bapak/Ibu ini. Hubungi pengurus.',
+      };
+    }
+    const cocok = namaAnak.some((n) => n.trim().toLowerCase() === nama.toLowerCase());
+    if (!cocok) {
+      return { ok: false, pesan: 'Nama anak tidak cocok. Coba lagi.' };
+    }
+    try {
+      dep.repoPenggunaTelegram.hubungkan(undangan.id, kode, input.telegramId, input.waktu);
+    } catch {
+      return { ok: false, pesan: 'Link undangan ini tidak bisa dipakai. Minta link baru ke pengurus.' };
+    }
+    const terhubung = dep.repoPenggunaTelegram.cariByTelegramId(input.telegramId);
+    if (!terhubung) {
+      return { ok: false, pesan: 'Pendaftaran gagal. Coba lagi.' };
+    }
+    return { ok: true, pesan: 'Pendaftaran berhasil. Selamat datang!', data: terhubung };
+  }
+
+  return {
+    buatUndangan,
+    gunakanUndangan,
+    cabutUndangan,
+    daftarUndangan,
+    periksaUndangan,
+    konfirmasiUndangan,
+  };
 }

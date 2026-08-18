@@ -58,3 +58,45 @@ export function formatRupiah(nominal: number): string {
 export function tanggalDariWaktu(waktu: string): string {
   return waktu.slice(0, 10);
 }
+
+// ── MarkdownV2 & spoiler (RFC-013) ──────────────────────────────────────────
+
+/**
+ * Escape karakter khusus MarkdownV2 Telegram. Wajib dipanggil SEBELUM teks
+ * dirender dengan `parse_mode: MarkdownV2` — teks tanpa escape bisa mematahkan
+ * parsing pesan (atau lebih buruk: menyisipkan format yang tidak dikehendaki).
+ * Karakter yang di-escape: `_ * [ ] ( ) ~ ` > # + - = | { } . !` dan backslash.
+ */
+export function escapeMarkdownV2(teks: string): string {
+  return teks.replace(/([_*[\]()~`>#+\-=|{}.!\\])/g, '\\$1');
+}
+
+/**
+ * Bungkus teks dalam spoiler MarkdownV2 (`||…||`). Teks di-escape lebih dulu —
+ * pemanggil TIDAK perlu (dan tidak boleh) meng-escape sendiri.
+ *
+ * Spoiler hanya dipakai untuk data identitas (tanggal lahir, NIK/NISN bila
+ * dirender) sesuai RFC-013 keputusan 5 — nama dan NIS anak TIDAK dimasking.
+ */
+export function spoil(teks: string): string {
+  return `||${escapeMarkdownV2(teks)}||`;
+}
+
+/**
+ * Nama tampil wali (RFC-013 keputusan 2) — dipakai kedua bot, tidak ada format
+ * kedua yang bisa menyimpang. Urutan: alias `kunyah` → alias `panggilan` →
+ * nama lengkap. Alias lain (`ktp`, `keuangan`, `ejaan_lama`) TIDAK untuk
+ * tampilan.
+ *
+ * `alias` boleh kosong — fungsi tetap mengembalikan nama lengkap.
+ */
+export function formatNamaTampil(
+  wali: { readonly nama_lengkap: string },
+  alias: readonly { readonly jenis: string; readonly nama: string }[],
+): string {
+  const kunyah = alias.find((a) => a.jenis === 'kunyah')?.nama;
+  if (kunyah) return kunyah;
+  const panggilan = alias.find((a) => a.jenis === 'panggilan')?.nama;
+  if (panggilan) return panggilan;
+  return wali.nama_lengkap;
+}

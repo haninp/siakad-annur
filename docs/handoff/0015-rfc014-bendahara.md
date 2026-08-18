@@ -1,43 +1,44 @@
-# Handoff 0015 — RFC-014 Peran Bendahara (dalam pengerjaan)
+# Handoff 0015 — RFC-014 Peran Bendahara (SELESAI)
 
-Tanggal: 2026-08-18 (malam)
-Status: **BELUM selesai** — sesi dihentikan atas permintaan Hani ("sudah malam").
-WIP sudah di-commit & di-push: **`28aadbf`** di `main` (build + lint + 384 test
-hijau).
+Tanggal: 2026-08-18
+Status: **selesai** — seluruh item "Yang tersisa" di bawah sudah dikerjakan,
+build + lint + 392 test hijau, ter-deploy & ter-push.
 
-## Yang sudah dikerjakan
+## Yang tersisa (urutan pengerjaan) — status
 
-1. `docs/rfcs/rfc-014-peran-bendahara.md` — spec disetujui: bendahara = peran
-   mandiri (baca laporan keuangan + verifikasi/tolak usulan pembayaran; BUKAN
-   admin). Penetapan via env (`BENDAHARA_TELEGRAM_IDS`), `pengguna_telegram`
-   sebagai sumber kebenaran masa depan (catatan, bukan dibangun).
-2. `packages/db/src/repository/repo-laporan.ts` — agregat SQL: per komponen
-   (terbit, masuk) + ringkasan; sudah di-export via `repository/index.ts`.
-3. `packages/core/src/laporan.ts` — `buatHandlerLaporan` → `bacaLaporanKeuangan`
-   (izin bendahara/pengurus, validasi periode, merangkai `sisa`).
-   **Belum di-export di `core/src/index.ts`.**
-4. Build hijau (tsc) dengan ketiga berkas.
+1. `packages/core/src/index.ts` — tambah `export * from './laporan.js';` ✅
+2. `packages/core/src/laporan.test.ts` ✅ — 8 test: izin (wali ditolak,
+   bendahara/pengurus/admin boleh), periode bukan `YYYY-MM` ditolak, periode
+   kosong menampilkan komponen aktif dengan nol, angka agregat benar (2 komponen,
+   3 tagihan + 2 pembayaran → per komponen & ringkasan 2026-08; isolasi periode
+   2026-07).
+3. `apps/bot-internal/src/index.ts` ✅
+   - `peranUntuk(id)` → 'admin' | 'bendahara' | undefined (env); `adminAktif`
+     memakainya; `aktorBot(ctx)` = peran AKTUAL (bukan hardcoded).
+   - Gate menu: `menuUtama(peran)` menyembunyikan ✉️ Undangan untuk bendahara;
+     menu keuangan memuat `📊 Laporan keuangan` (callback `keu:laporan`, periode
+     berjalan) untuk kedua peran.
+   - Perintah `/laporan [YYYY-MM]` (tanpa arg = bulan berjalan); tampilan
+     substantif rupiah bertitik, sisa negatif dijelaskan sebagai lebih bayar.
+   - Guard perintah admin-only: `/terbitkan /undang /bayar /setujui` →
+     bendahara ditolak di bot; semua panggilan core (undangan, kalender,
+     verifikasi/tolak usulan, catat pembayaran) memakai `aktorBot` sehingga core
+     menegakkan peran aktual.
+4. `docs/02-roles-matrix.md` ✅ — kolom bendahara + baris baru (baca laporan,
+   verifikasi usulan, pantau status; minus hak admin) + catatan bahwa "catat
+   pembayaran" bendahara hanya lewat alur verifikasi (RFC-008).
+5. Ritual ✅ — STATE.md 1.19, commit `feat(core): peran bendahara — laporan
+   keuangan (RFC-014)`, deploy (restart bot-internal), push ke GitHub.
 
-## Yang tersisa (urutan pengerjaan)
+## Yang menunggu
 
-1. `packages/core/src/index.ts` — tambah `export * from './laporan.js';`
-2. Test: `packages/core/src/laporan.test.ts` (izin: wali ditolak, bendahara/
-   pengurus boleh; periode invalid; angka agregat benar — seed tagihan +
-   pembayaran) — pola test core lain (`:memory:`, `jalankanMigrasi`).
-3. `apps/bot-internal/src/index.ts`:
-   - `peranUntuk(id)` → 'admin' | 'bendahara' | undefined dari env
-   - gate menu per peran: Undangan + tool admin → admin/pengurus saja;
-     `📊 Laporan keuangan` (callback `keu:laporan`) + perintah
-     `/laporan [YYYY-MM]` → bendahara/pengurus/admin
-   - aktor memakai peran aktual saat memanggil core
-4. `docs/02-roles-matrix.md` — baris bendahara.
-5. Ritual: `npm run selesai`, update `docs/STATE.md` (1.19), commit
-   `feat(core): peran bendahara — laporan keuangan (RFC-014)`, deploy (restart
-   bot-internal), push ke GitHub.
-
-## Catatan
-
-- Verifikasi pembayaran (RFC-008) SUDAH ada dan gate core-nya sudah
-  `bendahara/pengurus` — bagian ini hanya perlu penyempurnaan menu/gate bot.
-- WIP sengaja TIDAK di-commit (satu tugas = satu commit hijau; tugas belum
-  tuntas). Berkas baru additive, build tetap hijau.
+- **Uji live RFC-014 via Telegram** — lihat "Sedang dikerjakan" di STATE.md:
+  coba dengan ID bendahara dummy di `BENDAHARA_TELEGRAM_IDS`, bandingkan
+  `/laporan` dengan `/rekap`+`/piutang`.
+- **Smoke test RFC-013** via Telegram (reconfirmation `/start <kode>`) masih
+  terbuka.
+- **Catatan pengerjaan**: bot `keu:santri`/`/status` tetap terbuka untuk
+  bendahara (baca piutang per individu — bagian dari pantau status). Core
+  `catatPembayaran` memang mengizinkan peran bendahara (dipakai alur verifikasi
+  RFC-008); jalur MANUAL (`/bayar`) di-gate khusus admin di bot — keputusan
+  RFC-014 butir 1 dipertahankan di lapisan kanal, penegak peran tetap core.

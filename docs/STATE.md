@@ -3,11 +3,25 @@
 > Diperbarui di akhir setiap sesi. Berkas ini yang dibaca lebih dulu oleh agent berikutnya,
 > apa pun mereknya. STATE yang basi lebih berbahaya daripada tidak ada, karena ia dipercaya.
 
-**Terakhir diperbarui:** 18 Agustus 2026, sesi RFC-013
+**Terakhir diperbarui:** 18 Agustus 2026, sesi RFC-014
 
 ---
 
 ## Yang baru selesai
+
+**1.19 — Peran bendahara mandiri + laporan keuangan (RFC-014).** Bendahara
+bukan lagi "admin kedua": `peranUntuk(telegramId)` di bot internal memetakan
+`ADMIN_TELEGRAM_IDS` → `admin` dan `BENDAHARA_TELEGRAM_IDS` → `bendahara`;
+menu & perintah di-gate per peran (Undangan + `/terbitkan` `/undang` `/bayar`
+`/setujui` = admin; bendahara tetap punya 💳 Usulan pembayaran + baca). **Laporan
+keuangan** baru: agregat dihitung SEPENUHNYA di SQL (`repoLaporan` di
+`packages/db`: per komponen biaya aktif — terbit/masuk; ringkasan total), core
+(`bacaLaporanKeuangan`, izin bendahara/pengurus, validasi `YYYY-MM`) hanya
+merangkai `sisa` (boleh negatif = lebih bayar). Bot: menu `📊 Laporan keuangan`
+(callback `keu:laporan`, periode berjalan) + `/laporan [YYYY-MM]`, tampilan
+substantif rupiah bertitik. Semua panggilan core kini memakai peran AKTUAL
+(`aktorBot`) — penegak tetap core. Matriks peran docs/02 + kolom bendahara.
+8 test baru (392 total). `docs/rfcs/rfc-014-peran-bendahara.md`.
 
 **1.18 — Perlindungan data pribadi di tampilan chat (RFC-013).** Tiga lapisan:
 (1) `formatNamaTampil` di core — nama wali ditampilkan sebagai kunyah →
@@ -239,13 +253,14 @@ diuji sungguhan di Colima aarch64: build, migrasi di container, dan pembacaan da
 
 ## Sedang dikerjakan
 
-**RFC-014 — Peran Bendahara (laporan keuangan + verifikasi).** Spec disetujui
-(`docs/rfcs/rfc-014-peran-bendahara.md`). Fondasi selesai: `repo-laporan.ts`
-(db, agregat SQL) + `laporan.ts` (core, izin bendahara/pengurus + validasi
-periode) — build hijau. Tersisa: export core index, test laporan, gate peran di
-bot-internal (`peranUntuk`, menu `📊 Laporan keuangan` + `/laporan`), matriks
-peran docs/02, ritual selesai + commit + deploy + push. Detail:
-`docs/handoff/0015-rfc014-bendahara.md`.
+Tidak ada tugas dalam pengerjaan aktif. Menunggu uji live:
+
+- **Smoke test RFC-013 lewat Telegram** (reconfirmation `/start <kode>` +
+  daftar wali ber-alias) — terbuka sejak RFC-013.
+- **Smoke test RFC-014 lewat Telegram**: ID bendahara (dummy) di
+  `BENDAHARA_TELEGRAM_IDS` → menu tanpa Undangan, `📊 Laporan keuangan` + `💳
+  Usulan pembayaran` tampil, `/laporan` cocok dengan `/rekap`+`/piutang`;
+  admin tetap semua menu.
 
 ## Langkah berikutnya
 

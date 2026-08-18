@@ -20,12 +20,15 @@ import { buatBot } from '@siakad/bot';
 import {
   buatHandlerKalender,
   buatHandlerKeuangan,
+  buatHandlerLaporan,
   buatHandlerUndangan,
   buatHandlerVerifikasiPembayaran,
   formatNamaTampil,
+  formatRupiah,
   formatStatusPembayaran,
   statusPembayaran,
   terbitkanTagihanBulanan,
+  type Peran,
   type StatusPembayaran,
 } from '@siakad/core';
 import type { Keringanan } from '@siakad/contracts';
@@ -51,6 +54,7 @@ import {
   repoUsulanPembayaran,
   repoWali,
   repoWaliAlias,
+  repoLaporan,
 } from '@siakad/db';
 
 const token = process.env.TELEGRAM_TOKEN_INTERNAL;
@@ -105,6 +109,7 @@ const undangan = buatHandlerUndangan({
   repoSantri: repoSantri(db),
 });
 const kalender = buatHandlerKalender({ repoKalenderHijriah: repoKalenderHijriah(db) });
+const laporan = buatHandlerLaporan({ repoLaporan: repoLaporan(db) });
 
 const bot = buatBot({ token });
 
@@ -125,7 +130,24 @@ function rupiah(n: number): string {
 }
 
 function adminAktif(id: number | undefined): boolean {
-  return id !== undefined && (adminIds.has(id) || bendaharaIds.has(id));
+  return peranUntuk(id) !== undefined;
+}
+
+/**
+ * Peran aktual satu pengguna bot internal (RFC-014). `ADMIN_TELEGRAM_IDS` →
+ * `admin`; `BENDAHARA_TELEGRAM_IDS` → `bendahara`. Pengurus/pengajar menyusul
+ * lewat `pengguna_telegram` (RFC-009) — belum dibangun, catatan di RFC-014.
+ */
+function peranUntuk(id: number | undefined): 'admin' | 'bendahara' | undefined {
+  if (id === undefined) return undefined;
+  if (adminIds.has(id)) return 'admin';
+  if (bendaharaIds.has(id)) return 'bendahara';
+  return undefined;
+}
+
+/** Aktor dengan peran AKTUAL penelepon — penegak terakhir tetap core. */
+function aktorBot(ctx: { from?: { id?: number } | undefined }): { peran: Peran; id: string } {
+  return { peran: peranUntuk(ctx.from?.id) ?? 'pengurus', id: actorId(ctx) };
 }
 
 // ── akses data ────────────────────────────────────────────────────────────────
@@ -216,7 +238,7 @@ function formatTagihan(t: BarisTagihan): string {
 
 // ── logika aksi (dipakai perintah teks & tombol) ─────────────────────────────
 
-function catatPembayaran(santri: BarisSantri, nominal: number, actorId: string) {
+function catatPembayaran(santri: BarisSantri, nominal: number, aktor: { peran: Peran; id: string }) {
   const tagihan = db
     .prepare(
       `SELECT id FROM tagihan
@@ -228,7 +250,7 @@ function catatPembayaran(santri: BarisSantri, nominal: number, actorId: string) 
     return { ok: false as const, pesan: `${santri.nama_lengkap} tidak punya tagihan yang belum lunas.` };
   }
   return keuangan.catatPembayaran({
-    aktor: { peran: 'pengurus', id: actorId },
+    aktor,
     tagihanId: tagihan.id,
     tanggal: tanggalSekarang(),
     nominal,
@@ -387,14 +409,17 @@ function terbitkanBulanan(): string {
 
 const TEKS_MENU =
   '🏫 SIAKAD An-Nuur — Menu Pengurus\n\n' +
-  'Pilih 💰 Keuangan untuk pembayaran santri.\n' +
-  'Perintah: /cari <nis|nama> · /status <nis> · /rekap · /piutang · /setujui <tahun>-<bulan> · (admin) /terbitkan · /undang · /bayar <nis> <nominal>';
+  'Pilih 💰 Keuangan untuk pembayaran santri & laporan.\n' +
+  'Perintah: /cari <nis|nama> · /status <nis> · /rekap · /piutang · /laporan [YYYY-MM] · ' +
+  '(admin) /terbitkan · /undang · /bayar <nis> <nominal>';
 
-function menuUtama(): InlineKeyboard {
-  return new InlineKeyboard()
-    .text('💰 Keuangan', 'menu:keuangan')
-    .text('🔍 Cari santri', 'menu:cari')
-    .text('✉️ Undangan', 'undangan:list');
+/** Menu utama per peran (RFC-014): Undangan khusus admin+pengurus. */
+function menuUtama(peran: 'admin' | 'bendahara'): InlineKeyboard {
+  const kb = new InlineKeyboard().text('💰 Keuangan', 'menu:keuangan').text('🔍 Cari santri', 'menu:cari');
+  if (peran === 'admin') {
+    kb.text('✉️ Undangan', 'undangan:list');
+  }
+  return kb;
 }
 
 function menuKeuangan(): InlineKeyboard {
@@ -403,6 +428,8 @@ function menuKeuangan(): InlineKeyboard {
     .text('📊 Rekap bulan ini', 'keu:rekap')
     .row()
     .text('💰 Piutang', 'keu:piutang')
+    .text('📊 Laporan keuangan', 'keu:laporan')
+    .row()
     .text('💳 Usulan pembayaran', 'keu:usulan')
     .row()
     .text('🏠 Menu utama', 'menu:utama');
@@ -579,12 +606,13 @@ bot.use(async (ctx, next) => {
 
 bot.command('start', async (ctx) => {
   const id = ctx.from?.id;
+  const peran = peranUntuk(id);
+  const label = peran === 'bendahara' ? 'terdaftar sebagai bendahara.' : 'terdaftar sebagai admin.';
   await ctx.reply(
     `Assalamualaikum, selamat datang di bot internal SIAKAD An-Nuur.\n` +
-      `ID Telegram Anda: ${id} — ` +
-      (adminAktif(id) ? 'terdaftar sebagai admin uji coba.' : 'belum terdaftar.') +
+      `ID Telegram Anda: ${id} — ${peran ? label : 'belum terdaftar.'}` +
       `\n\n${TEKS_MENU}`,
-    { reply_markup: menuUtama() },
+    { reply_markup: menuUtama(peran ?? 'admin') },
   );
 });
 
@@ -592,7 +620,8 @@ bot.command('start', async (ctx) => {
 
 bot.callbackQuery('menu:utama', async (ctx) => {
   await ctx.answerCallbackQuery();
-  await ganti(ctx, TEKS_MENU, menuUtama());
+  const peran = peranUntuk(ctx.from?.id) ?? 'admin';
+  await ganti(ctx, TEKS_MENU, menuUtama(peran));
 });
 
 bot.callbackQuery('menu:keuangan', async (ctx) => {
@@ -686,19 +715,80 @@ bot.callbackQuery(/^kp:(.+)$/, async (ctx) => {
   await ganti(ctx, teksPiutang(id), tombolMenu());
 });
 
+// ── laporan keuangan (RFC-014) ────────────────────────────────────────────────
+
+/** Susun teks laporan dari hasil core — angka sudah dihitung di SQL, di sini hanya dirangkai. */
+function teksLaporan(hasil: {
+  ok: boolean;
+  pesan?: string;
+  data?: {
+    periode: string;
+    komponen: { nama: string; terbit: number; masuk: number; sisa: number }[];
+    ringkasan: { terbit: number; masuk: number; sisa: number };
+  };
+}): string {
+  if (!hasil.ok || !hasil.data) return hasil.pesan ?? 'Gagal memuat laporan.';
+  const d = hasil.data;
+  const baris = d.komponen
+    .map(
+      (k) =>
+        `• ${k.nama}\n    Terbit: ${formatRupiah(k.terbit)}\n    Masuk: ${formatRupiah(k.masuk)}\n    Sisa: ${formatRupiah(k.sisa)}`,
+    )
+    .join('\n');
+  const r = d.ringkasan;
+  return (
+    `📊 Laporan keuangan — ${d.periode}\n\n` +
+    `${baris}\n\n` +
+    `Ringkasan:\n` +
+    `    Terbit: ${formatRupiah(r.terbit)}\n` +
+    `    Masuk: ${formatRupiah(r.masuk)}\n` +
+    `    Sisa: ${formatRupiah(r.sisa)}\n\n` +
+    `Sisa negatif = lebih bayar (uang masuk melebihi tagihan).\n` +
+    `Periode lain: /laporan YYYY-MM (contoh: /laporan ${periodeSekarang()})`
+  );
+}
+
+function tombolLaporan(): InlineKeyboard {
+  return new InlineKeyboard()
+    .text('🔄 Muat ulang', 'keu:laporan')
+    .text('💰 Keuangan', 'menu:keuangan')
+    .text('🏠 Menu utama', 'menu:utama');
+}
+
+bot.callbackQuery('keu:laporan', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  await ganti(ctx, teksLaporan(laporan.bacaLaporanKeuangan({ aktor: aktorBot(ctx), periode: periodeSekarang() })), tombolLaporan());
+});
+
+bot.command('laporan', async (ctx) => {
+  const arg = (ctx.match ?? '').trim();
+  await ctx.reply(
+    teksLaporan(laporan.bacaLaporanKeuangan({ aktor: aktorBot(ctx), periode: arg || periodeSekarang() })),
+    { reply_markup: tombolLaporan() },
+  );
+});
+
 // ── perintah teks (fallback) ──────────────────────────────────────────────────
 
 bot.command('terbitkan', async (ctx) => {
+  if (peranUntuk(ctx.from?.id) !== 'admin') {
+    await ctx.reply('Perintah ini khusus admin.').catch(() => undefined);
+    return;
+  }
   await ctx.reply(terbitkanBulanan(), { reply_markup: tombolMenu() });
 });
 
 bot.command('undang', async (ctx) => {
+  if (peranUntuk(ctx.from?.id) !== 'admin') {
+    await ctx.reply('Perintah ini khusus admin.').catch(() => undefined);
+    return;
+  }
   await tampilkanListUndangan(ctx, false);
 });
 
 /** Kirim (reply) atau edit (ganti) tampilan daftar undangan yang menunggu. */
 async function tampilkanListUndangan(ctx: CallbackQueryContext<Context> | { reply: (t: string, o?: object) => Promise<unknown> }, edit: boolean): Promise<void> {
-  const daftar = undangan.daftarUndangan({ aktor: { peran: 'admin', id: actorId(ctx as CallbackQueryContext<Context>) } });
+  const daftar = undangan.daftarUndangan({ aktor: aktorBot(ctx as CallbackQueryContext<Context>) });
   const kirim = edit
     ? (t: string, kb: InlineKeyboard) => ganti(ctx as CallbackQueryContext<Context>, t, kb)
     : (t: string, kb: InlineKeyboard) => (ctx as { reply: (t: string, o?: object) => Promise<unknown> }).reply(t, { reply_markup: kb });
@@ -754,7 +844,7 @@ bot.callbackQuery(/^undangan:cabut:(.+)$/, async (ctx) => {
     return;
   }
   const hasil = undangan.cabutUndangan({
-    aktor: { peran: 'admin', id: actorId(ctx) },
+    aktor: aktorBot(ctx),
     undanganId,
     waktu: new Date().toISOString(),
   });
@@ -772,7 +862,7 @@ bot.callbackQuery(/^undang:pilih:(.+)$/, async (ctx) => {
     return;
   }
   const hasil = undangan.buatUndangan({
-    aktor: { peran: 'admin', id: actorId(ctx) },
+    aktor: aktorBot(ctx),
     waliId,
     waktu: new Date().toISOString(),
   });
@@ -802,6 +892,10 @@ bot.command('piutang', async (ctx) => {
 });
 
 bot.command('bayar', async (ctx) => {
+  if (peranUntuk(ctx.from?.id) !== 'admin') {
+    await ctx.reply('Perintah ini khusus admin.').catch(() => undefined);
+    return;
+  }
   const [nis, nominalTeks] = ctx.match.trim().split(/\s+/);
   if (!nis || !nominalTeks) {
     await ctx.reply('Gunakan: /bayar <nis> <nominal>. Contoh: /bayar 2627001 150000', {
@@ -819,7 +913,7 @@ bot.command('bayar', async (ctx) => {
     await ctx.reply(`Tidak ada santri dengan NIS ${nis}.`, { reply_markup: tombolMenu() });
     return;
   }
-  const hasil = catatPembayaran(santri, nominal, actorId(ctx));
+  const hasil = catatPembayaran(santri, nominal, aktorBot(ctx));
   await ctx.reply(hasil.pesan ?? 'Selesai.', { reply_markup: tombolMenu() });
 });
 
@@ -847,6 +941,10 @@ bot.command('cari', async (ctx) => {
 });
 
 bot.command('setujui', async (ctx) => {
+  if (peranUntuk(ctx.from?.id) !== 'admin') {
+    await ctx.reply('Perintah ini khusus admin.').catch(() => undefined);
+    return;
+  }
   const bagian = (ctx.match ?? '').trim().split('-');
   const tahun = Number(bagian[0]);
   const bulan = Number(bagian[1]);
@@ -857,7 +955,7 @@ bot.command('setujui', async (ctx) => {
     return;
   }
   const hasil = kalender.setujuiBulanHijriah({
-    aktor: { peran: 'admin', id: actorId(ctx) },
+    aktor: aktorBot(ctx),
     tahun,
     bulan,
     waktu: new Date().toISOString(),
@@ -1002,7 +1100,7 @@ bot.callbackQuery(/^usulan-ya:(.+)$/, async (ctx) => {
     return;
   }
   const hasil = verifikasi.verifikasiUsulan({
-    aktor: { peran: 'bendahara', id: actorId(ctx) },
+    aktor: aktorBot(ctx),
     usulanId,
     waktu: new Date().toISOString(),
   });
@@ -1050,7 +1148,7 @@ bot.on('message:text', async (ctx) => {
     }
     stateTolak.delete(chatId);
     const hasil = verifikasi.tolakUsulan({
-      aktor: { peran: 'bendahara', id: actorId(ctx) },
+      aktor: aktorBot(ctx),
       usulanId,
       alasan,
       waktu: new Date().toISOString(),

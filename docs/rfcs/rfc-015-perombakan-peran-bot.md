@@ -1,7 +1,7 @@
 # RFC-015: Perombakan Peran & Pengelolaan User oleh Superadmin
 
-**Status:** Draft — keputusan pemilik domain (2026-08-18); menunggu konfirmasi sebelum
-implementasi.
+**Status:** Implementasi selesai (2026-08-19) — rombak peran + fitur undangan user
+terpasang & ter-commit. Penyederhanaan implementasi di bagian Skema.
 **Author:** Hani (keputusan) + Hermes (dokumentasi)
 **Date:** 2026-08-18
 **Relates to:** RFC-014 (bendahara), RFC-009 (undangan wali, `pengguna_telegram`), docs/02
@@ -88,6 +88,13 @@ undangan_user(
 
 Pakai `pengguna_telegram` yang sudah ada (kolom `peran` enum diperbarui ke 5 peran).
 Tidak ada perubahan pada `undangan` (wali).
+
+> **Penyederhanaan implementasi (2026-08-19):** tidak membuat tabel `undangan_user`.
+> Undangan user memanfaatkan **`pengguna_telegram` yang sudah ada** — baris dengan
+> `peran` = admin/bendahara/pengajar, `wali_id` NULL, `undangan_kode` terisi,
+> `telegram_id` NULL = undangan yang menunggu; saat `/start <kode>` dipakai, `telegram_id`
+> terhubung. Semua anti-hijack (`hubungkan`, `cabut`, sekali-pakai, UNIQUE telegram_id)
+> langsung terpakai ulang tanpa migrasi baru. Filter staf lewat repo `cariMenungguUser()`.
 
 ## Peta implementasi
 

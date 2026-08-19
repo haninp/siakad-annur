@@ -33,6 +33,9 @@ export interface RepoPenggunaTelegram {
   /** Daftar undangan yang masih menunggu dipakai (list pengurus). */
   readonly cariMenunggu: () => PenggunaTelegram[];
 
+  /** Daftar undangan USER (staff: admin/bendahara/pengajar) yang menunggu dipakai (RFC-015). */
+  readonly cariMenungguUser: () => PenggunaTelegram[];
+
   /**
    * Hubungkan telegram_id ke baris undangan — SEKALI PAKAI, dipaksakan di SQL:
    * hanya berhasil bila kode masih terpasang, baris aktif, telegram_id belum
@@ -94,6 +97,19 @@ export function repoPenggunaTelegram(db: DatabaseSync): RepoPenggunaTelegram {
 
     cariMenunggu: () => {
       const rows = db.prepare(selectMenunggu).all() as Record<string, unknown>[];
+      return rows.map((r) => dariSql(entitasPenggunaTelegram, r));
+    },
+
+    cariMenungguUser: () => {
+      const rows = db
+        .prepare(
+          `SELECT ${KOLOM} FROM ${TABEL}
+           WHERE peran IN ('admin','bendahara','pengajar') AND wali_id IS NULL
+             AND telegram_id IS NULL AND undangan_kode IS NOT NULL
+             AND aktif = 1 AND dipakai_pada IS NULL AND dicabut_pada IS NULL
+           ORDER BY dibuat_pada`,
+        )
+        .all() as Record<string, unknown>[];
       return rows.map((r) => dariSql(entitasPenggunaTelegram, r));
     },
 

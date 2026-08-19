@@ -22,6 +22,7 @@ import {
   buatHandlerKeuangan,
   buatHandlerLaporan,
   buatHandlerUndangan,
+  buatHandlerUndanganUser,
   buatHandlerVerifikasiPembayaran,
   formatNamaTampil,
   formatRupiah,
@@ -115,6 +116,7 @@ const undangan = buatHandlerUndangan({
   repoSantriWali: repoSantriWali(db),
   repoSantri: repoSantri(db),
 });
+const undanganUser = buatHandlerUndanganUser({ repoPenggunaTelegram: repoPenggunaTelegram(db) });
 const kalender = buatHandlerKalender({ repoKalenderHijriah: repoKalenderHijriah(db) });
 const laporan = buatHandlerLaporan({ repoLaporan: repoLaporan(db) });
 
@@ -141,15 +143,18 @@ function adminAktif(id: number | undefined): boolean {
 }
 
 /**
- * Peran aktual satu pengguna bot internal (RFC-015). `SUPERADMIN_TELEGRAM_IDS`
- * → superadmin; `ADMIN_TELEGRAM_IDS` → admin; `BENDAHARA_TELEGRAM_IDS` →
- * bendahara. Pengajar/wali menyusul lewat `pengguna_telegram`.
+ * Peran aktual satu pengguna bot internal (RFC-015). Prioritas: env
+ * (`SUPERADMIN_TELEGRAM_IDS` / `ADMIN_TELEGRAM_IDS` / `BENDAHARA_TELEGRAM_IDS`),
+ * lalu fallback ke `pengguna_telegram` (user yang diundang superadmin).
+ * Wali tidak diizinkan masuk bot internal.
  */
-function peranUntuk(id: number | undefined): 'superadmin' | 'admin' | 'bendahara' | undefined {
+function peranUntuk(id: number | undefined): 'superadmin' | 'admin' | 'bendahara' | 'pengajar' | undefined {
   if (id === undefined) return undefined;
   if (superadminIds.has(id)) return 'superadmin';
   if (adminIds.has(id)) return 'admin';
   if (bendaharaIds.has(id)) return 'bendahara';
+  const terr = repoPenggunaTelegram(db).cariByTelegramId(id);
+  if (terr && terr.peran !== 'wali') return terr.peran as 'admin' | 'bendahara' | 'pengajar';
   return undefined;
 }
 
@@ -415,7 +420,7 @@ function terbitkanBulanan(): string {
 
 // ── menu & tombol (RFC-002, RFC-003, RFC-005, RFC-014/015) ───────────────────
 
-type PeranBot = 'superadmin' | 'admin' | 'bendahara' | undefined;
+type PeranBot = 'superadmin' | 'admin' | 'bendahara' | 'pengajar' | undefined;
 
 const TEKS_MENU =
   '🏫 SIAKAD An-Nuur — Menu Pengurus\n\n' +
@@ -618,16 +623,31 @@ bot.use(async (ctx, next) => {
 
 bot.command('start', async (ctx) => {
   const id = ctx.from?.id;
+  const kode = (ctx.match ?? '').trim();
+  // /start <kode> → klaim undangan user (RFC-015) bila itu kode undangan staf.
+  if (kode && id !== undefined) {
+    const hasil = undanganUser.gunakanUndanganUser({
+      kode,
+      telegramId: id,
+      waktu: new Date().toISOString(),
+    });
+    await ctx.reply(hasil.pesan ?? 'Selesai.', { reply_markup: tombolMenu() });
+    return;
+  }
   const peran = peranUntuk(id);
   const label =
     peran === 'superadmin'
       ? 'terdaftar sebagai superadmin.'
       : peran === 'bendahara'
         ? 'terdaftar sebagai bendahara.'
-        : 'terdaftar sebagai admin.';
+        : peran === 'pengajar'
+          ? 'terdaftar sebagai pengajar.'
+          : peran === 'admin'
+            ? 'terdaftar sebagai admin.'
+            : undefined;
   await ctx.reply(
     `Assalamualaikum, selamat datang di bot internal SIAKAD An-Nuur.\n` +
-      `ID Telegram Anda: ${id} — ${peran ? label : 'belum terdaftar.'}` +
+      `ID Telegram Anda: ${id} — ${label ?? 'belum terdaftar.'}` +
       `\n\n${TEKS_MENU}`,
     { reply_markup: menuUtama(peran) },
   );
@@ -678,6 +698,90 @@ bot.callbackQuery('keu:setujui', async (ctx) => {
   }
   stateSetujui.set(ctx.from?.id ?? -1, true);
   await ganti(ctx, 'Ketik tahun-bulan Hijriah yang ingin disetujui, contoh: 1448-09');
+});
+
+// ── pengelolaan user oleh superadmin (RFC-015) ───────────────────────────────
+
+/** Deep link undangan USER → bot internal (bukan bot wali). */
+const usernameBotInternal = process.env.TELEGRAM_BOT_INTERNAL_USERNAME ?? '';
+function linkUserUndangan(kode: string): string {
+  return usernameBotInternal ? `https://t.me/${usernameBotInternal}?start=${kode}` : kode;
+}
+
+function menuKelolaUser(): InlineKeyboard {
+  return new InlineKeyboard()
+    .text('➕ Undang admin', 'user:buat:admin')
+    .text('➕ Undang bendahara', 'user:buat:bendahara')
+    .row()
+    .text('➕ Undang pengajar', 'user:buat:pengajar')
+    .row()
+    .text('🏠 Menu utama', 'menu:utama');
+}
+
+bot.callbackQuery('user:list', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  if (peranUntuk(ctx.from?.id) !== 'superadmin') return;
+  const daftar = undanganUser.daftarUndanganUser({ aktor: aktorBot(ctx) });
+  const menunggu = daftar.data ?? [];
+  const kb = new InlineKeyboard();
+  for (const u of menunggu) {
+    kb.text(`❌ Cabut: ${u.peran}`, `user:cabut:${u.id}`).row();
+  }
+  kb.text('➕ Undang user', 'user:buat').row().text('🏠 Menu utama', 'menu:utama');
+  if (menunggu.length === 0) {
+    await ganti(ctx, '🛠 Belum ada undangan user yang menunggu dipakai.', kb);
+    return;
+  }
+  await ganti(
+    ctx,
+    `🛠 ${menunggu.length} undangan user menunggu dipakai:\n\n${menunggu
+      .map((u) => `• ${u.peran} — ${linkUserUndangan(u.undangan_kode ?? '')}\n  Kode: ${u.undangan_kode}`)
+      .join('\n\n')}`,
+    kb,
+  );
+});
+
+bot.callbackQuery('user:buat', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  if (peranUntuk(ctx.from?.id) !== 'superadmin') return;
+  await ganti(ctx, 'Undang user untuk peran apa?', menuKelolaUser());
+});
+
+bot.callbackQuery(/^user:buat:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  if (peranUntuk(ctx.from?.id) !== 'superadmin') return;
+  const peran = ctx.match[1] as 'admin' | 'bendahara' | 'pengajar';
+  if (!['admin', 'bendahara', 'pengajar'].includes(peran)) return;
+  const hasil = undanganUser.buatUndanganUser({
+    aktor: aktorBot(ctx),
+    peran,
+    waktu: new Date().toISOString(),
+  });
+  const kode = hasil.data?.undangan_kode;
+  await ganti(
+    ctx,
+    kode
+      ? `✅ Undangan ${peran} dibuat:\n\n${linkUserUndangan(kode)}\n\nKode: ${kode}\n\nKirim link ini ke calon ${peran}. Link sekali pakai.`
+      : hasil.pesan ?? 'Gagal membuat undangan.',
+    tombolMenu(),
+  );
+});
+
+bot.callbackQuery(/^user:cabut:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  if (peranUntuk(ctx.from?.id) !== 'superadmin') return;
+  const undanganId = ctx.match[1];
+  if (!undanganId) return;
+  const hasil = undanganUser.cabutUndanganUser({
+    aktor: aktorBot(ctx),
+    undanganId,
+    waktu: new Date().toISOString(),
+  });
+  await ganti(
+    ctx,
+    hasil.pesan ?? 'Selesai.',
+    new InlineKeyboard().text('🛠 Kelola user', 'user:list').row().text('🏠 Menu utama', 'menu:utama'),
+  );
 });
 
 bot.callbackQuery('keu:santri', async (ctx) => {

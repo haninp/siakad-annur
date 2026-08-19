@@ -3,11 +3,20 @@
 > Diperbarui di akhir setiap sesi. Berkas ini yang dibaca lebih dulu oleh agent berikutnya,
 > apa pun mereknya. STATE yang basi lebih berbahaya daripada tidak ada, karena ia dipercaya.
 
-**Terakhir diperbarui:** 18 Agustus 2026, sesi amendemen RFC-014
+**Terakhir diperbarui:** 19 Agustus 2026, sesi RFC-015
 
 ---
 
 ## Yang baru selesai
+
+**1.21 — Rombak peran + pengelolaan user superadmin (RFC-015).** Peran baru:
+`superadmin` (tertinggi, via env) · `admin` (eks `pengurus`) · `bendahara` ·
+`pengajar` · `wali`. `terbitkan tagihan` → **bendahara**; catat manual →
+admin+bendahara (bot: bendahara). **Fitur undangan user**: superadmin buat undangan
+berbasis role (admin/bendahara/pengajar) → kode/deep-link bot internal → calon
+`/start <kode>` → terdaftar di `pengguna_telegram` (anti-hijack, sekali pakai).
+Semua fitur kini tombol menu (Terbitkan/Bayar/Setujui/Kelola user). `docs/rfcs/rfc-015`
+tersedia (reuse `pengguna_telegram`, tanpa tabel baru).
 
 **1.20 — Amendemen RFC-014: `/terbitkan` untuk bendahara + struktur menu.** Per
 keputusan pemilik domain, penerbitan tagihan SPP bulanan (`/terbitkan`, back

@@ -6,55 +6,53 @@
 
 ## Peran
 
-| Peran      | Melekat pada                          | Kanal        |
-| ---------- | ------------------------------------- | ------------ |
-| `admin`    | pengurus yang ditunjuk                | bot-internal |
-| `pengurus` | pengurus pesantren                    | bot-internal |
-| `bendahara`| bendahara / kasir pesantren           | bot-internal |
-| `pengajar` | mudaris / pengajar mapel / wali kelas | bot-internal |
-| `wali`     | orang tua & orang tua asuh            | bot-wali     |
+| Peran        | Melekat pada                          | Penetapan                  | Kanal        |
+| ------------ | ------------------------------------- | -------------------------- | ------------ |
+| `superadmin` | pengelola sistem (2 orang, trust root)| `.env` `SUPERADMIN_TELEGRAM_IDS` | bot-internal |
+| `admin`      | eks `pengurus`; pantau & kelola master| undangan user (RFC-015)    | bot-internal |
+| `bendahara`  | keuangan: terbitkan, laporan, verifikasi | undangan user (RFC-015) / env | bot-internal |
+| `pengajar`   | mudaris / pengajar mapel / wali kelas | undangan user (RFC-015)    | bot-internal |
+| `wali`       | orang tua & orang tua asuh            | undangan wali (RFC-009)    | bot-wali     |
 
 Satu orang dapat memegang beberapa peran akademik sekaligus — seorang mudaris bisa juga
 wali kelas dan pengajar mapel.
 
-Peran `bendahara` (RFC-014) adalah peran mandiri, bukan "admin kedua": ia memegang hak baca
-laporan keuangan dan verifikasi pembayaran, tanpa hak admin (menerbitkan tagihan, undangan,
-kalender hijriah, catat pembayaran manual). Penetapan via `BENDAHARA_TELEGRAM_IDS` di `.env`;
-sumber kebenaran masa depan `pengguna_telegram` (RFC-009).
+Peran (RFC-015): **superadmin adalah peran tertinggi** (selalu lolos semua gate). `admin`
+adalah pengganti nama `pengurus`. **Bendahara** memegang urusan keuangan termasuk
+**menerbitkan tagihan** (berpindah dari admin/pengurus). Superadmin tidak diundang — hanya
+via `.env` (trust root di luar mekanisme sistem, cegah privilege-escalation lewat kode).
 
 ## Matriks
 
-| Aksi                                             | admin | bendahara | pengurus |       pengajar       |     wali      |
-| ------------------------------------------------ | :---: | :-------: | :------: | :------------------: | :-----------: |
-| Kelola pengguna & pemetaan `telegram_id`         |  ✅   |     —     |    —     |          —           |       —       |
-| Kelola data master (santri, kelas, mapel, tarif) |  ✅   |     —     |    ✅    |          —           |       —       |
-| Terbitkan tagihan (invoice) — back office                |  ✅   |     ✅    |    —     |          —           |       —       |
-| Catat pembayaran (manual)                        |  ✅   |     —     |    —     |          —           |       —       |
-| Pantau status pembayaran & piutang (individu & kolektif) |  ✅   |     ✅    |    ✅    |          —           |       —       |
-| Baca laporan keuangan (terbit/masuk/sisa)        |  ✅   |     ✅    |    ✅    |          —           |       —       |
-| Verifikasi / tolak usulan pembayaran wali (RFC-008) |  ✅   |     ✅    |    ✅    |          —           |       —       |
-| Tetapkan keringanan & alokasi PROTA              |  ✅   |     —     |    ✅    |          —           |       —       |
-| Buat & cabut undangan wali                       |  ✅   |     —     |    ✅    |          —           |       —       |
-| Perbarui `kalender_hijriah`                      |  ✅   |     —     |    —     |          —           |       —       |
-| Tulis absensi **halaqah**                        |  ✅   |     —     |    —     | mudaris halaqah itu  |       —       |
-| Tulis absensi **kelas**                          |  ✅   |     —     |    —     |  pengajar kelas itu  |       —       |
-| Tulis setoran hafalan                            |  ✅   |     —     |    —     | mudaris halaqah itu  |       —       |
-| Tulis nilai                                      |  ✅   |     —     |    —     |  pengampu mapel itu  |       —       |
-| Setujui rapor                                    |  ✅   |     —     |    —     | wali kelas kelas itu |       —       |
-| Baca seluruh santri                              |  ✅   |     —     |    ✅    |          —           |       —       |
-| Baca santri yang diampu                          |  ✅   |     —     |    ✅    |          ✅          |       —       |
-| Baca santri yang tertaut padanya                 |  ✅   |     —     |    ✅    |          —           |      ✅       |
-| Ajukan izin absen anaknya (`usulan_izin`)        |  ✅   |     —     |    ✅    |          ✅          |      ✅       |
-| Batalkan usulan izin **selama belum di-ack**    |  ✅   |     —     |    ✅    |          —           |   pelapornya  |
-| Tanya-jawab bebas ke agent                       |  ✅   |     —     |    ✅    |          —           |       —       |
-| Lihat NIK / NISN / no. rekening                  |  ✅   |     —     |    ✅    |          —           | milik anaknya |
+| Aksi                                             | superadmin | admin | bendahara |       pengajar       |     wali      |
+| ------------------------------------------------ | :--------: | :---: | :-------: | :------------------: | :-----------: |
+| Kelola user (undang admin/bendahara/pengajar)    |     ✅     |   —   |     —     |          —           |       —       |
+| Kelola data master (santri, kelas, mapel, tarif) |     ✅     |   ✅  |     —     |          —           |       —       |
+| Terbitkan tagihan (invoice) — back office        |     ✅     |   —   |    ✅     |          —           |       —       |
+| Catat pembayaran (manual)                        |     ✅     |   —   |    ✅     |          —           |       —       |
+| Pantau status pembayaran & piutang               |     ✅     |   ✅  |    ✅     |          —           |       —       |
+| Baca laporan keuangan (terbit/masuk/sisa)        |     ✅     |   ✅  |    ✅     |          —           |       —       |
+| Verifikasi / tolak usulan pembayaran wali (RFC-008)|    ✅     |   ✅  |    ✅     |          —           |       —       |
+| Tetapkan keringanan & alokasi PROTA              |     ✅     |   ✅  |    —      |          —           |       —       |
+| Buat & cabut undangan wali                       |     ✅     |   ✅  |    —      |          —           |       —       |
+| Perbarui `kalender_hijriah`                      |     ✅     |   ✅  |    —      |          —           |       —       |
+| Tulis absensi **halaqah**                        |     ✅     |   —   |    —      | mudaris halaqah itu  |       —       |
+| Tulis absensi **kelas**                          |     ✅     |   —   |    —      |  pengajar kelas itu  |       —       |
+| Tulis setoran hafalan                            |     ✅     |   —   |    —      | mudaris halaqah itu  |       —       |
+| Tulis nilai                                      |     ✅     |   —   |    —      |  pengampu mapel itu  |       —       |
+| Setujui rapor                                    |     ✅     |   —   |    —      | wali kelas kelas itu |       —       |
+| Baca seluruh santri                              |     ✅     |   ✅  |    —      |          —           |       —       |
+| Baca santri yang diampu                          |     ✅     |   ✅  |    —      |          ✅          |       —       |
+| Baca santri yang tertaut padanya                 |     ✅     |   ✅  |    —      |          —           |      ✅       |
+| Ajukan izin absen anaknya (`usulan_izin`)        |     ✅     |   ✅  |    —      |          ✅          |      ✅       |
+| Batalkan usulan izin **selama belum di-ack**    |     ✅     |   ✅  |    —      |          —           |   pelapornya  |
+| Tanya-jawab bebas ke agent                       |     ✅     |   ✅  |    —      |          —           |       —       |
+| Lihat NIK / NISN / no. rekening                  |     ✅     |   ✅  |    —      |          —           | milik anaknya |
 
-> **Catatan `bendahara` (RFC-014 + amendemen 2026-08-18):** "Catat pembayaran"
-> bagi bendahara hanya terjadi lewat alur verifikasi usulan wali (RFC-008) —
-> tanpa jalur manual. **Amendemen**: `/terbitkan` (tagihan SPP bulanan, back
-> office) adalah urusan keuangan → tersedia bagi admin & bendahara (sebelumnya
-> admin saja). Bot internal menyembunyikan menu/tombol di luar hak peran,
-> tetapi **penegak izin terakhir tetap handler di `packages/core`** (AGENTS.md).
+> **Catatan (RFC-014 + RFC-015):** "Catat pembayaran manual" & "Terbitkan tagihan" adalah
+> urusan **bendahara** (superadmin tetap bisa). Verifikasi usulan wali = bendahara/admin.
+> Undangan **user** (staf) = khusus **superadmin**. Bot menyembunyikan menu/tombol di luar
+> hak peran, tetapi **penegak izin terakhir tetap handler di `packages/core`** (AGENTS.md).
 
 ## Aturan penyempitan
 

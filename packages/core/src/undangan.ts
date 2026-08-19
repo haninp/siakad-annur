@@ -84,8 +84,8 @@ function kodeBaru(): string {
 export function buatHandlerUndangan(dep: DepUndangan) {
   /** Pengurus membuat undangan untuk wali tertentu (sekali pakai). */
   function buatUndangan(input: BuatUndanganInput): HasilHandler<PenggunaTelegram> {
-    if (!peranCukup(input.aktor, 'admin', 'pengurus')) {
-      return { ok: false, pesan: 'Hanya pengurus yang boleh membuat undangan.' };
+    if (!peranCukup(input.aktor, 'superadmin', 'admin')) {
+      return { ok: false, pesan: 'Hanya admin yang boleh membuat undangan.' };
     }
     const wali = dep.repoWali.ambil(input.waliId);
     if (!wali) {
@@ -170,8 +170,8 @@ export function buatHandlerUndangan(dep: DepUndangan) {
 
   /** Pengurus mencabut undangan yang belum dipakai (revoke). */
   function cabutUndangan(input: CabutUndanganInput): HasilHandler<never> {
-    if (!peranCukup(input.aktor, 'admin', 'pengurus')) {
-      return { ok: false, pesan: 'Hanya pengurus yang boleh mencabut undangan.' };
+    if (!peranCukup(input.aktor, 'superadmin', 'admin')) {
+      return { ok: false, pesan: 'Hanya admin yang boleh mencabut undangan.' };
     }
     try {
       dep.repoPenggunaTelegram.cabut(input.undanganId, input.waktu);
@@ -183,8 +183,8 @@ export function buatHandlerUndangan(dep: DepUndangan) {
 
   /** Daftar undangan yang masih menunggu dipakai (list pengurus). */
   function daftarUndangan(input: { aktor: Aktor }): HasilHandler<PenggunaTelegram[]> {
-    if (!peranCukup(input.aktor, 'admin', 'pengurus')) {
-      return { ok: false, pesan: 'Hanya pengurus yang bisa melihat daftar undangan.' };
+    if (!peranCukup(input.aktor, 'superadmin', 'admin')) {
+      return { ok: false, pesan: 'Hanya admin yang bisa melihat daftar undangan.' };
     }
     const daftar = dep.repoPenggunaTelegram.cariMenunggu();
     return { ok: true, pesan: `${daftar.length} undangan menunggu dipakai.`, data: daftar };

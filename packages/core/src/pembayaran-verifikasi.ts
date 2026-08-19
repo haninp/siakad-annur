@@ -139,7 +139,7 @@ export function buatHandlerVerifikasiPembayaran(dep: DepVerifikasiPembayaran) {
 
   /** Bendahara mengonfirmasi uang masuk → catat pembayaran (akrual). */
   function verifikasiUsulan(input: VerifikasiUsulanInput): HasilHandler<never> {
-    if (!peranCukup(input.aktor, 'bendahara', 'pengurus')) {
+    if (!peranCukup(input.aktor, 'bendahara', 'admin')) {
       return { ok: false, pesan: 'Hanya bendahara dan admin yang boleh memverifikasi pembayaran.' };
     }
     const usulan = dep.repoUsulanPembayaran.cariById(input.usulanId);
@@ -177,7 +177,7 @@ export function buatHandlerVerifikasiPembayaran(dep: DepVerifikasiPembayaran) {
 
   /** Bendahara menolak dengan alasan wajib → status wali kembali BELUM BAYAR. */
   function tolakUsulan(input: TolakUsulanInput): HasilHandler<never> {
-    if (!peranCukup(input.aktor, 'bendahara', 'pengurus')) {
+    if (!peranCukup(input.aktor, 'bendahara', 'admin')) {
       return { ok: false, pesan: 'Hanya bendahara dan admin yang boleh menolak pembayaran.' };
     }
     const alasan = (input.alasan ?? '').trim();

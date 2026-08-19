@@ -10,7 +10,7 @@
  * hanya ditegakkan di `packages/core`).
  */
 
-export type Peran = 'admin' | 'pengurus' | 'pengajar' | 'bendahara' | 'wali';
+export type Peran = 'superadmin' | 'admin' | 'bendahara' | 'pengajar' | 'wali';
 
 export interface Aktor {
   readonly peran: Peran;
@@ -29,6 +29,6 @@ export interface HasilHandler<T> {
  * berikut. `admin` selalu cukup (matriks peran).
  */
 export function peranCukup(aktor: Aktor, ...perlu: readonly Peran[]): boolean {
-  if (aktor.peran === 'admin') return true;
+  if (aktor.peran === 'superadmin') return true;
   return perlu.includes(aktor.peran);
 }

@@ -125,7 +125,7 @@ function seedDasar() {
 
 const wali = (id = 'wali-1') => ({ peran: 'wali' as const, id });
 const bendahara = (id = 'bendahara-1') => ({ peran: 'bendahara' as const, id });
-const pengurus = (id = 'pengurus-1') => ({ peran: 'pengurus' as const, id });
+const pengurus = (id = 'pengurus-1') => ({ peran: 'admin' as const, id });
 const admin = (id = 'admin-1') => ({ peran: 'admin' as const, id });
 
 describe('bacaLaporanKeuangan — izin', () => {

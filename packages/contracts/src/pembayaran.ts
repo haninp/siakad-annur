@@ -92,7 +92,7 @@ export const entitasUsulanPembayaran: Entitas<UsulanPembayaran> = {
 
 // ── pengguna_telegram ───────────────────────────────────────────────────────
 
-export const PeranPenggunaTelegram = z.enum(['wali', 'bendahara', 'pengurus', 'pengajar', 'admin']);
+export const PeranPenggunaTelegram = z.enum(['wali', 'bendahara', 'pengajar', 'admin', 'superadmin']);
 export type PeranPenggunaTelegram = z.infer<typeof PeranPenggunaTelegram>;
 
 export const PenggunaTelegram = z.object({

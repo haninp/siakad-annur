@@ -126,10 +126,10 @@ function lookupDariRepo(repo: RepoTarifKomponen): LookupTarif {
 export function buatHandlerKeuangan(dep: DepKeuangan) {
   return {
     terbitkanTagihan(input: TerbitkanTagihanInput): HasilHandler<Tagihan> {
-      if (!peranCukup(input.aktor, 'pengurus')) {
+      if (!peranCukup(input.aktor, 'bendahara')) {
         return {
           ok: false,
-          pesan: 'Hanya pengurus dan admin yang boleh menerbitkan tagihan.',
+          pesan: 'Hanya bendahara yang boleh menerbitkan tagihan.',
         };
       }
 
@@ -240,10 +240,10 @@ export function buatHandlerKeuangan(dep: DepKeuangan) {
     },
 
     catatPembayaran(input: CatatPembayaranInput): HasilHandler<Pembayaran> {
-      if (!peranCukup(input.aktor, 'pengurus', 'bendahara')) {
+      if (!peranCukup(input.aktor, 'admin', 'bendahara')) {
         return {
           ok: false,
-          pesan: 'Hanya pengurus, bendahara, dan admin yang boleh mencatat pembayaran.',
+          pesan: 'Hanya admin dan bendahara yang boleh mencatat pembayaran.',
         };
       }
 
@@ -384,10 +384,10 @@ export function buatHandlerKeuangan(dep: DepKeuangan) {
     },
 
     tetapkanKeringanan(input: TetapkanKeringananInput): HasilHandler<Keringanan> {
-      if (!peranCukup(input.aktor, 'pengurus')) {
+      if (!peranCukup(input.aktor, 'admin')) {
         return {
           ok: false,
-          pesan: 'Hanya pengurus dan admin yang boleh menetapkan keringanan.',
+          pesan: 'Hanya admin yang boleh menetapkan keringanan.',
         };
       }
 
@@ -477,10 +477,10 @@ export function buatHandlerKeuangan(dep: DepKeuangan) {
     },
 
     alokasiProta(input: AlokasiProtaInput): HasilHandler<{ pembayaran: Pembayaran; alokasi: AlokasiProta }> {
-      if (!peranCukup(input.aktor, 'pengurus')) {
+      if (!peranCukup(input.aktor, 'admin')) {
         return {
           ok: false,
-          pesan: 'Hanya pengurus dan admin yang boleh mengalokasikan PROTA.',
+          pesan: 'Hanya admin yang boleh mengalokasikan PROTA.',
         };
       }
 
@@ -597,10 +597,10 @@ export function buatHandlerKeuangan(dep: DepKeuangan) {
     },
 
     terapkanLebihBayar(input: TerapkanLebihBayarInput): HasilHandler<Pembayaran> {
-      if (!peranCukup(input.aktor, 'pengurus')) {
+      if (!peranCukup(input.aktor, 'admin')) {
         return {
           ok: false,
-          pesan: 'Hanya pengurus dan admin yang boleh menerapkan saldo lebih bayar.',
+          pesan: 'Hanya admin yang boleh menerapkan saldo lebih bayar.',
         };
       }
 

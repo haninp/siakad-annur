@@ -17,10 +17,10 @@ export interface DependensiHandlerKalender {
 export function buatHandlerKalender(dep: DependensiHandlerKalender) {
   return {
     setujuiBulanHijriah(input: SetujuiBulanHijriahInput): HasilHandler<void> {
-      if (!peranCukup(input.aktor, 'pengurus')) {
+      if (!peranCukup(input.aktor, 'admin')) {
         return {
           ok: false,
-          pesan: 'Hanya pengurus dan admin yang boleh menyetujui bulan Hijriah.',
+          pesan: 'Hanya admin yang boleh menyetujui bulan Hijriah.',
         };
       }
 

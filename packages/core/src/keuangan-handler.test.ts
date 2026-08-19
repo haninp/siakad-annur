@@ -187,7 +187,7 @@ function buatTagihanSpp(
   periode: string = '2026-08',
 ) {
   const hasil = handler.terbitkanTagihan({
-    aktor: { peran: 'pengurus', id: dasar.pengurusId },
+    aktor: { peran: 'bendahara', id: dasar.pengurusId },
     santriId: dasar.santriId,
     komponenBiayaId: dasar.komponenSppId,
     tahunAjaranId: dasar.tahunAjaranId,
@@ -212,7 +212,7 @@ describe('handler keuangan', () => {
     it('menerbitkan tagihan SPP dengan tarif spesifik', () => {
       const handler = handlerDari(db);
       const hasil = handler.terbitkanTagihan({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'bendahara', id: dasar.pengurusId },
         santriId: dasar.santriId,
         komponenBiayaId: dasar.komponenSppId,
         tahunAjaranId: dasar.tahunAjaranId,
@@ -232,7 +232,7 @@ describe('handler keuangan', () => {
     it('jatuh tempo default tanggal 10 bulan berikutnya', () => {
       const handler = handlerDari(db);
       const hasil = handler.terbitkanTagihan({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'bendahara', id: dasar.pengurusId },
         santriId: dasar.santriId,
         komponenBiayaId: dasar.komponenSppId,
         tahunAjaranId: dasar.tahunAjaranId,
@@ -247,7 +247,7 @@ describe('handler keuangan', () => {
     it('menerbitkan tagihan komponen sekali', () => {
       const handler = handlerDari(db);
       const hasil = handler.terbitkanTagihan({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'bendahara', id: dasar.pengurusId },
         santriId: dasar.santriId,
         komponenBiayaId: dasar.komponenGedungId,
         tahunAjaranId: dasar.tahunAjaranId,
@@ -274,13 +274,13 @@ describe('handler keuangan', () => {
       });
 
       expect(hasil.ok).toBe(false);
-      expect(hasil.pesan).toContain('pengurus');
+      expect(hasil.pesan).toContain('bendahara');
     });
 
     it('menolak tagihan duplikat', () => {
       const handler = handlerDari(db);
       const input = {
-        aktor: { peran: 'pengurus' as const, id: dasar.pengurusId },
+        aktor: { peran: 'bendahara' as const, id: dasar.pengurusId },
         santriId: dasar.santriId,
         komponenBiayaId: dasar.komponenSppId,
         tahunAjaranId: dasar.tahunAjaranId,
@@ -298,7 +298,7 @@ describe('handler keuangan', () => {
     it('menolak SPP sebelum tanggal masuk', () => {
       const handler = handlerDari(db);
       const hasil = handler.terbitkanTagihan({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'bendahara', id: dasar.pengurusId },
         santriId: dasar.santriId,
         komponenBiayaId: dasar.komponenSppId,
         tahunAjaranId: dasar.tahunAjaranId,
@@ -323,7 +323,7 @@ describe('handler keuangan', () => {
 
       const handler = handlerDari(db);
       const hasil = handler.terbitkanTagihan({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'bendahara', id: dasar.pengurusId },
         santriId: dasar.santriId,
         komponenBiayaId: komponenTanpaTarifId,
         tahunAjaranId: dasar.tahunAjaranId,
@@ -336,7 +336,22 @@ describe('handler keuangan', () => {
       expect(hasil.pesan).toContain('Tarif');
     });
 
-    it('admin selalu boleh meski peran bukan pengurus', () => {
+    it('superadmin selalu boleh menerbitkan', () => {
+      const handler = handlerDari(db);
+      const hasil = handler.terbitkanTagihan({
+        aktor: { peran: 'superadmin', id: dasar.pengurusId },
+        santriId: dasar.santriId,
+        komponenBiayaId: dasar.komponenSppId,
+        tahunAjaranId: dasar.tahunAjaranId,
+        periode: '2026-08',
+        skemaPeriode: 'masehi',
+        waktu: '2026-08-01T08:00:00+07:00',
+      });
+
+      expect(hasil.ok).toBe(true);
+    });
+
+    it('admin (eks pengurus) tidak bisa menerbitkan — khusus bendahara/superadmin', () => {
       const handler = handlerDari(db);
       const hasil = handler.terbitkanTagihan({
         aktor: { peran: 'admin', id: dasar.pengurusId },
@@ -348,7 +363,8 @@ describe('handler keuangan', () => {
         waktu: '2026-08-01T08:00:00+07:00',
       });
 
-      expect(hasil.ok).toBe(true);
+      expect(hasil.ok).toBe(false);
+      expect(hasil.pesan).toContain('bendahara');
     });
   });
 
@@ -358,7 +374,7 @@ describe('handler keuangan', () => {
       const tagihan = buatTagihanSpp(handler, dasar);
 
       const hasil = handler.catatPembayaran({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         tanggal: '2026-08-05',
         nominal: 450_000,
@@ -379,7 +395,7 @@ describe('handler keuangan', () => {
       const tagihan = buatTagihanSpp(handler, dasar);
 
       const hasil = handler.catatPembayaran({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         tanggal: '2026-08-05',
         nominal: 200_000,
@@ -400,7 +416,7 @@ describe('handler keuangan', () => {
 
       for (let i = 1; i <= 6; i++) {
         const hasil = handler.catatPembayaran({
-          aktor: { peran: 'pengurus', id: dasar.pengurusId },
+          aktor: { peran: 'admin', id: dasar.pengurusId },
           tagihanId: tagihan.id,
           tanggal: '2026-08-05',
           nominal: 60_000,
@@ -416,7 +432,7 @@ describe('handler keuangan', () => {
       expect(repoTagihan(db).ambil(tagihan.id)?.status).toBe('terbit');
 
       const keTujuh = handler.catatPembayaran({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         tanggal: '2026-08-05',
         nominal: 1,
@@ -444,7 +460,7 @@ describe('handler keuangan', () => {
       });
 
       const hasil = handler.catatPembayaran({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         tanggal: '2026-08-05',
         nominal: 300_000,
@@ -463,7 +479,7 @@ describe('handler keuangan', () => {
       const tagihan = buatTagihanSpp(handler, dasar);
 
       const hasil = handler.catatPembayaran({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         tanggal: '2026-08-05',
         nominal: 500_000,
@@ -485,7 +501,7 @@ describe('handler keuangan', () => {
       const handler = handlerDari(db);
       const tagihan = buatTagihanSpp(handler, dasar);
       handler.catatPembayaran({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         tanggal: '2026-08-05',
         nominal: 450_000,
@@ -496,7 +512,7 @@ describe('handler keuangan', () => {
       });
 
       const hasil = handler.catatPembayaran({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         tanggal: '2026-08-06',
         nominal: 1,
@@ -537,7 +553,7 @@ describe('handler keuangan', () => {
     ) {
       const tagihan = buatTagihanSpp(handlerDari(db), dasar);
       handlerDari(db).catatPembayaran({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         tanggal: '2026-08-05',
         nominal: tagihan.nominal + nominal,
@@ -556,7 +572,7 @@ describe('handler keuangan', () => {
 
       const tagihanKedua = buatTagihanSpp(handler, dasar, '2026-09');
       const hasil = handler.terapkanLebihBayar({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihanKedua.id,
         waktu: '2026-09-11T10:00:00+07:00',
       });
@@ -576,7 +592,7 @@ describe('handler keuangan', () => {
 
       const tagihanKedua = buatTagihanSpp(handler, dasar, '2026-09');
       const hasil = handler.terapkanLebihBayar({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihanKedua.id,
         waktu: '2026-09-11T10:00:00+07:00',
       });
@@ -592,7 +608,7 @@ describe('handler keuangan', () => {
       const tagihan = buatTagihanSpp(handler, dasar);
 
       const hasil = handler.terapkanLebihBayar({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         waktu: '2026-08-11T10:00:00+07:00',
       });
@@ -621,7 +637,7 @@ describe('handler keuangan', () => {
       const tagihan = buatTagihanSpp(handler, dasar);
 
       const hasil = handler.tetapkanKeringanan({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         nominal: 150_000,
         persentase: null,
@@ -640,7 +656,7 @@ describe('handler keuangan', () => {
       const tagihan = buatTagihanSpp(handler, dasar);
 
       const hasil = handler.tetapkanKeringanan({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         nominal: null,
         persentase: 100,
@@ -658,7 +674,7 @@ describe('handler keuangan', () => {
       const tagihan = buatTagihanSpp(handler, dasar);
 
       handler.tetapkanKeringanan({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         nominal: 300_000,
         persentase: null,
@@ -667,7 +683,7 @@ describe('handler keuangan', () => {
       });
 
       const hasil = handler.tetapkanKeringanan({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         nominal: 200_000,
         persentase: null,
@@ -683,7 +699,7 @@ describe('handler keuangan', () => {
       const handler = handlerDari(db);
       const tagihan = buatTagihanSpp(handler, dasar);
       handler.catatPembayaran({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         tanggal: '2026-08-05',
         nominal: 450_000,
@@ -694,7 +710,7 @@ describe('handler keuangan', () => {
       });
 
       const hasil = handler.tetapkanKeringanan({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         nominal: 10_000,
         persentase: null,
@@ -711,7 +727,7 @@ describe('handler keuangan', () => {
       const tagihan = buatTagihanSpp(handler, dasar);
 
       const hasil = handler.tetapkanKeringanan({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         tagihanId: tagihan.id,
         nominal: null,
         persentase: null,
@@ -761,7 +777,7 @@ describe('handler keuangan', () => {
       const protaId = buatProta(db, dasar, 450_000);
 
       const hasil = handler.alokasiProta({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         protaId,
         tagihanId: tagihan.id,
         nominal: 450_000,
@@ -783,7 +799,7 @@ describe('handler keuangan', () => {
       const protaId = buatProta(db, dasar, 100_000);
 
       const hasil = handler.alokasiProta({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         protaId,
         tagihanId: tagihan.id,
         nominal: 450_000,
@@ -803,7 +819,7 @@ describe('handler keuangan', () => {
       const protaId = buatProta(db, dasar, 500_000);
 
       const hasil = handler.alokasiProta({
-        aktor: { peran: 'pengurus', id: dasar.pengurusId },
+        aktor: { peran: 'admin', id: dasar.pengurusId },
         protaId,
         tagihanId: tagihan.id,
         nominal: 500_000,

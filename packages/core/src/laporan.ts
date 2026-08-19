@@ -41,8 +41,8 @@ const POLA_PERIODE = /^\d{4}-\d{2}$/;
 export function buatHandlerLaporan(dep: DepLaporan) {
   /** Laporan penerimaan + piutang satu periode (bendahara/pengurus/admin). */
   function bacaLaporanKeuangan(input: BacaLaporanInput): HasilHandler<LaporanKeuangan> {
-    if (!peranCukup(input.aktor, 'bendahara', 'pengurus')) {
-      return { ok: false, pesan: 'Hanya bendahara dan pengurus yang boleh membaca laporan keuangan.' };
+    if (!peranCukup(input.aktor, 'bendahara', 'admin')) {
+      return { ok: false, pesan: 'Hanya bendahara dan admin yang boleh membaca laporan keuangan.' };
     }
     const periode = (input.periode ?? '').trim();
     if (!POLA_PERIODE.test(periode)) {

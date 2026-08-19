@@ -45,7 +45,7 @@ export function terbitkanTagihanBulanan(
       continue;
     }
     const hasil = handler.terbitkanTagihan({
-      aktor: { peran: 'admin', id: opsi.actorId },
+      aktor: { peran: 'bendahara', id: opsi.actorId },
       santriId: s.id,
       komponenBiayaId: opsi.komponenBiayaId,
       tahunAjaranId: opsi.tahunAjaranId,

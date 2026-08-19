@@ -147,7 +147,7 @@ function peranUntuk(id: number | undefined): 'admin' | 'bendahara' | undefined {
 
 /** Aktor dengan peran AKTUAL penelepon — penegak terakhir tetap core. */
 function aktorBot(ctx: { from?: { id?: number } | undefined }): { peran: Peran; id: string } {
-  return { peran: peranUntuk(ctx.from?.id) ?? 'pengurus', id: actorId(ctx) };
+  return { peran: peranUntuk(ctx.from?.id) ?? 'admin', id: actorId(ctx) };
 }
 
 // ── akses data ────────────────────────────────────────────────────────────────

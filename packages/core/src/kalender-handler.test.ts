@@ -85,7 +85,7 @@ describe('handler kalender', () => {
     const pengurusId = buatUlid();
 
     const hasil = handler.setujuiBulanHijriah({
-      aktor: { peran: 'pengurus', id: pengurusId },
+      aktor: { peran: 'admin', id: pengurusId },
       tahun: 1448,
       bulan: 9,
       waktu: '2027-02-06T10:00:00+07:00',
@@ -121,7 +121,7 @@ describe('handler kalender', () => {
     const handler = handlerDari(db);
 
     const hasil = handler.setujuiBulanHijriah({
-      aktor: { peran: 'pengurus', id: buatUlid() },
+      aktor: { peran: 'admin', id: buatUlid() },
       tahun: 1448,
       bulan: 9,
       waktu: '2027-02-06T10:00:00+07:00',
@@ -135,7 +135,7 @@ describe('handler kalender', () => {
     const handler = handlerDari(db);
 
     const hasil = handler.setujuiBulanHijriah({
-      aktor: { peran: 'pengurus', id: buatUlid() },
+      aktor: { peran: 'admin', id: buatUlid() },
       tahun: 1448,
       bulan: 9,
       waktu: '2027-02-06T10:00:00+07:00',

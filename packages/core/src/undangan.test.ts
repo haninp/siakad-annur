@@ -26,7 +26,7 @@ let db: DatabaseSync;
 let handler: ReturnType<typeof buatHandlerUndangan>;
 
 const ADMIN = { peran: 'admin', id: 'tg-admin' } as const;
-const PENGURUS = { peran: 'pengurus', id: 'tg-pengurus' } as const;
+const PENGURUS = { peran: 'admin', id: 'tg-pengurus' } as const;
 const WALI = { peran: 'wali', id: 'tg-wali' } as const;
 
 beforeEach(() => {
@@ -93,7 +93,7 @@ describe('buatUndangan', () => {
     sisipWali(waliId, 'Bapak Contoh');
     const hasil = handler.buatUndangan({ aktor: WALI, waliId, waktu: 'x' });
     expect(hasil.ok).toBe(false);
-    expect(hasil.pesan).toMatch(/Hanya pengurus/);
+    expect(hasil.pesan).toMatch(/Hanya admin/);
   });
 
   it('wali yang tidak dikenal ditolak', () => {
@@ -226,7 +226,7 @@ describe('cabutUndangan', () => {
 
     const hasil = handler.cabutUndangan({ aktor: WALI, undanganId: undangan.id, waktu: 'w' });
     expect(hasil.ok).toBe(false);
-    expect(hasil.pesan).toMatch(/Hanya pengurus/);
+    expect(hasil.pesan).toMatch(/Hanya admin/);
   });
 
   it('undangan yang sudah dipakai tidak bisa dicabut', () => {
@@ -262,7 +262,7 @@ describe('daftarUndangan', () => {
   it('wali tidak bisa melihat daftar undangan', () => {
     const hasil = handler.daftarUndangan({ aktor: WALI });
     expect(hasil.ok).toBe(false);
-    expect(hasil.pesan).toMatch(/Hanya pengurus/);
+    expect(hasil.pesan).toMatch(/Hanya admin/);
   });
 });
 

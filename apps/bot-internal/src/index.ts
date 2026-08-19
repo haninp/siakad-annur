@@ -63,6 +63,13 @@ if (!token) {
   process.exit(1);
 }
 
+const superadminIds = new Set(
+  (process.env.SUPERADMIN_TELEGRAM_IDS ?? '')
+    .split(',')
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isInteger(n)),
+);
+
 const adminIds = new Set(
   (process.env.ADMIN_TELEGRAM_IDS ?? '')
     .split(',')
@@ -70,7 +77,7 @@ const adminIds = new Set(
     .filter((n) => Number.isInteger(n)),
 );
 
-/** Bendahara (RFC-008) — verifikasi pembayaran; ID di .env (menyusul). */
+/** Bendahara — verifikasi & terbitkan tagihan; ID di .env (menyusul ke pengguna_telegram). */
 const bendaharaIds = new Set(
   (process.env.BENDAHARA_TELEGRAM_IDS ?? '')
     .split(',')
@@ -134,12 +141,13 @@ function adminAktif(id: number | undefined): boolean {
 }
 
 /**
- * Peran aktual satu pengguna bot internal (RFC-014). `ADMIN_TELEGRAM_IDS` →
- * `admin`; `BENDAHARA_TELEGRAM_IDS` → `bendahara`. Pengurus/pengajar menyusul
- * lewat `pengguna_telegram` (RFC-009) — belum dibangun, catatan di RFC-014.
+ * Peran aktual satu pengguna bot internal (RFC-015). `SUPERADMIN_TELEGRAM_IDS`
+ * → superadmin; `ADMIN_TELEGRAM_IDS` → admin; `BENDAHARA_TELEGRAM_IDS` →
+ * bendahara. Pengajar/wali menyusul lewat `pengguna_telegram`.
  */
-function peranUntuk(id: number | undefined): 'admin' | 'bendahara' | undefined {
+function peranUntuk(id: number | undefined): 'superadmin' | 'admin' | 'bendahara' | undefined {
   if (id === undefined) return undefined;
+  if (superadminIds.has(id)) return 'superadmin';
   if (adminIds.has(id)) return 'admin';
   if (bendaharaIds.has(id)) return 'bendahara';
   return undefined;
@@ -405,34 +413,38 @@ function terbitkanBulanan(): string {
   );
 }
 
-// ── menu & tombol (RFC-002, RFC-003, RFC-005) ────────────────────────────────
+// ── menu & tombol (RFC-002, RFC-003, RFC-005, RFC-014/015) ───────────────────
+
+type PeranBot = 'superadmin' | 'admin' | 'bendahara' | undefined;
 
 const TEKS_MENU =
   '🏫 SIAKAD An-Nuur — Menu Pengurus\n\n' +
   'Pilih 💰 Keuangan untuk pembayaran santri & laporan.\n' +
-  'Perintah: /cari <nis|nama> · /status <nis> · /rekap · /piutang · /laporan [YYYY-MM] · ' +
-  '(admin) /terbitkan · /undang · /bayar <nis> <nominal>';
+  'Perintah fallback: /cari · /status · /rekap · /piutang · /laporan [YYYY-MM] · ' +
+  '/terbitkan · /bayar · /undang · /setujui · (superadmin) kelola user';
 
-/** Menu utama per peran (RFC-014): Undangan khusus admin+pengurus. */
-function menuUtama(peran: 'admin' | 'bendahara'): InlineKeyboard {
+/** Menu utama per peran (RFC-015). */
+function menuUtama(peran: PeranBot): InlineKeyboard {
   const kb = new InlineKeyboard().text('💰 Keuangan', 'menu:keuangan').text('🔍 Cari santri', 'menu:cari');
-  if (peran === 'admin') {
-    kb.text('✉️ Undangan', 'undangan:list');
-  }
+  if (peran === 'superadmin') kb.text('🛠 Kelola user', 'user:list');
+  if (peran === 'superadmin' || peran === 'admin') kb.text('✉️ Undangan', 'undangan:list');
+  if (peran === 'superadmin' || peran === 'bendahara') kb.text('🧾 Terbitkan tagihan', 'keu:terbitkan');
   return kb;
 }
 
-function menuKeuangan(): InlineKeyboard {
-  return new InlineKeyboard()
+function menuKeuangan(peran: PeranBot): InlineKeyboard {
+  const kb = new InlineKeyboard()
     .text('👤 Santri', 'keu:santri')
     .text('📊 Rekap bulan ini', 'keu:rekap')
     .row()
     .text('💰 Piutang', 'keu:piutang')
     .text('📊 Laporan keuangan', 'keu:laporan')
     .row()
-    .text('💳 Usulan pembayaran', 'keu:usulan')
-    .row()
-    .text('🏠 Menu utama', 'menu:utama');
+    .text('💳 Usulan pembayaran', 'keu:usulan');
+  if (peran === 'superadmin' || peran === 'bendahara') kb.row().text('💸 Catat bayar', 'keu:bayar');
+  if (peran === 'superadmin' || peran === 'admin') kb.row().text('🗓 Setujui kalender', 'keu:setujui');
+  kb.row().text('🏠 Menu utama', 'menu:utama');
+  return kb;
 }
 
 function pemilihKomponen(aksi: 'ks' | 'kr' | 'kp'): InlineKeyboard {
@@ -607,12 +619,17 @@ bot.use(async (ctx, next) => {
 bot.command('start', async (ctx) => {
   const id = ctx.from?.id;
   const peran = peranUntuk(id);
-  const label = peran === 'bendahara' ? 'terdaftar sebagai bendahara.' : 'terdaftar sebagai admin.';
+  const label =
+    peran === 'superadmin'
+      ? 'terdaftar sebagai superadmin.'
+      : peran === 'bendahara'
+        ? 'terdaftar sebagai bendahara.'
+        : 'terdaftar sebagai admin.';
   await ctx.reply(
     `Assalamualaikum, selamat datang di bot internal SIAKAD An-Nuur.\n` +
       `ID Telegram Anda: ${id} — ${peran ? label : 'belum terdaftar.'}` +
       `\n\n${TEKS_MENU}`,
-    { reply_markup: menuUtama(peran ?? 'admin') },
+    { reply_markup: menuUtama(peran) },
   );
 });
 
@@ -626,7 +643,41 @@ bot.callbackQuery('menu:utama', async (ctx) => {
 
 bot.callbackQuery('menu:keuangan', async (ctx) => {
   await ctx.answerCallbackQuery();
-  await ganti(ctx, '💰 Keuangan — pilih menu:', menuKeuangan());
+  await ganti(ctx, '💰 Keuangan — pilih menu:', menuKeuangan(peranUntuk(ctx.from?.id)));
+});
+
+// ── aksi cepat dari menu (tombol = jangan hafal perintah, RFC-015) ────────────
+
+bot.callbackQuery('keu:terbitkan', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const peran = peranUntuk(ctx.from?.id);
+  if (!(peran === 'superadmin' || peran === 'bendahara')) {
+    await ganti(ctx, 'Aksi ini khusus bendahara.');
+    return;
+  }
+  await ganti(ctx, terbitkanBulanan(), tombolMenu());
+});
+
+bot.callbackQuery('keu:bayar', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const peran = peranUntuk(ctx.from?.id);
+  if (!(peran === 'superadmin' || peran === 'bendahara')) {
+    await ganti(ctx, 'Aksi ini khusus bendahara.');
+    return;
+  }
+  stateBayar.set(ctx.from?.id ?? -1, true);
+  await ganti(ctx, 'Ketik NIS dan nominal, contoh: 2627001 150000');
+});
+
+bot.callbackQuery('keu:setujui', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const peran = peranUntuk(ctx.from?.id);
+  if (!(peran === 'superadmin' || peran === 'admin')) {
+    await ganti(ctx, 'Aksi ini khusus admin.');
+    return;
+  }
+  stateSetujui.set(ctx.from?.id ?? -1, true);
+  await ganti(ctx, 'Ketik tahun-bulan Hijriah yang ingin disetujui, contoh: 1448-09');
 });
 
 bot.callbackQuery('keu:santri', async (ctx) => {
@@ -770,13 +821,19 @@ bot.command('laporan', async (ctx) => {
 
 // ── perintah teks (fallback) ──────────────────────────────────────────────────
 
-// /terbitkan = urusan keuangan → admin & bendahara (amendemen RFC-014, 2026-08-18).
+// /terbitkan = urusan keuangan → bendahara (superadmin selalu lolos). RFC-015.
 bot.command('terbitkan', async (ctx) => {
+  const peran = peranUntuk(ctx.from?.id);
+  if (!(peran === 'superadmin' || peran === 'bendahara')) {
+    await ctx.reply('Perintah ini khusus bendahara.').catch(() => undefined);
+    return;
+  }
   await ctx.reply(terbitkanBulanan(), { reply_markup: tombolMenu() });
 });
 
 bot.command('undang', async (ctx) => {
-  if (peranUntuk(ctx.from?.id) !== 'admin') {
+  const peran = peranUntuk(ctx.from?.id);
+  if (!(peran === 'superadmin' || peran === 'admin')) {
     await ctx.reply('Perintah ini khusus admin.').catch(() => undefined);
     return;
   }
@@ -889,8 +946,9 @@ bot.command('piutang', async (ctx) => {
 });
 
 bot.command('bayar', async (ctx) => {
-  if (peranUntuk(ctx.from?.id) !== 'admin') {
-    await ctx.reply('Perintah ini khusus admin.').catch(() => undefined);
+  const peran = peranUntuk(ctx.from?.id);
+  if (!(peran === 'superadmin' || peran === 'bendahara')) {
+    await ctx.reply('Perintah ini khusus bendahara.').catch(() => undefined);
     return;
   }
   const [nis, nominalTeks] = ctx.match.trim().split(/\s+/);
@@ -938,7 +996,8 @@ bot.command('cari', async (ctx) => {
 });
 
 bot.command('setujui', async (ctx) => {
-  if (peranUntuk(ctx.from?.id) !== 'admin') {
+  const peran = peranUntuk(ctx.from?.id);
+  if (!(peran === 'superadmin' || peran === 'admin')) {
     await ctx.reply('Perintah ini khusus admin.').catch(() => undefined);
     return;
   }
@@ -967,6 +1026,12 @@ const stateTolak = new Map<number, string>();
 
 /** State "tunggu kata kunci pencarian santri" — chatId → aktif (RFC-010). */
 const stateCari = new Map<number, true>();
+
+/** State "tunggu NIS & nominal" untuk menu 💸 Catat bayar (RFC-015). */
+const stateBayar = new Map<number, true>();
+
+/** State "tunggu tahun-bulan" untuk menu 🗓 Setujui kalender (RFC-015). */
+const stateSetujui = new Map<number, true>();
 
 const tokenWali = process.env.TELEGRAM_TOKEN_WALI;
 
@@ -1157,6 +1222,46 @@ bot.on('message:text', async (ctx) => {
         | undefined)?.wali_id;
       if (waliId) await kirimNotifWali(waliId, `❌ Pembayaran Anda DITOLAK.\nAlasan: ${alasan}\nStatus tagihan tetap BELUM BAYAR.`);
     }
+    return;
+  }
+  if (stateBayar.has(chatId)) {
+    stateBayar.delete(chatId);
+    const teks = ctx.message.text ?? '';
+    const [nis, nominalTeks] = teks.trim().split(/\s+/);
+    if (!nis || !nominalTeks) {
+      await ctx.reply('Gunakan format: <NIS> <nominal>. Contoh: 2627001 150000', { reply_markup: tombolMenu() });
+      return;
+    }
+    const nominal = Number(nominalTeks);
+    if (!Number.isInteger(nominal) || nominal <= 0) {
+      await ctx.reply('Nominal harus angka bulat positif.', { reply_markup: tombolMenu() });
+      return;
+    }
+    const santri = cariSantri(nis);
+    if (!santri) {
+      await ctx.reply(`Tidak ada santri dengan NIS ${nis}.`, { reply_markup: tombolMenu() });
+      return;
+    }
+    const hasil = catatPembayaran(santri, nominal, aktorBot(ctx));
+    await ctx.reply(hasil.pesan ?? 'Selesai.', { reply_markup: tombolMenu() });
+    return;
+  }
+  if (stateSetujui.has(chatId)) {
+    stateSetujui.delete(chatId);
+    const bagian = (ctx.message.text ?? '').trim().split('-');
+    const tahun = Number(bagian[0]);
+    const bulan = Number(bagian[1]);
+    if (!Number.isInteger(tahun) || !Number.isInteger(bulan) || bulan < 1 || bulan > 12) {
+      await ctx.reply('Gunakan format tahun-bulan. Contoh: 1448-09', { reply_markup: tombolMenu() });
+      return;
+    }
+    const hasil = kalender.setujuiBulanHijriah({
+      aktor: aktorBot(ctx),
+      tahun,
+      bulan,
+      waktu: new Date().toISOString(),
+    });
+    await ctx.reply(hasil.pesan ?? 'Selesai.', { reply_markup: tombolMenu() });
     return;
   }
   if (stateCari.has(chatId)) {

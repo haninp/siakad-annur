@@ -22,11 +22,20 @@ export interface RingkasanLaporan {
   readonly masuk: number;
 }
 
+export interface BarisTrenSpp {
+  readonly periode: string;
+  readonly terbit: number;
+  readonly masuk: number;
+  readonly sisa: number;
+}
+
 export interface RepoLaporan {
   /** Per komponen biaya aktif: total tagihan terbit/lunas + uang masuk terverifikasi. */
   readonly laporanPerKomponen: (periode: string) => BarisLaporanKomponen[];
   /** Ringkasan total satu periode (semua komponen). */
   readonly ringkasan: (periode: string) => RingkasanLaporan;
+  /** Tren SPP per periode untuk satu santri (RFC-016) — terbit/masuk/sisa. */
+  readonly trenSpp: (santriId: string, mulai: string, selesai: string) => BarisTrenSpp[];
 }
 
 const STATUS_TERBIT = "t.status IN ('terbit','lunas')";
@@ -61,6 +70,22 @@ export function repoLaporan(db: DatabaseSync): RepoLaporan {
         )
         .get(periode) as unknown as RingkasanLaporan;
       return { terbit: row.terbit, masuk: row.masuk };
+    },
+
+    trenSpp: (santriId, mulai, selesai) => {
+      const rows = db
+        .prepare(
+          `SELECT t.periode,
+                  COALESCE(SUM(CASE WHEN ${STATUS_TERBIT} THEN t.nominal ELSE 0 END), 0) AS terbit,
+                  COALESCE(SUM(p.nominal), 0) AS masuk
+           FROM tagihan t
+           LEFT JOIN pembayaran p ON p.tagihan_id = t.id
+           WHERE t.santri_id = ? AND t.periode >= ? AND t.periode <= ?
+           GROUP BY t.periode
+           ORDER BY t.periode`,
+        )
+        .all(santriId, mulai, selesai) as unknown as BarisTrenSpp[];
+      return rows.map((r) => ({ periode: r.periode, terbit: r.terbit, masuk: r.masuk, sisa: r.terbit - r.masuk }));
     },
   };
 }

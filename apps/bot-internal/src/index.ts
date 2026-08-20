@@ -18,6 +18,7 @@
 import { InlineKeyboard, type CallbackQueryContext, type Context } from 'grammy';
 import { buatBot } from '@siakad/bot';
 import {
+  buatHandlerAnalisis,
   buatHandlerKalender,
   buatHandlerKeuangan,
   buatHandlerLaporan,
@@ -56,6 +57,7 @@ import {
   repoWali,
   repoWaliAlias,
   repoLaporan,
+  repoAnalisisLog,
 } from '@siakad/db';
 
 const token = process.env.TELEGRAM_TOKEN_INTERNAL;
@@ -119,6 +121,10 @@ const undangan = buatHandlerUndangan({
 const undanganUser = buatHandlerUndanganUser({ repoPenggunaTelegram: repoPenggunaTelegram(db) });
 const kalender = buatHandlerKalender({ repoKalenderHijriah: repoKalenderHijriah(db) });
 const laporan = buatHandlerLaporan({ repoLaporan: repoLaporan(db) });
+const analisis = buatHandlerAnalisis({
+  repoLaporan: repoLaporan(db),
+  repoAnalisisLog: repoAnalisisLog(db),
+});
 
 const bot = buatBot({ token });
 
@@ -431,6 +437,7 @@ const TEKS_MENU =
 /** Menu utama per peran (RFC-015). */
 function menuUtama(peran: PeranBot): InlineKeyboard {
   const kb = new InlineKeyboard().text('💰 Keuangan', 'menu:keuangan').text('🔍 Cari santri', 'menu:cari');
+  if (peran === 'superadmin' || peran === 'admin' || peran === 'bendahara') kb.text('📈 Analisis', 'anal:menu');
   if (peran === 'superadmin') kb.text('🛠 Kelola user', 'user:list');
   if (peran === 'superadmin' || peran === 'admin') kb.text('✉️ Undangan', 'undangan:list');
   if (peran === 'superadmin' || peran === 'bendahara') kb.text('🧾 Terbitkan tagihan', 'keu:terbitkan');
@@ -782,6 +789,68 @@ bot.callbackQuery(/^user:cabut:(.+)$/, async (ctx) => {
     hasil.pesan ?? 'Selesai.',
     new InlineKeyboard().text('🛠 Kelola user', 'user:list').row().text('🏠 Menu utama', 'menu:utama'),
   );
+});
+
+// ── analisis data (RFC-016) — deterministik dulu; LLM menyusul ───────────────
+
+function menuAnalisis(): InlineKeyboard {
+  return new InlineKeyboard()
+    .text('📊 Ringkasan laporan', 'anal:ringkasan')
+    .text('📈 Tren SPP santri', 'anal:tren')
+    .row()
+    .text('🏠 Menu utama', 'menu:utama');
+}
+
+function teksAnalisis(tool: string, data: unknown): string {
+  if (tool === 'ringkasan_laporan') {
+    const d = data as {
+      periode: string;
+      komponen: { komponen: string; terbit: number; masuk: number; sisa: number }[];
+      ringkasan: { terbit: number; masuk: number; sisa: number };
+    };
+    const baris = d.komponen
+      .map((k) => `• ${k.komponen}: Terbit ${rupiah(k.terbit)} · Masuk ${rupiah(k.masuk)} · Sisa ${rupiah(k.sisa)}`)
+      .join('\n');
+    const r = d.ringkasan;
+    return `📊 Ringkasan ${d.periode}\n\n${baris}\n\nTotal: Terbit ${rupiah(r.terbit)} · Masuk ${rupiah(r.masuk)} · Sisa ${rupiah(r.sisa)}`;
+  }
+  const d = data as {
+    santri_id: string;
+    rentang: string[];
+    baris: { periode: string; terbit: number; masuk: number; sisa: number }[];
+  };
+  const baris =
+    d.baris.map((b) => `• ${b.periode}: Terbit ${rupiah(b.terbit)} · Masuk ${rupiah(b.masuk)} · Sisa ${rupiah(b.sisa)}`).join('\n') ||
+    'Tidak ada data pada rentang itu.';
+  return `📈 Tren SPP santri (${d.rentang[0]} – ${d.rentang[1]})\n\n${baris}`;
+}
+
+bot.command('analisis', async (ctx) => {
+  const peran = peranUntuk(ctx.from?.id);
+  if (!(peran === 'superadmin' || peran === 'admin' || peran === 'bendahara')) {
+    await ctx.reply('Khusus superadmin, admin, dan bendahara.').catch(() => undefined);
+    return;
+  }
+  await ctx.reply('📈 Analisis data — pilih tool:', { reply_markup: menuAnalisis() });
+});
+
+bot.callbackQuery('anal:menu', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const peran = peranUntuk(ctx.from?.id);
+  if (!(peran === 'superadmin' || peran === 'admin' || peran === 'bendahara')) return;
+  await ganti(ctx, '📈 Analisis data — pilih tool:', menuAnalisis());
+});
+
+bot.callbackQuery('anal:ringkasan', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  stateAnalRingkasan.set(ctx.from?.id ?? -1, true);
+  await ganti(ctx, 'Ketik periode (YYYY-MM), contoh: 2026-08');
+});
+
+bot.callbackQuery('anal:tren', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  stateAnalTren.set(ctx.from?.id ?? -1, true);
+  await ganti(ctx, 'Ketik: NIS periodeAwal periodeAkhir\nContoh: 2627001 2026-07 2026-08');
 });
 
 bot.callbackQuery('keu:santri', async (ctx) => {
@@ -1137,6 +1206,12 @@ const stateBayar = new Map<number, true>();
 /** State "tunggu tahun-bulan" untuk menu 🗓 Setujui kalender (RFC-015). */
 const stateSetujui = new Map<number, true>();
 
+/** State "tunggu periode" untuk menu analisis ringkasan (RFC-016). */
+const stateAnalRingkasan = new Map<number, true>();
+
+/** State "tunggu NIS periodeAwal periodeAkhir" untuk tren SPP (RFC-016). */
+const stateAnalTren = new Map<number, true>();
+
 const tokenWali = process.env.TELEGRAM_TOKEN_WALI;
 
 /** Notifikasi ke wali via bot wali (token lokal — pesan datang dari @rtq_annur_bot). */
@@ -1366,6 +1441,49 @@ bot.on('message:text', async (ctx) => {
       waktu: new Date().toISOString(),
     });
     await ctx.reply(hasil.pesan ?? 'Selesai.', { reply_markup: tombolMenu() });
+    return;
+  }
+  if (stateAnalRingkasan.has(chatId)) {
+    stateAnalRingkasan.delete(chatId);
+    const periode = (ctx.message.text ?? '').trim();
+    const hasil = analisis.analisisTool({
+      aktor: aktorBot(ctx),
+      tool: 'ringkasan_laporan',
+      parameter: { periode },
+      waktu: new Date().toISOString(),
+    });
+    if (!hasil.ok || !hasil.data) {
+      await ctx.reply(hasil.pesan ?? 'Gagal.', { reply_markup: tombolMenu() });
+      return;
+    }
+    await ctx.reply(teksAnalisis('ringkasan_laporan', hasil.data), { reply_markup: tombolMenu() });
+    return;
+  }
+  if (stateAnalTren.has(chatId)) {
+    stateAnalTren.delete(chatId);
+    const [nis, mulai, selesai] = (ctx.message.text ?? '').trim().split(/\s+/);
+    if (!nis || !mulai || !selesai) {
+      await ctx.reply('Gunakan format: NIS periodeAwal periodeAkhir. Contoh: 2627001 2026-07 2026-08', {
+        reply_markup: tombolMenu(),
+      });
+      return;
+    }
+    const santri = cariSantri(nis);
+    if (!santri) {
+      await ctx.reply(`Tidak ada santri dengan NIS ${nis}.`, { reply_markup: tombolMenu() });
+      return;
+    }
+    const hasil = analisis.analisisTool({
+      aktor: aktorBot(ctx),
+      tool: 'tren_pembayaran_spp',
+      parameter: { santri_id: santri.id, mulai, selesai },
+      waktu: new Date().toISOString(),
+    });
+    if (!hasil.ok || !hasil.data) {
+      await ctx.reply(hasil.pesan ?? 'Gagal.', { reply_markup: tombolMenu() });
+      return;
+    }
+    await ctx.reply(teksAnalisis('tren_pembayaran_spp', hasil.data), { reply_markup: tombolMenu() });
     return;
   }
   if (stateCari.has(chatId)) {

@@ -3,11 +3,19 @@
 > Diperbarui di akhir setiap sesi. Berkas ini yang dibaca lebih dulu oleh agent berikutnya,
 > apa pun mereknya. STATE yang basi lebih berbahaya daripada tidak ada, karena ia dipercaya.
 
-**Terakhir diperbarui:** 19 Agustus 2026, sesi RFC-015
+**Terakhir diperbarui:** 20 Agustus 2026, sesi RFC-016
 
 ---
 
 ## Yang baru selesai
+
+**1.22 — Analisis data terpagar (RFC-016) — lapisan deterministik.** Menu
+`/analisis` (superadmin/admin/bendahara) dengan tool SQL: `ringkasan_laporan`
+(reuse RFC-014) & `tren_pembayaran_spp` (per santri per periode). Scope peran
+di-enforce di core (`analisis-chat.ts`), setiap permintaan dicatat di tabel
+`analisis_log` (migrasi 10). Tool `tren_absen` ditunda (tabel absensi belum ada,
+Fase 2). **Lapisan LLM (rangkai kalimat) menunggu key Zen (P5)** — sesuai keputusan,
+deterministik dulu. `docs/rfcs/rfc-016`.
 
 **1.21 — Rombak peran + pengelolaan user superadmin (RFC-015).** Peran baru:
 `superadmin` (tertinggi, via env) · `admin` (eks `pengurus`) · `bendahara` ·

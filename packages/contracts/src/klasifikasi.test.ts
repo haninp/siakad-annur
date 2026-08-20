@@ -5,10 +5,12 @@ import { saring, saringUmum, untukPrompt } from './klasifikasi.js';
 import { DDL_MASTER_DATA, TABEL_MASTER_DATA } from './ddl.js';
 import { DDL_IZIN, TABEL_IZIN } from './izin.js';
 import {
+  DDL_ANALISIS,
   DDL_KEUANGAN,
   DDL_NOTIFIKASI_TERBIT,
   DDL_PEMAKAIAN_LEBIH_BAYAR,
   DDL_REMINDER,
+  TABEL_ANALISIS,
   TABEL_KEUANGAN,
   TABEL_NOTIFIKASI_TERBIT,
   TABEL_NOTIFIKASI_JATUH_TEMPO,
@@ -52,7 +54,7 @@ describe('kelengkapan klasifikasi data pribadi', () => {
 
   it('setiap tabel yang terdaftar benar-benar dibuat DDL', () => {
     const ddl =
-      DDL_MASTER_DATA + DDL_IZIN + DDL_KEUANGAN + DDL_PEMAKAIAN_LEBIH_BAYAR + DDL_KALENDER_HIJRIAH + DDL_NOTIFIKASI_TERBIT + DDL_REMINDER;
+      DDL_MASTER_DATA + DDL_IZIN + DDL_KEUANGAN + DDL_PEMAKAIAN_LEBIH_BAYAR + DDL_KALENDER_HIJRIAH + DDL_NOTIFIKASI_TERBIT + DDL_REMINDER + DDL_ANALISIS;
     for (const tabel of [
       ...TABEL_MASTER_DATA,
       ...TABEL_IZIN,
@@ -61,6 +63,7 @@ describe('kelengkapan klasifikasi data pribadi', () => {
       ...TABEL_KALENDER_HIJRIAH,
       ...TABEL_NOTIFIKASI_TERBIT,
       ...TABEL_NOTIFIKASI_JATUH_TEMPO,
+      ...TABEL_ANALISIS,
     ]) {
       expect(ddl).toContain(`CREATE TABLE ${tabel} (`);
     }

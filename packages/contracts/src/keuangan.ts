@@ -580,3 +580,18 @@ CREATE TABLE notifikasi_jatuh_tempo (
 
 /** Tabel yang dibuat oleh DDL_REMINDER. */
 export const TABEL_NOTIFIKASI_JATUH_TEMPO: readonly string[] = ['notifikasi_jatuh_tempo'];
+
+/** DDL analisis_log — migrasi v10 (RFC-016, chat analisis terpagar). */
+export const DDL_ANALISIS = `
+CREATE TABLE analisis_log (
+  id        TEXT PRIMARY KEY,
+  aktor_id  TEXT NOT NULL,
+  tool      TEXT NOT NULL,
+  parameter TEXT NOT NULL,
+  hasil     TEXT NOT NULL,
+  waktu     TEXT NOT NULL
+) STRICT;
+`;
+
+/** Tabel yang dibuat oleh DDL_ANALISIS. */
+export const TABEL_ANALISIS: readonly string[] = ['analisis_log'];

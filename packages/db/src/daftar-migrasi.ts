@@ -1,4 +1,5 @@
 import {
+  DDL_ANALISIS,
   DDL_IZIN,
   DDL_KALENDER_HIJRIAH,
   DDL_KEUANGAN,
@@ -67,5 +68,10 @@ export const DAFTAR_MIGRASI: readonly Migrasi[] = [
     versi: 9,
     nama: 'reminder: diingatkan_pada kalender + notifikasi_jatuh_tempo (RFC-012)',
     sql: DDL_REMINDER,
+  },
+  {
+    versi: 10,
+    nama: 'analisis_log — jejak chat analisis terpagar (RFC-016)',
+    sql: DDL_ANALISIS,
   },
 ];

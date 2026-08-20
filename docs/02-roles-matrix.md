@@ -28,6 +28,7 @@ via `.env` (trust root di luar mekanisme sistem, cegah privilege-escalation lewa
 | ------------------------------------------------ | :--------: | :---: | :-------: | :------------------: | :-----------: |
 | Kelola user (undang admin/bendahara/pengajar)    |     ✅     |   —   |     —     |          —           |       —       |
 | Kelola data master (santri, kelas, mapel, tarif) |     ✅     |   ✅  |     —     |          —           |       —       |
+| Analisis data (chat/`/analisis`)                 |     ✅     |   ✅  |    ✅     |          —           |       —       |
 | Terbitkan tagihan (invoice) — back office        |     ✅     |   —   |    ✅     |          —           |       —       |
 | Catat pembayaran (manual)                        |     ✅     |   —   |    ✅     |          —           |       —       |
 | Pantau status pembayaran & piutang               |     ✅     |   ✅  |    ✅     |          —           |       —       |

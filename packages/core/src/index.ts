@@ -19,5 +19,6 @@ export * from './status-pembayaran.js';
 export * from './pembayaran-verifikasi.js';
 export * from './undangan.js';
 export * from './undangan-user.js';
+export * from './analisis-chat.js';
 export * from './notifikasi.js';
 export * from './reminder.js';

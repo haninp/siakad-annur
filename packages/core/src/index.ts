@@ -20,6 +20,7 @@ export * from './pembayaran-verifikasi.js';
 export * from './undangan.js';
 export * from './undangan-user.js';
 export * from './analisis-chat.js';
+export * from './analisis-llm.js';
 export * from './absensi.js';
 export * from './notifikasi.js';
 export * from './reminder.js';

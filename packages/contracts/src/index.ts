@@ -16,6 +16,7 @@ export * from './pembayaran.js';
 export * from './turunan.js';
 export * from './transaksi.js';
 export * from './izin.js';
+export * from './absensi.js';
 export * from './ddl.js';
 
 import {

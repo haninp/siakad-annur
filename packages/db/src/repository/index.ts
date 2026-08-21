@@ -7,4 +7,5 @@ export * from './repo-usulan-pembayaran.js';
 export * from './repo-pengguna-telegram.js';
 export * from './repo-notifikasi.js';
 export * from './repo-laporan.js';
+export * from './repo-absensi.js';
 export * from './repo-analisis-log.js';

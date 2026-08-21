@@ -1,4 +1,5 @@
 import {
+  DDL_ABSENSI,
   DDL_ANALISIS,
   DDL_IZIN,
   DDL_KALENDER_HIJRIAH,
@@ -73,5 +74,10 @@ export const DAFTAR_MIGRASI: readonly Migrasi[] = [
     versi: 10,
     nama: 'analisis_log — jejak chat analisis terpagar (RFC-016)',
     sql: DDL_ANALISIS,
+  },
+  {
+    versi: 11,
+    nama: 'absensi santri — Fase 2 akademik (modul absensi)',
+    sql: DDL_ABSENSI,
   },
 ];

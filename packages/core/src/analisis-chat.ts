@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { RepoAnalisisLog, RepoLaporan } from '@siakad/db';
+import type { RepoAbsensi, RepoAnalisisLog, RepoLaporan } from '@siakad/db';
 import type { Aktor, HasilHandler } from './aktor.js';
 import { peranCukup } from './aktor.js';
 
@@ -18,12 +18,18 @@ const SkemaTrenSpp = z.object({
   mulai: Periode,
   selesai: Periode,
 });
+const SkemaTrenAbsen = z.object({
+  santri_id: z.string().min(1),
+  mulai: Periode,
+  selesai: Periode,
+});
 
-export type ToolAnalisis = 'ringkasan_laporan' | 'tren_pembayaran_spp';
+export type ToolAnalisis = 'ringkasan_laporan' | 'tren_pembayaran_spp' | 'tren_absen_santri';
 export type HasilAnalisis = Record<string, unknown> | unknown[];
 
 export interface DependensiAnalisis {
   readonly repoLaporan: RepoLaporan;
+  readonly repoAbsensi: RepoAbsensi;
   readonly repoAnalisisLog: RepoAnalisisLog;
 }
 
@@ -60,6 +66,16 @@ export function buatHandlerAnalisis(dep: DependensiAnalisis) {
           baris: dep.repoLaporan.trenSpp(p.santri_id, p.mulai, p.selesai),
         };
       }
+      case 'tren_absen_santri': {
+        const p = SkemaTrenAbsen.parse(parameter);
+        return {
+          santri_id: p.santri_id,
+          rentang: [p.mulai, p.selesai],
+          baris: dep.repoAbsensi.ringkasanPerBulan(p.santri_id, `${p.mulai}-01`, `${p.selesai}-31`),
+        };
+      }
+      default:
+        throw new Error('Tool tidak dikenal');
     }
   }
 

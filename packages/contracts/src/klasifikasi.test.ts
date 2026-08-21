@@ -4,6 +4,7 @@ import { entitasSantri, type Santri } from './identitas.js';
 import { saring, saringUmum, untukPrompt } from './klasifikasi.js';
 import { DDL_MASTER_DATA, TABEL_MASTER_DATA } from './ddl.js';
 import { DDL_IZIN, TABEL_IZIN } from './izin.js';
+import { DDL_ABSENSI, TABEL_ABSENSI } from './absensi.js';
 import {
   DDL_ANALISIS,
   DDL_KEUANGAN,
@@ -54,10 +55,11 @@ describe('kelengkapan klasifikasi data pribadi', () => {
 
   it('setiap tabel yang terdaftar benar-benar dibuat DDL', () => {
     const ddl =
-      DDL_MASTER_DATA + DDL_IZIN + DDL_KEUANGAN + DDL_PEMAKAIAN_LEBIH_BAYAR + DDL_KALENDER_HIJRIAH + DDL_NOTIFIKASI_TERBIT + DDL_REMINDER + DDL_ANALISIS;
+      DDL_MASTER_DATA + DDL_IZIN + DDL_ABSENSI + DDL_KEUANGAN + DDL_PEMAKAIAN_LEBIH_BAYAR + DDL_KALENDER_HIJRIAH + DDL_NOTIFIKASI_TERBIT + DDL_REMINDER + DDL_ANALISIS;
     for (const tabel of [
       ...TABEL_MASTER_DATA,
       ...TABEL_IZIN,
+      ...TABEL_ABSENSI,
       ...TABEL_KEUANGAN,
       ...TABEL_PEMAKAIAN_LEBIH_BAYAR,
       ...TABEL_KALENDER_HIJRIAH,

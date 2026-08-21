@@ -3,11 +3,17 @@
 > Diperbarui di akhir setiap sesi. Berkas ini yang dibaca lebih dulu oleh agent berikutnya,
 > apa pun mereknya. STATE yang basi lebih berbahaya daripada tidak ada, karena ia dipercaya.
 
-**Terakhir diperbarui:** 20 Agustus 2026, sesi RFC-016
+**Terakhir diperbarui:** 20 Agustus 2026, sesi RFC-017
 
 ---
 
 ## Yang baru selesai
+
+**1.23 — Modul absensi santri (RFC-017).** Tabel `absensi` (migrasi 11) +
+`repoAbsensi` + core `absensi.ts` (catat, izin superadmin/admin/pengajar) + tool
+`tren_absen_santri` di `/analisis` (ringkasan hadir/izin/sakit/alpa per bulan).
+Melengkapi RFC-016 yang sempat menunggu sumber data. Test hijau (408).
+`docs/rfcs/rfc-017`.
 
 **1.22 — Analisis data terpagar (RFC-016) — lapisan deterministik.** Menu
 `/analisis` (superadmin/admin/bendahara) dengan tool SQL: `ringkasan_laporan`

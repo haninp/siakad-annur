@@ -57,6 +57,7 @@ import {
   repoWali,
   repoWaliAlias,
   repoLaporan,
+  repoAbsensi,
   repoAnalisisLog,
 } from '@siakad/db';
 
@@ -123,6 +124,7 @@ const kalender = buatHandlerKalender({ repoKalenderHijriah: repoKalenderHijriah(
 const laporan = buatHandlerLaporan({ repoLaporan: repoLaporan(db) });
 const analisis = buatHandlerAnalisis({
   repoLaporan: repoLaporan(db),
+  repoAbsensi: repoAbsensi(db),
   repoAnalisisLog: repoAnalisisLog(db),
 });
 
@@ -797,6 +799,7 @@ function menuAnalisis(): InlineKeyboard {
   return new InlineKeyboard()
     .text('📊 Ringkasan laporan', 'anal:ringkasan')
     .text('📈 Tren SPP santri', 'anal:tren')
+    .text('📋 Tren absen santri', 'anal:trenabsen')
     .row()
     .text('🏠 Menu utama', 'menu:utama');
 }
@@ -813,6 +816,14 @@ function teksAnalisis(tool: string, data: unknown): string {
       .join('\n');
     const r = d.ringkasan;
     return `📊 Ringkasan ${d.periode}\n\n${baris}\n\nTotal: Terbit ${rupiah(r.terbit)} · Masuk ${rupiah(r.masuk)} · Sisa ${rupiah(r.sisa)}`;
+  }
+  if (tool === 'tren_absen_santri') {
+    const d = data as { rentang: string[]; baris: { bulan: string; hadir: number; izin: number; sakit: number; alpa: number }[] };
+    const baris =
+      d.baris
+        .map((b) => `• ${b.bulan}: hadir ${b.hadir} · izin ${b.izin} · sakit ${b.sakit} · alpa ${b.alpa}`)
+        .join('\n') || 'Tidak ada data pada rentang itu.';
+    return `📋 Tren absen santri (${d.rentang[0]} – ${d.rentang[1]})\n\n${baris}`;
   }
   const d = data as {
     santri_id: string;
@@ -850,6 +861,12 @@ bot.callbackQuery('anal:ringkasan', async (ctx) => {
 bot.callbackQuery('anal:tren', async (ctx) => {
   await ctx.answerCallbackQuery();
   stateAnalTren.set(ctx.from?.id ?? -1, true);
+  await ganti(ctx, 'Ketik: NIS periodeAwal periodeAkhir\nContoh: 2627001 2026-07 2026-08');
+});
+
+bot.callbackQuery('anal:trenabsen', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  stateAnalTrenAbsen.set(ctx.from?.id ?? -1, true);
   await ganti(ctx, 'Ketik: NIS periodeAwal periodeAkhir\nContoh: 2627001 2026-07 2026-08');
 });
 
@@ -1212,6 +1229,9 @@ const stateAnalRingkasan = new Map<number, true>();
 /** State "tunggu NIS periodeAwal periodeAkhir" untuk tren SPP (RFC-016). */
 const stateAnalTren = new Map<number, true>();
 
+/** State "tunggu NIS periodeAwal periodeAkhir" untuk tren absen (RFC-016). */
+const stateAnalTrenAbsen = new Map<number, true>();
+
 const tokenWali = process.env.TELEGRAM_TOKEN_WALI;
 
 /** Notifikasi ke wali via bot wali (token lokal — pesan datang dari @rtq_annur_bot). */
@@ -1484,6 +1504,33 @@ bot.on('message:text', async (ctx) => {
       return;
     }
     await ctx.reply(teksAnalisis('tren_pembayaran_spp', hasil.data), { reply_markup: tombolMenu() });
+    return;
+  }
+  if (stateAnalTrenAbsen.has(chatId)) {
+    stateAnalTrenAbsen.delete(chatId);
+    const [nis, mulai, selesai] = (ctx.message.text ?? '').trim().split(/\s+/);
+    if (!nis || !mulai || !selesai) {
+      await ctx.reply('Gunakan format: NIS periodeAwal periodeAkhir. Contoh: 2627001 2026-07 2026-08', {
+        reply_markup: tombolMenu(),
+      });
+      return;
+    }
+    const santri = cariSantri(nis);
+    if (!santri) {
+      await ctx.reply(`Tidak ada santri dengan NIS ${nis}.`, { reply_markup: tombolMenu() });
+      return;
+    }
+    const hasil = analisis.analisisTool({
+      aktor: aktorBot(ctx),
+      tool: 'tren_absen_santri',
+      parameter: { santri_id: santri.id, mulai, selesai },
+      waktu: new Date().toISOString(),
+    });
+    if (!hasil.ok || !hasil.data) {
+      await ctx.reply(hasil.pesan ?? 'Gagal.', { reply_markup: tombolMenu() });
+      return;
+    }
+    await ctx.reply(teksAnalisis('tren_absen_santri', hasil.data), { reply_markup: tombolMenu() });
     return;
   }
   if (stateCari.has(chatId)) {

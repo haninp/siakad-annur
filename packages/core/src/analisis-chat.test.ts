@@ -5,6 +5,7 @@ import {
   bukaBasisData,
   DAFTAR_MIGRASI,
   jalankanMigrasi,
+  repoAbsensi,
   repoAkunKeuangan,
   repoAnalisisLog,
   repoKomponenBiaya,
@@ -84,12 +85,22 @@ beforeEach(() => {
   dasar = { santriId, taId, komponenSppId };
 });
 
+// seed absensi singkat utk tool tren_absen_santri
+function seedAbsensi(santriId: string) {
+  const abs = repoAbsensi(db);
+  abs.catat({ santriId, tanggal: '2026-07-06', status: 'hadir', keterangan: null, dicatatOleh: 'tg-pengajar', waktu: WAKTU });
+  abs.catat({ santriId, tanggal: '2026-07-07', status: 'hadir', keterangan: null, dicatatOleh: 'tg-pengajar', waktu: WAKTU });
+  abs.catat({ santriId, tanggal: '2026-07-08', status: 'sakit', keterangan: 'demam', dicatatOleh: 'tg-pengajar', waktu: WAKTU });
+  abs.catat({ santriId, tanggal: '2026-08-05', status: 'alpa', keterangan: null, dicatatOleh: 'tg-pengajar', waktu: WAKTU });
+}
+
 const superadmin = { peran: 'superadmin' as const, id: 'tg-superadmin' };
 const admin = { peran: 'admin' as const, id: 'tg-admin' };
 const bendahara = { peran: 'bendahara' as const, id: 'tg-bendahara' };
 const wali = { peran: 'wali' as const, id: 'tg-wali' };
 
-const handler = () => buatHandlerAnalisis({ repoLaporan: repoLaporan(db), repoAnalisisLog: repoAnalisisLog(db) });
+const handler = () =>
+  buatHandlerAnalisis({ repoLaporan: repoLaporan(db), repoAbsensi: repoAbsensi(db), repoAnalisisLog: repoAnalisisLog(db) });
 const WAKTU = '2026-08-19T09:00:00+07:00';
 
 describe('analisisTool — ringkasan_laporan', () => {
@@ -135,6 +146,23 @@ describe('analisisTool — tren_pembayaran_spp', () => {
     expect(data.baris).toHaveLength(2);
     expect(data.baris[0]).toMatchObject({ periode: '2026-07', terbit: 450_000, masuk: 450_000, sisa: 0 });
     expect(data.baris[1]).toMatchObject({ periode: '2026-08', terbit: 450_000, masuk: 0, sisa: 450_000 });
+  });
+});
+
+describe('analisisTool — tren_absen_santri', () => {
+  it('bendahara: ringkasan hadir/izin/sakit/alpa per bulan', () => {
+    seedAbsensi(dasar.santriId);
+    const hasil = handler().analisisTool({
+      aktor: bendahara,
+      tool: 'tren_absen_santri',
+      parameter: { santri_id: dasar.santriId, mulai: '2026-07', selesai: '2026-08' },
+      waktu: WAKTU,
+    });
+    expect(hasil.ok).toBe(true);
+    const data = hasil.data as { baris: { bulan: string; hadir: number; sakit: number; alpa: number }[] };
+    expect(data.baris).toHaveLength(2);
+    expect(data.baris[0]).toMatchObject({ bulan: '2026-07', hadir: 2, sakit: 1, alpa: 0 });
+    expect(data.baris[1]).toMatchObject({ bulan: '2026-08', hadir: 0, sakit: 0, alpa: 1 });
   });
 });
 

@@ -1,6 +1,19 @@
 # Handoff 0021 — RFC-017 lanjutan: Alur Absensi Pengajar (no.2)
 
-Tanggal: 2026-08-20 · Status: **BERHENTI di tengah** (sesi panjang) — lanjut di sesi baru.
+Tanggal: 2026-08-20 · Status update 2026-08-23: **no.1 (provider LLM Go) SELESAI**; no.2 (alur absensi) lanjut di sesi baru.
+
+## No.1 (LLM) — SELESAI (2026-08-23)
+- Provider **"go"** = opencode-go (`https://opencode.ai/zen/go/v1`, model chat_completions
+  memakai `{GO_BASE_URL}/chat/completions`, auth Bearer).
+- `analisis-llm.ts`: `buatPenyediaNarasiZen` → diganti **`buatPenyediaNarasiGo`** (env
+  `GO_BASE_URL`/`GO_API_KEY`/`GO_MODEL` + klien HTTP via `fetch`, timeout 60s, menolak bila
+  salah satu env kosong). `urlChatCompletions` + `rangkaiNarasiAman` tetap.
+- API key diletakkan di **`.env` repo siakad** (`/opt/data/work/siakad-annur/.env`); Hani sudah
+  isi ketiganya. Restart bot `bash /opt/data/scripts/restart-bot-internal.sh`.
+- Test hijau **419** (+5 untuk penyedia Go / url). Build & lint hijau.
+- **Tersisa:** wiring penyedia ke menu `/analisis` bot (mengganti/melengkapi `teksAnalisis`
+  deterministik dengan narasi ber-LLM lewat `rangkaiNarasiAman`) — keputusan UX milik Hani
+  (ganti total vs tampilkan narasi di samping tabel).
 
 ## Yang SUDAH dikerjakan (fondasi domain — izin di core, AGENTS.md)
 - `packages/core/src/absensi.ts` diperluas:
@@ -24,10 +37,3 @@ Tanggal: 2026-08-20 · Status: **BERHENTI di tengah** (sesi panjang) — lanjut 
 - **Penanda pada tombol** sudah-absen/belum.
 - Anak **tidak masuk** → pilihan **tanpa keterangan (alpa)** atau **izin**.
 - **Digabung permohonan izin wali**: tombol **"ack izin"** muncul saat absensi.
-
-## No.1 (LLM) catatan
-- Provider **"go"** = opencode-go (`https://opencode.ai/zen/go/v1`).
-- `analisis-llm.ts` saat ini masih `buatPenyediaNarasiZen` (env `ZEN_*`) → perlu diganti
-  jadi **Go**: env `GO_BASE_URL` / `GO_API_KEY` / `GO_MODEL` (+ klien HTTP), API key
-  diletakkan di **`.env` repo siakad** (`/opt/data/work/siakad-annur/.env`), bukan `/opt/data/.env`.
-  Belum dikerjakan.

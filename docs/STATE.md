@@ -3,16 +3,18 @@
 > Diperbarui di akhir setiap sesi. Berkas ini yang dibaca lebih dulu oleh agent berikutnya,
 > apa pun mereknya. STATE yang basi lebih berbahaya daripada tidak ada, karena ia dipercaya.
 
-**Terakhir diperbarui:** 20 Agustus 2026, sesi RFC-016/017
+**Terakhir diperbarui:** 23 Agustus 2026, sesi RFC-016/017 (provider LLM Go)
 
 ---
 
 ## Yang baru selesai
 
-**1.24 — Kerangka LLM analisis (RFC-016, fase B).** `analisis-llm.ts`: pemeriksa angka
-(`periksaAngkaDariJson` — tolak narasi berangka di luar JSON tool) + antarmuka penyedia
-`PenyediaNarasi` (ADR 0006) + `buatPenyediaNarasiZen` (menolak saat key kosong) +
-`rangkaiNarasiAman`. Test hijau (414). **Live saat `ZEN_BASE_URL`+`ZEN_API_KEY` (P5) tersedia.**
+**1.24 — Kerangka LLM analisis (RFC-016, fase B), provider opencode-go.** `analisis-llm.ts`:
+pemeriksa angka (`periksaAngkaDariJson` — tolak narasi berangka di luar JSON tool) +
+antarmuka penyedia `PenyediaNarasi` (ADR 0006) + `buatPenyediaNarasiGo` (klien HTTP
+OpenAI-compatible `{GO_BASE_URL}/chat/completions`, auth Bearer; menolak bila
+`GO_BASE_URL`/`GO_API_KEY`/`GO_MODEL` kosong) + `rangkaiNarasiAman`. Test hijau (419).
+Provider aktif bila env `GO_*` terisi di `.env` repos.
 
 **1.23 — Modul absensi santri (RFC-017).** Tabel `absensi` (migrasi 11) +
 `repoAbsensi` + core `absensi.ts` (catat, izin superadmin/admin/pengajar) + tool

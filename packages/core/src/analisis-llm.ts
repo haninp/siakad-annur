@@ -51,28 +51,86 @@ export interface PenyediaNarasi {
   rangkai(input: RangkaiInput): Promise<string>;
 }
 
+/** Konfigurasi penyedia narasi — env opencode-go (RFC-016 P5, handoff 0021). */
 export interface EnvPenyedia {
-  readonly ZEN_BASE_URL?: string;
-  readonly ZEN_API_KEY?: string;
+  readonly GO_BASE_URL?: string;
+  readonly GO_API_KEY?: string;
+  readonly GO_MODEL?: string;
+}
+
+const TIMEOUT_MS = 60_000;
+
+/** Bangun URL chat completions dari base URL (kekal /v1, sisip /chat/completions). */
+export function urlChatCompletions(base: string): string {
+  return base.trim().replace(/\/+$/, '') + '/chat/completions';
 }
 
 /**
- * Penyedia narasi via Zen (ADR 0006). BELUM aktif bila key belum di-provision (prasyarat P5).
- * Instansiasi tetap aman; panggilan `rangkai` menolak dengan pesan konfigurasi saat key kosong.
+ * Penyedia narasi via opencode-go (`{GO_BASE_URL}/chat/completions`, format
+ * OpenAI-compatible, auth Bearer). Instansiasi aman; panggilan `rangkai`
+ * menolak dengan pesan konfigurasi bila GO_BASE_URL/GO_API_KEY/GO_MODEL kosong.
+ * Output mengikuti `choices[0].message.content`.
  */
-export function buatPenyediaNarasiZen(env: EnvPenyedia): PenyediaNarasi {
-  if (!env.ZEN_BASE_URL || !env.ZEN_API_KEY) {
+export function buatPenyediaNarasiGo(env: EnvPenyedia): PenyediaNarasi {
+  const base = env.GO_BASE_URL?.trim();
+  const key = env.GO_API_KEY?.trim();
+  const model = env.GO_MODEL?.trim();
+  if (!base || !key || !model) {
     return {
       async rangkai() {
-        throw new Error('Penyedia LLM belum dikonfigurasi (set ZEN_BASE_URL & ZEN_API_KEY).');
+        throw new Error(
+          'Penyedia LLM belum lengkap — isi GO_BASE_URL, GO_API_KEY, dan GO_MODEL di .env lalu restart bot.',
+        );
       },
     };
   }
+  const url = urlChatCompletions(base);
+
   return {
     async rangkai(input) {
-      // Penerapan klien penyedia (Zen/OpenAI-compatible) diselesaikan saat key tersedia.
-      void input;
-      throw new Error('Penerapan penyedia Zen menyusul (butuh klien HTTP).');
+      const sistem =
+        'Kamu adalah asisten analisis data pesantren. Tugasmu HANYA merangkai narasi ' +
+        'manajerial ringkas dan substantif dalam Bahasa Indonesia berdasarkan angka ' +
+        'yang tersedia pada JSON berikut. JANGAN pernah menambah atau menghitung angka ' +
+        'selain yang ada di JSON (ada pemeriksa otomatis yang menolak narasi berangka asing). ' +
+        'Jangan menyebut nama tabel, ID internal, atau istilah teknis; sebut nama entitas.';
+      const bujur = { tool: input.tool, parameter: input.parameter, data: input.data };
+      const kontroler = new AbortController();
+      const pengaturWaktu = setTimeout(() => kontroler.abort(), TIMEOUT_MS);
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${key}`,
+          },
+          body: JSON.stringify({
+            model,
+            temperature: 0,
+            max_tokens: 1200,
+            messages: [
+              { role: 'system', content: sistem },
+              { role: 'user', content: JSON.stringify(bujur) },
+            ],
+          }),
+          signal: kontroler.signal,
+        });
+        if (!resp.ok) {
+          const rincian = (await resp.text()).slice(0, 300);
+          throw new Error(`Penyedia LLM menolak (HTTP ${resp.status}): ${rincian}`);
+        }
+        const j = (await resp.json()) as { choices?: { message?: { content?: string } }[] };
+        const narasi = j.choices?.[0]?.message?.content?.trim();
+        if (!narasi) throw new Error('Penyedia LLM mengembalikan respons kosong.');
+        return narasi;
+      } catch (e) {
+        if (e instanceof Error && e.name === 'AbortError') {
+          throw new Error('Penyedia LLM tidak merespons dalam batas waktu.');
+        }
+        throw e;
+      } finally {
+        clearTimeout(pengaturWaktu);
+      }
     },
   };
 }

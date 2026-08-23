@@ -10,7 +10,7 @@ Tanggal: 2026-08-20 · Status update 2026-08-23: **no.1 (provider LLM Go) SELESA
   salah satu env kosong). `urlChatCompletions` + `rangkaiNarasiAman` tetap.
 - API key diletakkan di **`.env` repo siakad** (`/opt/data/work/siakad-annur/.env`); Hani sudah
   isi ketiganya. Restart bot `bash /opt/data/scripts/restart-bot-internal.sh`.
-- Test hijau **419** (+5 untuk penyedia Go / url). Build & lint hijau.
+- Test hijau **422** (+8 untuk penyedia Go / url / normalisasi angka). Build & lint hijau.
 - **Tersisa:** wiring penyedia ke menu `/analisis` bot (mengganti/melengkapi `teksAnalisis`
   deterministik dengan narasi ber-LLM lewat `rangkaiNarasiAman`) — keputusan UX milik Hani
   (ganti total vs tampilkan narasi di samping tabel).

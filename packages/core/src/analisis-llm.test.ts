@@ -18,6 +18,11 @@ describe('kumpulkanAngka', () => {
       450_000, 450_000, 400,
     ]);
   });
+
+  it('menyerap urutan digit dari nilai string (label periode/NIS/kode)', () => {
+    expect(kumpulkanAngka({ periode: '2026-08', nis: '2627001', ringkasan: { terbit: 450_000 } })).toContain(2026);
+    expect(kumpulkanAngka({ periode: '2026-08', nis: '2627001', ringkasan: { terbit: 450_000 } })).toContain(8);
+  });
 });
 
 describe('periksaAngkaDariJson', () => {
@@ -32,6 +37,23 @@ describe('periksaAngkaDariJson', () => {
     const hasil = periksaAngkaDariJson('Total tunggakan 77 dan terbit 450000.', data);
     expect(hasil.ok).toBe(false);
     expect(hasil.angkaAsing).toContain(77);
+  });
+
+  it('narasi berformat ribuan "450.000" setara dengan 450000 di sumber', () => {
+    const hasil = periksaAngkaDariJson('Terbit 450.000 dan masuk Rp 300.000, sisa 150.000.', {
+      terbit: 450_000,
+      masuk: 300_000,
+      sisa: 150_000,
+    });
+    expect(hasil.ok).toBe(true);
+  });
+
+  it('narasi menyebut periode ber-hyphen "2026-08" diterima (huruf label, bukan minus)', () => {
+    const hasil = periksaAngkaDariJson('Pada periode 2026-08 terbit 450000.', {
+      periode: '2026-08',
+      terbit: 450_000,
+    });
+    expect(hasil.ok).toBe(true);
   });
 });
 

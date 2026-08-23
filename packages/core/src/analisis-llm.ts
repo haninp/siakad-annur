@@ -9,10 +9,20 @@
  * - LLM tidak pernah menulis ke database (jalur tulis tetap deterministik).
  */
 
-/** Kumpulkan semua angka numerik dari struktur JSON (rekursif, termasuk di array). */
+/**
+ * Kumpulkan semua angka numerik dari struktur JSON (rekursif, termasuk di array).
+ * Nilai angka (`number`) dikumpulkan bulat; pada nilai string (mis. label periode
+ * `"2026-08"`, NIS, kode) urutan digit lepas ikut dikumpulkan agar narasi yang
+ * menyebut label itu tidak teranggap angka asing.
+ */
 export function kumpulkanAngka(nilai: unknown, keluar: number[] = []): number[] {
   if (typeof nilai === 'number') keluar.push(nilai);
-  else if (Array.isArray(nilai)) for (const v of nilai) kumpulkanAngka(v, keluar);
+  else if (typeof nilai === 'string') {
+    // Pada label (periode/NIS/kode) hyphen adalah pemisah, bukan tanda minus.
+    const re = /\d+/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(nilai)) !== null) keluar.push(Number(m[0]));
+  } else if (Array.isArray(nilai)) for (const v of nilai) kumpulkanAngka(v, keluar);
   else if (nilai !== null && typeof nilai === 'object')
     for (const k of Object.keys(nilai as Record<string, unknown>))
       kumpulkanAngka((nilai as Record<string, unknown>)[k], keluar);
@@ -22,18 +32,31 @@ export function kumpulkanAngka(nilai: unknown, keluar: number[] = []): number[] 
 /**
  * Periksa narasi: setiap bilangan bulat di teks harus ada pada JSON sumber.
  * Bila ada angka yang tidak ada di JSON → indikasi halusinasi → ditolak.
- * Catatan: heuristic untuk integer (format ribuan "1.250.000" dan desimal disederhanakan);
- * tujuan utama = memblokir angka yang jelas-jelas tidak berasal dari data.
+ *
+ * Heuristik: angka ribuan ber-format penuh (mis. "1.250.000" atau "1,250,000")
+ * dinormalkan dulu menghilangkan separator sehingga dibandingkan sebagai satu
+ * bilangan; angka pada label tanggal/kode (periode "2026-08", NIS) sudah ikut
+ * diperhitungkan lewat `kumpulkanAngka` (label itu adalah data, bukan karangan).
  */
 export function periksaAngkaDariJson(
   teks: string,
   data: unknown,
 ): { ok: boolean; angkaAsing: number[] } {
   const sumber = new Set(kumpulkanAngka(data));
+
+  // Normalisasi separator ribuan (titik/koma di antara tiga digit) hingga stabil,
+  // dan ubah pemisah tanggal "2026-08" jadi "2026 08" (bukan tanda minus).
+  let teksNorm = teks.replace(/(\d)[-–—](\d)/g, '$1 $2');
+  for (let i = 0; i < 5; i++) {
+    const baru = teksNorm.replace(/(\d{1,3})[.,](\d{3})(?!\d)/g, '$1$2');
+    if (baru === teksNorm) break;
+    teksNorm = baru;
+  }
+
   const asing: number[] = [];
   const regex = /-?\d+/g;
   let m: RegExpExecArray | null;
-  while ((m = regex.exec(teks)) !== null) {
+  while ((m = regex.exec(teksNorm)) !== null) {
     const n = Number(m[0]);
     if (Number.isFinite(n) && !sumber.has(n)) asing.push(n);
   }

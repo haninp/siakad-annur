@@ -13,8 +13,10 @@
 pemeriksa angka (`periksaAngkaDariJson` — tolak narasi berangka di luar JSON tool) +
 antarmuka penyedia `PenyediaNarasi` (ADR 0006) + `buatPenyediaNarasiGo` (klien HTTP
 OpenAI-compatible `{GO_BASE_URL}/chat/completions`, auth Bearer; menolak bila
-`GO_BASE_URL`/`GO_API_KEY`/`GO_MODEL` kosong) + `rangkaiNarasiAman`. Test hijau (419).
-Provider aktif bila env `GO_*` terisi di `.env` repos.
+`GO_BASE_URL`/`GO_API_KEY`/`GO_MODEL` kosong) + `rangkaiNarasiAman`. Test hijau (422).
+Provider aktif bila env `GO_*` terisi di `.env` repos. Pemeriksa angka menormalkan
+separator ribuan (`450.000`≡`450000`) & label periode ber-hyphen (`2026-08`); tervalidasi
+end-to-end ke opencode-go secara nyata.
 
 **1.23 — Modul absensi santri (RFC-017).** Tabel `absensi` (migrasi 11) +
 `repoAbsensi` + core `absensi.ts` (catat, izin superadmin/admin/pengajar) + tool

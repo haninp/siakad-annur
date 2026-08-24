@@ -3,11 +3,20 @@
 > Diperbarui di akhir setiap sesi. Berkas ini yang dibaca lebih dulu oleh agent berikutnya,
 > apa pun mereknya. STATE yang basi lebih berbahaya daripada tidak ada, karena ia dipercaya.
 
-**Terakhir diperbarui:** 23 Agustus 2026, sesi RFC-016/017 (provider LLM Go)
+**Terakhir diperbarui:** 24 Agustus 2026, sesi RFC-018 (pipeline analitik Fase 1)
 
 ---
 
 ## Yang baru selesai
+
+**1.25 — Pipeline analitik bronze/silver/gold (RFC-018, Fase 1).** `packages/analytics`
+diimplementasikan (sebelumnya stub): `bronze.ts` (snapshot OLTP→Parquet, fakta per
+`snapshot=` append-lintas-run partisi periode, mutable harian) → `silver.ts` (DuckDB
+`fact_*` + `dim_*`, `dim_santri` SCD2 dari pendaftaran) → `gold.ts` (mart `mart_ringkasan`,
+`mart_ringkasan_total`, `mart_tren_spp`, `mart_tren_absen` — padan definisi `repoLaporan`/
+`repoAbsensi`). Orkestrator `pipeline.ts` + npm `analisis:pipa`. Dep native: **`@duckdb/node-api`**
+(paket `duckdb` klasik gagal di Node 26; produksi via Docker). Test hijau (426). **Belum cutover**
+`/analisis` ke gold (Fase 2 dual-run / Fase 3 cutover menyusul).
 
 **1.24 — Kerangka LLM analisis (RFC-016, fase B), provider opencode-go.** `analisis-llm.ts`:
 pemeriksa angka (`periksaAngkaDariJson` — tolak narasi berangka di luar JSON tool) +

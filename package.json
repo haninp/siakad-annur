@@ -35,6 +35,7 @@
     "bot:wali": "npm run build && node --env-file=.env apps/bot-wali/dist/index.js",
     "tagihan:terbitkan": "npm run build && node --env-file=.env scripts/terbitkan-tagihan-bulanan.ts",
     "worker:notifikasi": "npm run build && node --env-file=.env apps/worker/dist/index.js",
+    "analisis:pipa": "npm run build && node --env-file=.env scripts/pipeline-analitik.ts",
     "selesai": "npm run build && npm run lint && npm test && node scripts/selesai.ts"
   },
   "devDependencies": {

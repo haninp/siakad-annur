@@ -33,7 +33,7 @@ export interface SkemaBronze {
 }
 
 /** Nama direktori snapshot (aman jadi nama folder). */
-function slugSnapshot(iso: string): string {
+export function slugSnapshot(iso: string): string {
   return (iso.replace(/[-:]/g, '').split('.')[0] ?? ''); // 20260824T031122
 }
 
@@ -48,20 +48,20 @@ export async function bangunBronze(s: SkemaBronze): Promise<{ ditulis: string[] 
     await conn.run(`ATTACH '${s.lokasiDb}' AS ol (TYPE sqlite, READ_ONLY)`);
     const diTulis: string[] = [];
 
-    // Fakta: append-only per periode. Pastikan folder induk ada (DuckDB tidak membuatnya).
+    // Fakta: tiap run ditulis ke folder snapshot baru (append lintas run, tanpa
+    // menimpa run sebelumnya); partisi per periode di dalamnya.
+    const snapDir = slugSnapshot(s.snapshot);
     for (const t of TABEL_FAKTA) {
-      mkdirSync(path.join(s.akarParquet, 'bronze', 'fakta', t), { recursive: true });
-      // pembayaran: periode dari tanggal; absensi: periode dari tanggal
+      const dir = path.join(s.akarParquet, 'bronze', 'fakta', t, `snapshot=${snapDir}`);
+      mkdirSync(dir, { recursive: true });
       if (t === 'pembayaran') {
         await conn.run(`COPY (SELECT *, substr(tanggal,1,7) AS _periode FROM ol.pembayaran)
-          TO '${path.join(s.akarParquet, 'bronze', 'fakta', 'pembayaran')}'
-          (FORMAT PARQUET, PARTITION_BY (_periode))`);
+          TO '${dir}' (FORMAT PARQUET, PARTITION_BY (_periode))`);
       } else if (t === 'absensi') {
         await conn.run(`COPY (SELECT *, substr(tanggal,1,7) AS _periode FROM ol.absensi)
-          TO '${path.join(s.akarParquet, 'bronze', 'fakta', 'absensi')}'
-          (FORMAT PARQUET, PARTITION_BY (_periode))`);
+          TO '${dir}' (FORMAT PARQUET, PARTITION_BY (_periode))`);
       } else {
-        await conn.run(`COPY (SELECT * FROM ol.${t}) TO '${path.join(s.akarParquet, 'bronze', 'fakta', t)}'
+        await conn.run(`COPY (SELECT * FROM ol.${t}) TO '${dir}'
           (FORMAT PARQUET, PARTITION_BY (periode))`);
       }
       diTulis.push(t);
@@ -70,8 +70,8 @@ export async function bangunBronze(s: SkemaBronze): Promise<{ ditulis: string[] 
     // Mutable: snapshot harian (folder snapshot unik).
     for (const t of TABEL_MUTABLE) {
       const dir = path.join(s.akarParquet, 'bronze', 'mutasi', t, slugSnapshot(s.snapshot));
-      mkdirSync(path.join(s.akarParquet, 'bronze', 'mutasi', t), { recursive: true });
-      await conn.run(`COPY (SELECT * FROM ol.${t}) TO '${dir}' (FORMAT PARQUET)`);
+      mkdirSync(dir, { recursive: true });
+      await conn.run(`COPY (SELECT * FROM ol.${t}) TO '${path.join(dir, 'data_0.parquet')}' (FORMAT PARQUET)`);
       diTulis.push(t);
     }
 

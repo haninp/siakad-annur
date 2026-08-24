@@ -11,6 +11,7 @@ import {
   DDL_IZIN,
   DDL_PEMAKAIAN_LEBIH_BAYAR,
 } from '@siakad/contracts';
+import { repoLaporan, repoAbsensi } from '@siakad/db';
 import { jalankanPipelineAnalitik } from './pipeline.js';
 import {
   goldPerKomponen,
@@ -98,5 +99,23 @@ describe('pipeline analitik (RFC-018): bronze→silver→gold', () => {
 
   it('snapshot slug konsisten (imura dir nama folder)', () => {
     expect(slugSnapshot(snapshot)).toBe('20260824T000000');
+  });
+
+  it('Fase 2 dual-run: gold ≡ repoLaporan/repoAbsensi pada data sama (konsistensi)', async () => {
+    const db = new DatabaseSync(lokasiDb);
+    const repo = repoLaporan(db);
+    const repoAbs = repoAbsensi(db);
+
+    const kompRepo = repo.laporanPerKomponen('2026-08').map((r) => ({ komponen: r.komponen, terbit: r.terbit, masuk: r.masuk }));
+    expect(await goldPerKomponen(lokasiDuck, '2026-08')).toEqual(kompRepo);
+
+    const ringRepo = repo.ringkasan('2026-08');
+    expect(await goldRingkasan(lokasiDuck, '2026-08')).toEqual({ terbit: ringRepo.terbit, masuk: ringRepo.masuk });
+
+    expect(await goldTrenSpp(lokasiDuck, 'S1', '2026-07', '2026-12')).toEqual(repo.trenSpp('S1', '2026-07', '2026-12'));
+    expect(await goldTrenAbsen(lokasiDuck, 'S1', '2026-08-01', '2026-08-31')).toEqual(
+      repoAbs.ringkasanPerBulan('S1', '2026-08-01', '2026-08-31'),
+    );
+    db.close();
   });
 });

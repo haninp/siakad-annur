@@ -3,7 +3,7 @@
 > Diperbarui di akhir setiap sesi. Berkas ini yang dibaca lebih dulu oleh agent berikutnya,
 > apa pun mereknya. STATE yang basi lebih berbahaya daripada tidak ada, karena ia dipercaya.
 
-**Terakhir diperbarui:** 24 Agustus 2026, sesi RFC-018 (pipeline analitik Fase 1)
+**Terakhir diperbarui:** 24 Agustus 2026, sesi RFC-018 (Fase 1+2)
 
 ---
 

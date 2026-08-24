@@ -1,6 +1,6 @@
 # Handoff 0022 — RFC-018: Pipeline Analitik (bronze/silver/gold)
 
-Tanggal: 2026-08-24 · Status: **Fase 1 SELESAI**; Fase 2/3 menunggu.
+Tanggal: 2026-08-24 · Status: **Fase 1 & Fase 2 (verifikasi konsistensi) SELESAI**; Fase 3 (cutover) menunggu.
 
 ## Fase 1 — SELESAI (implementasi & teruji)
 `packages/analytics` (sebelumnya stub) kini nyata:
@@ -26,12 +26,21 @@ Tanggal: 2026-08-24 · Status: **Fase 1 SELESAI**; Fase 2/3 menunggu.
 - `dim_santri` SCD2 dibangun dari `pendaftaran` (riwayat rombel) — bukan hanya snapshot kini.
 - Bronze fakta append per run; silver/gold baca snapshot **terkini** (`snapshot=` dir).
 
-## Fase 2 & 3 — BELUM (menunggu)
-- Fase 2 (dual-run): `/analisis` jalankan agregat dari **gold** DAN repo, bandingkan konsistensi.
-- Fase 3 (cutover): `/analisis` baca gold saja; matikan jalur baca repo dari lapisan analitik.
+## Fase 2 — SELESAI (verifikasi konsistensi dual-run)
+- Test dual-run: **gold ≡ repoLaporan/repoAbsensi** pada data sama (teribit/masuk/sisa/absen).
+  Memenuhi RFC §11 kriteria #2 (uji konsistensi) sebagai prasyarat cutover.
+- Test total hijau **427** (analytics: 5).
+
+## Fase 3 — BELUM (menunggu)
+- **Cutover**: `/analisis` baca gold saja; matikan jalur baca repo dari lapisan analitik.
 - **Jadwal snapshot harian malam** (keputusan RFC-018): pasang di worker/container (production),
   atau cron lokal — belum dipasang.
 - Backfill SCD2 dari **2024** (keputusan RFC-018) — belum dieksekusi (butuh data OLTP historis).
 
 ## Owner
 Operasional pipeline = **Superadmin** (keputusan RFC-018).
+
+## Catatan tambahan (Hani, 24 Agu 2026) — BELUM dikerjakan
+- **Master data perlu kolom `email_aktif`** untuk **wali**, **pengurus/operator**, dan **pengajar**.
+  Terpisah dari RFC-018 (bukan bagian pipeline analitik) — kandidat perubahan kontrak/skema
+  (packages/contracts) + migrasi + form/input. Catat sebagai tugas baru bila diminta.

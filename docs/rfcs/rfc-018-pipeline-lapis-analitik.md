@@ -7,14 +7,14 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Draft |
+| **Status** | Accepted |
 | **Category** | Architecture / Data Pipeline |
 | **Author** | Hani Perkasa — Data Architect |
 | **Date** | 2026-08-24 |
 | **Reviewers** | Tim core siakad (peran bot pengurus) — perlu konfirmasi siapa |
 | **Updates / Obsoletes** | — |
 | **Relates to** | RFC-016 (chat analisis), RFC-017 (absensi), ADR 0001 (SQLite↔DuckDB), ADR 0002 (OLAP 3 lapis + SCD2), RFC-002 (pipeline v14, konteks korporat — beda domain) |
-| **Decision deadline** | {{TBD — Hani set}} |
+| **Decision deadline** | 2026-08-24 (Accepted) |
 
 ## Ringkasan Eksekutif
 
@@ -67,7 +67,7 @@
 
 | Hal | Alasan dihilangkan | Kapan dievaluasi lagi |
 |---|---|---|
-| Konsumen non-`/analisis` (Metabase, Google Sheets) | Sudah disebut konsumen gold di ADR 0002, tetapi belum ada permintaan runtime; fokus dulu `/analisis` | Saat ada kebutuhan report/tampilan eksternal |
+| Konsumen non-`/analisis` (Metabase, Google Sheets) | ~ KEPUTUSAN 2026-08-24: **sekarang.** Gold mart langsung siap dikonsumsi konsumen luar; bukan lagi out-of-scope | Sudah termasuk scope |
 | Pemodelan akademik penuh (nilai, hafalan, poin, PR) | Belum ada tabel/data — tunggu RFC skema akademik | Saat RFC akademik terbit |
 | Sinkronisasi ke platform korporat (BigQuery/base_procurement) | Domain berbeda; chapter RFC-002 korporat | Proyek terpisah |
 | dbt / incremental state / watermark | ADR 0002: tidak terpakai di skala ini, menambah Python | Tidak direncanakan |
@@ -180,7 +180,7 @@ flowchart LR
 
 ## 10. Rencana Transisi & Implementasi
 
-- **Fase 1 — Pipeline inti**: worker snapshot (bronze) + runner bronze→silver→gold untuk 3 tool awal. (Implementasi)
+- **Fase 1 — Pipeline inti**: worker snapshot (bronze) + runner bronze→silver→gold untuk 3 tool awal; backfill SCD2 dimulai **dari 2024** (keputusan Hani). (Implementasi)
 - **Fase 2 — Dual-run**: `/analisis` menjalankan agregat dari gold DAN repo; bandingkan (uji konsistensi) tanpa memutuskan alur.
 - **Fase 3 — Cutover**: `/analisis` baca gold saja; matikan jalur baca repo dari lapisan analitik.
 - **Transisi**: dual-run bertahan sampai perbedaan antar sumber = 0 pada set uji riwayat.
@@ -210,17 +210,18 @@ flowchart LR
 
 | # | Pertanyaan | Dibutuhkan dari | Deadline | Status |
 |---|---|---|---|---|
-| 1 | Frekuensi & jam snapshot default (usulan: harian malam) | Hani / Tim core | {{TBD}} | Open |
-| 2 | Gold mart menggantikan `repoLaporan`/`repoAbsensi` untuk `/analisis` — setuju cutover penuh? | Hani / Tim core | {{TBD}} | Open |
-| 3 | Siapa pemilik & penanggung jawab operasional pipeline (SLA snapshot jika gagal)? | Hani | {{TBD}} | Open |
-| 4 | Backfill awal SCD2: mulai dari periode mana? (usulan: dari mulai pipeline berjalan, sesuai ADR) | Hani / Tim Medis | {{TBD}} | Open |
-| 5 | Perlu jadwal/rutin untuk konsumen gold non-`/analisis` (Sheets/Metabase) — sekarang atau nanti? | Hani | {{TBD}} | Open |
+| 1 | Frekuensi & jam snapshot default (usulan: harian malam) | Hani / Tim core | 2026-08-24 | ✅ **Ditetapkan: harian malam** |
+| 2 | Gold mart menggantikan `repoLaporan`/`repoAbsensi` — cutover penuh? | Hani / Tim core | 2026-08-24 | ✅ **Ya — laporan dibaca dari gold** |
+| 3 | Pemilik & penanggung jawab operasional pipeline (SLA snapshot) | Hani | 2026-08-24 | ✅ **Superadmin** |
+| 4 | Backfill awal SCD2: mulai dari periode mana? | Hani / Tim Medis | 2026-08-24 | ✅ **Backfill SCD2 dari 2024** |
+| 5 | Konsumen gold non-`/analisis` (Sheets/Metabase) — sekarang atau nanti? | Hani | 2026-08-24 | ✅ **Sekarang** |
 
 ## 14. Keputusan & Sign-off
 
 | Keputusan | Oleh | Tanggal | Status |
 |---|---|---|---|
-| Bangun pipeline lapis analitik bronze/silver/gold (operasionalisasi ADR 0001/0002) | Hani Perkasa | 2026-08-24 | {{Menunggu}} |
+| Bangun pipeline lapis analitik bronze/silver/gold (operasionalisasi ADR 0001/0002) | Hani Perkasa | 2026-08-24 | **Disetujui** |
+| Snapshot harian malam; laporan baca gold; pemilik=Superadmin; backfill SCD2 dari 2024; konsumen gold non-/analisis=sekarang | Hani Perkasa | 2026-08-24 | **Disetujui** |
 
 ## 15. Referensi
 
@@ -237,6 +238,7 @@ flowchart LR
 | Tanggal | Keputusan | Pemicu | Oleh |
 |---|---|---|---|
 | 2026-08-24 | Medallion langsung sejak awal (bukan snapshot flat dulu) | Pertanyaan Hani: "parquet medallion sekalian?" — ADR 0002 sudah mengunci 3 lapis | Hani |
+| 2026-08-24 | Snapshot harian malam; gold utk laporan; owner Superadmin; backfill SCD2 dari 2024; konsumen gold non-/analisis sekarang | Review 5 open questions RFC-018 | Hani |
 
 ## Lampiran B — RFC Mini (untuk keputusan cepat)
 
@@ -245,4 +247,4 @@ flowchart LR
 **Opsi:** (A) medallion penuh sekarang — direkomendasikan; (B) flat snapshot dulu, medallion nanti (ditolak: kerja ganda, riwayat telat); (C) biarkan status quo (ditolak: melawan ADR).
 **Rekomendasi:** A — medallion penuh, karena ADR 0002 sudah menguncinya dan menghindari rework, dengan dual-run sebelum cutover.
 **Dampak jika salah:** Jika ditunda, riwayat periode yang lewat hilang permanen (SCD2 baru merekam setelah hidup).
-**Deadline:** {{TBD — Hani set}}
+**Deadline:** 2026-08-24 (Accepted)

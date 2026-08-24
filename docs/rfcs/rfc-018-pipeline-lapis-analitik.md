@@ -239,6 +239,12 @@ flowchart LR
 |---|---|---|---|
 | 2026-08-24 | Medallion langsung sejak awal (bukan snapshot flat dulu) | Pertanyaan Hani: "parquet medallion sekalian?" — ADR 0002 sudah mengunci 3 lapis | Hani |
 | 2026-08-24 | Snapshot harian malam; gold utk laporan; owner Superadmin; backfill SCD2 dari 2024; konsumen gold non-/analisis sekarang | Review 5 open questions RFC-018 | Hani |
+| 2026-08-24 | Dep ping: pakai **`@duckdb/node-api`** (bukan `duckdb` klasik) | Paket `duckdb` v1.4.4 GAGAL ter-install di Node v26 (ABI 147) — tanpa prebuild, node-gyp build dari source gagal. `@duckdb/node-api` terpasang & jalan (DuckDB + Parquet OK). **Runtime produksi via Docker** (infra/Dockerfile), Node LTS di container dalam punya prebuild → native dep tidak jadi masalah di prod | Hani/Hermes |
+
+> **Catatan implementasi (dep/runtime):** pipeline analitik dijalankan lewat **Docker** di produksi
+> (Node LTS dalam image memiliki prebuild DuckDB). Di dev (Node 26 host) gunakan `@duckdb/node-api`,
+> bukan `duckdb` klasik yang gagal compile. API baca: `connection.run()` untuk DDL/DML/COPY,
+> `connection.runAndReadAll()` + `getRowObjectsJson()` untuk membaca hasil.
 
 ## Lampiran B — RFC Mini (untuk keputusan cepat)
 

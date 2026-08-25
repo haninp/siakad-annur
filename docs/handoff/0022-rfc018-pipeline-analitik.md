@@ -44,3 +44,19 @@ Operasional pipeline = **Superadmin** (keputusan RFC-018).
 - **Master data perlu kolom `email_aktif`** untuk **wali**, **pengurus/operator**, dan **pengajar**.
   Terpisah dari RFC-018 (bukan bagian pipeline analitik) — kandidat perubahan kontrak/skema
   (packages/contracts) + migrasi + form/input. Catat sebagai tugas baru bila diminta.
+
+## Keputusan terbuka (Hani, 24 Agu 2026)
+- **Letak Parquet di Google Drive?** Pertanyaan Hani. Analisis: cocok untuk **backup/portabilitas/
+  publikasi gold**, TIDAK untuk query langsung (DuckDB tak ada konektor GDrive; lambat).
+  Pola usulan: DuckDB/Parquet lokal = sumber query; worker sinkronisasi harian malam → upload
+  bronze (baru) + ekspor gold/Sheets ke GDrive. Catatan: `packages/drive` MASIH STUB 
+  (`export const PAKET='drive'`) — butuh bangun jalur upload (Drive API). **Belum diputus.**
+
+## Handoff — lanjut develop di mesin lain (24 Agu 2026)
+- Semua kerja ter-push ke `main` (HEAD lihat `git log -1`); repo hijau (`npm run build/lint/test`,
+  **427 test**). Orientasi sesi: `npm run mulai`.
+- Kondisi terkini: `docs/STATE.md` (1.24 LLM Go, 1.25 RFC-018 Fase 1+2).
+- RFC-018: Fase 1 (bronze/silver/gold) & Fase 2 (konsistensi gold≡repo) SELESAI; tersisa Fase 3
+  (cutover /analisis ke gold), jadwal snapshot harian malam, backfill SCD2 2024 (RFC-018).
+- `packages/drive` stub; `packages/analytics` kini nyata. Dep native `@duckdb/node-api`.
+- Bot `@pengurus_rtq_annur_bot` (bot-internal) di-**stop** utk pindah mesin. Start: `/opt/data/scripts/start-bot-internal.py`; restart: `/opt/data/scripts/restart-bot-internal.sh`.
